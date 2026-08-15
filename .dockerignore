@@ -1,0 +1,17 @@
+# Mahalliy muhit — serverga kerak emas va image'ni shishiradi
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Mahalliy baza serverga ketmasin: server o'z volume'idan foydalanadi
+*.db
+*.db-journal
+
+# Sirlar hech qachon image ichiga tushmasin
+.env
+
+.git/
+.gitignore
+.DS_Store
+README.md
