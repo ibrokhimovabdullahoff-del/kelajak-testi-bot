@@ -64,6 +64,7 @@ async def main() -> None:
         await dispatcher.start_polling(bot)
     finally:
         await bot.session.close()
+        await db.close()
 
 
 if __name__ == "__main__":

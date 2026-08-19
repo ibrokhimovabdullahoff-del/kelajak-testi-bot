@@ -40,8 +40,7 @@ def bilingual_strings():
     for test in REGISTRY.values():
         for field in ("title", "tagline", "intro", "source", "minutes"):
             yield f"{test.key}.{field}", getattr(test, field)
-        for i, anchor in enumerate(test.anchors):
-            yield f"{test.key}.anchor[{i}]", anchor
+
         for key, scale in test.scales.items():
             yield f"{test.key}.{key}.name", scale.name
             if scale.note:
@@ -149,6 +148,44 @@ def check_lengths() -> None:
           ", ".join(long_ones[:4]))
 
 
+def check_answers() -> None:
+    """Har bir savolning javob variantlari to'g'ri yig'ilganini tekshiradi."""
+    problems, samples = [], []
+    for key in ORDER:
+        test = REGISTRY[key]
+        for i, item in enumerate(test.items):
+            for lang in ITEM_LANGS:
+                opts = item.answers(lang)
+                if len(opts) != 5:
+                    problems.append(f"{key}.item[{i}][{lang}]: {len(opts)} variant")
+                for opt in opts:
+                    body = opt.split(" ", 1)[1] if " " in opt else ""
+                    if not body.strip():
+                        problems.append(f"{key}.item[{i}][{lang}]: bo‘sh variant")
+                    if "{" in opt or "}" in opt:
+                        problems.append(f"{key}.item[{i}][{lang}]: shablon to‘lmagan")
+                    if "  " in opt:
+                        problems.append(f"{key}.item[{i}][{lang}]: qo‘sh probel")
+                    if len(opt) > 60:
+                        problems.append(
+                            f"{key}.item[{i}][{lang}]: juda uzun ({len(opt)})")
+                if len(set(opts)) != len(opts):
+                    problems.append(f"{key}.item[{i}][{lang}]: takroriy variant")
+            # fe'l shakli kerak bo'lgan turlarda u berilganmi
+            if item.kind in ("freq", "deg") and not (item.yes and item.no):
+                problems.append(f"{key}.item[{i}]: yes/no shakli yo‘q")
+        samples.append(f"{key}: «{tr_uz(test.items[0].text)}» → "
+                       + " / ".join(a.split(" ", 1)[1] for a in test.items[0].answers("uz")))
+
+    for line in samples:
+        print(f"  ℹ️  {line}")
+    check("javob variantlari to‘g‘ri yig‘ildi", not problems, " | ".join(problems[:4]))
+
+
+def tr_uz(value: dict) -> str:
+    return value.get("uz", "")
+
+
 def check_structure() -> None:
     check("menyu tartibi reyestrga mos", set(ORDER) == set(REGISTRY),
           f"{set(ORDER) ^ set(REGISTRY)}")
@@ -253,6 +290,8 @@ if __name__ == "__main__":
     check_plain_language()
     print("Uzunlik:")
     check_lengths()
+    print("Javob variantlari:")
+    check_answers()
     print("Tuzilma:")
     check_structure()
     print("Ball hisobi:")

@@ -4,15 +4,7 @@ Bu ham **mualliflik so'rovnomasi**. Yo'nalishlar bolalikdagi omillar bo'yicha
 nashr etilgan tadqiqotlarga mos keladi (Duncan 2007, Jones 2015, Moffitt
 2011), lekin so'rovnomaning o'zi tekshirilmagan va tashxis o'rnini bosmaydi.
 """
-from .base import Item, L, Scale, TestDef
-
-ANCHORS = [
-    L("1️⃣ Umuman to‘g‘ri emas", "1️⃣ Совсем не так"),
-    L("2️⃣ Kamdan-kam", "2️⃣ Редко"),
-    L("3️⃣ Ba’zan", "3️⃣ Иногда"),
-    L("4️⃣ Ko‘pincha", "4️⃣ Часто"),
-    L("5️⃣ To‘liq to‘g‘ri", "5️⃣ Точно так"),
-]
+from .base import Item, L, Scale, TestDef, U
 
 SCALES = {
     "boshqaruv": Scale(
@@ -168,80 +160,86 @@ SCALES = {
 }
 
 ITEMS = [
-    Item("boshqaruv", L(
-        "Farzandim biror ishni boshlasa, chalg‘imasdan oxiriga yetkazadi.",
-        "Начав дело, мой ребёнок доводит его до конца, не отвлекаясь.")),
-    Item("boshqaruv", L(
-        "U navbatini kuta oladi va «hozir emas» degan javobni qabul qiladi.",
-        "Он умеет ждать своей очереди и принимает ответ «не сейчас».")),
-    Item("boshqaruv", L(
-        "Xohlagan narsasini darhol olmasa, jahli chiqadi.",
-        "Если не получает желаемое сразу, он злится."), reverse=True),
-    Item("qiziqish", L(
-        "U ko‘p savol beradi va nima uchunligini bilishni xohlaydi.",
-        "Он много спрашивает и хочет знать, почему всё так.")),
-    Item("qiziqish", L(
-        "Kitob o‘qishni yoki kitob o‘qib berilishini yoqtiradi.",
-        "Он любит читать или слушать, когда читают ему.")),
-    Item("qiziqish", L(
-        "Yangi narsa o‘rganishni o‘zi xohlaydi, majburlash shart emas.",
-        "Он сам хочет узнавать новое, заставлять не приходится.")),
-    Item("tafakkur", L(
-        "Topshiriq qiyin bo‘lsa, «men qila olmayman» deb darrov taslim "
-        "bo‘ladi.",
-        "Если задание трудное, он сразу сдаётся: «у меня не получится»."),
-        reverse=True),
-    Item("tafakkur", L(
-        "Men uni natijasi uchun emas, mehnati uchun maqtayman.",
-        "Я хвалю его не за результат, а за старание.")),
-    Item("tafakkur", L(
-        "Xato qilsa uyalib qolmaydi, qaytadan urinib ko‘radi.",
-        "Ошибившись, он не стыдится, а пробует снова.")),
-    Item("ijtimoiy", L(
-        "Tengdoshlari bilan yaxshi til topisha oladi.",
-        "Он хорошо ладит со сверстниками.")),
-    Item("ijtimoiy", L(
-        "Boshqaning ahvolini tushunadi va achinadi.",
-        "Он понимает состояние другого и сочувствует.")),
-    Item("ijtimoiy", L(
-        "O‘z fikrini janjalsiz, so‘z bilan tushuntira oladi.",
-        "Он умеет объяснить своё мнение словами, без скандала.")),
-    Item("mehnat", L(
-        "Uyda unga doimiy yumush biriktirilgan.",
-        "У него есть постоянные обязанности по дому.")),
-    Item("mehnat", L(
-        "Yumushini eslatmasdan bajaradi.",
-        "Свои обязанности он выполняет без напоминаний.")),
-    Item("mehnat", L(
-        "Boshqalarga yordam berishni yoqtiradi.",
-        "Он любит помогать другим.")),
-    Item("oila", L(
-        "Har kuni farzandim bilan telefonsiz vaqt o‘tkazaman.",
-        "Каждый день я провожу с ребёнком время без телефона.")),
-    Item("oila", L(
-        "Uni tinglayman va fikrini so‘rayman, faqat buyruq bermayman.",
-        "Я слушаю его и спрашиваю его мнение, а не только распоряжаюсь.")),
-    Item("oila", L(
-        "Oilamizda qoidalar aniq va har doim bir xil qo‘llanadi.",
-        "В нашей семье правила понятные и всегда применяются одинаково.")),
-    Item("sogliq", L(
-        "U yetarli uxlaydi, uyqu vaqti har kuni bir xil.",
-        "Он высыпается, время сна каждый день одинаковое.")),
-    Item("sogliq", L(
-        "Kuniga ekran oldida 3 soatdan ko‘p o‘tiradi.",
-        "Он проводит перед экраном больше 3 часов в день."), reverse=True),
-    Item("sogliq", L(
-        "Harakatchan — sport yoki faol o‘yin bilan shug‘ullanadi.",
-        "Он подвижен — занимается спортом или активными играми.")),
-    Item("hissiyot", L(
-        "Xafa bo‘lsa, buni menga aytadi.",
-        "Расстроившись, он говорит мне об этом.")),
-    Item("hissiyot", L(
-        "Yangi joy yoki yangi odamdan qattiq qo‘rqmaydi.",
-        "Он не сильно боится новых мест и новых людей.")),
-    Item("hissiyot", L(
-        "Kayfiyati keskin va tez-tez o‘zgaradi.",
-        "Его настроение резко и часто меняется."), reverse=True),
+    # O'zini tuta olish
+    Item("boshqaruv", L("Farzandingiz boshlagan ishini chalg‘imasdan oxiriga yetkazadimi?",
+                        "Доводит ли ваш ребёнок начатое до конца, не отвлекаясь?"),
+         U("yetkazadi"), U("yetkazmaydi")),
+    Item("boshqaruv", L("U navbatini kuta oladimi?",
+                        "Умеет ли он дожидаться своей очереди?"),
+         U("kuta oladi"), U("kuta olmaydi")),
+    Item("boshqaruv", L("Xohlagani darhol bo‘lmasa, jahli chiqadimi?",
+                        "Злится ли он, если желаемое не выходит сразу?"),
+         U("chiqadi"), U("chiqmaydi"), reverse=True),
+    # Qiziquvchanlik
+    Item("qiziqish", L("U ko‘p savol beradimi?",
+                       "Много ли он задаёт вопросов?"),
+         U("beradi"), U("bermaydi")),
+    Item("qiziqish", L("Kitob o‘qishni yoki kitob o‘qib berilishini yoqtiradimi?",
+                       "Любит ли он читать или слушать, когда читают ему?"),
+         U("yoqtiradi"), U("yoqtirmaydi")),
+    Item("qiziqish", L("Yangi narsa o‘rganishni o‘zi xohlaydimi?",
+                       "Сам ли он хочет узнавать новое?"),
+         U("o‘zi xohlaydi"), U("o‘zi xohlamaydi")),
+    # O'sish tafakkuri
+    Item("tafakkur", L("Topshiriq qiyin bo‘lsa, darrov taslim bo‘ladimi?",
+                       "Сдаётся ли он сразу, если задание трудное?"),
+         U("taslim bo‘ladi"), U("taslim bo‘lmaydi"), reverse=True),
+    Item("tafakkur", L("Uni natijasi uchun emas, mehnati uchun maqtaysizmi?",
+                       "Хвалите ли вы его за старание, а не за результат?"),
+         U("mehnati uchun maqtayman"), U("mehnati uchun maqtamayman")),
+    Item("tafakkur", L("Xato qilsa, qaytadan urinib ko‘radimi?",
+                       "Пробует ли он снова, если ошибся?"),
+         U("urinib ko‘radi"), U("urinib ko‘rmaydi")),
+    # Tengdoshlar bilan til topishish
+    Item("ijtimoiy", L("Tengdoshlari bilan til topisha oladimi?",
+                       "Ладит ли он со сверстниками?"),
+         U("til topishadi"), U("til topisha olmaydi")),
+    Item("ijtimoiy", L("Boshqaning ahvolini tushunib, achinadimi?",
+                       "Понимает ли он состояние другого и сочувствует?"),
+         U("achinadi"), U("achinmaydi")),
+    Item("ijtimoiy", L("O‘z fikrini janjalsiz, so‘z bilan tushuntira oladimi?",
+                       "Умеет ли он объяснить своё мнение словами, без скандала?"),
+         U("tushuntira oladi"), U("tushuntira olmaydi")),
+    # Mehnatsevarlik
+    Item("mehnat", L("Uyda unga doimiy yumush biriktirilganmi?",
+                     "Есть ли у него постоянные обязанности по дому?"),
+         kind="yesno"),
+    Item("mehnat", L("Yumushini eslatmasdan bajaradimi?",
+                     "Выполняет ли он обязанности без напоминаний?"),
+         U("eslatmasdan bajaradi"), U("eslatmasdan bajarmaydi")),
+    Item("mehnat", L("Boshqalarga yordam berishni yoqtiradimi?",
+                     "Любит ли он помогать другим?"),
+         U("yoqtiradi"), U("yoqtirmaydi")),
+    # Uydagi muhit
+    Item("oila", L("Har kuni farzandingiz bilan telefonsiz vaqt o‘tkazasizmi?",
+                   "Проводите ли вы каждый день время с ребёнком без телефона?"),
+         U("o‘tkazaman"), U("o‘tkazmayman")),
+    Item("oila", L("Uni tinglab, fikrini so‘raysizmi?",
+                   "Слушаете ли вы его и спрашиваете его мнение?"),
+         U("so‘rayman"), U("so‘ramayman")),
+    Item("oila", L("Oilangizda qoidalar har doim bir xil qo‘llanadimi?",
+                   "Правила в вашей семье применяются всегда одинаково?"),
+         U("bir xil"), U("bir xil emas"), kind="deg"),
+    # Uyqu va harakat
+    Item("sogliq", L("U yetarli uxlaydimi?",
+                     "Высыпается ли он?"),
+         U("yetarli uxlaydi"), U("yetarli uxlamaydi")),
+    Item("sogliq", L("Kuniga ekran oldida 3 soatdan ko‘p o‘tiradimi?",
+                     "Проводит ли он перед экраном больше 3 часов в день?"),
+         U("o‘tiradi"), U("o‘tirmaydi"), reverse=True),
+    Item("sogliq", L("Sport yoki faol o‘yin bilan shug‘ullanadimi?",
+                     "Занимается ли он спортом или активными играми?"),
+         U("shug‘ullanadi"), U("shug‘ullanmaydi")),
+    # Hissiy holat
+    Item("hissiyot", L("Xafa bo‘lsa, buni sizga aytadimi?",
+                       "Говорит ли он вам, когда расстроен?"),
+         U("aytadi"), U("aytmaydi")),
+    Item("hissiyot", L("Yangi joy yoki yangi odamdan qattiq qo‘rqadimi?",
+                       "Сильно ли он боится новых мест и новых людей?"),
+         U("qo‘rqadi"), U("qo‘rqmaydi"), reverse=True),
+    Item("hissiyot", L("Kayfiyati keskin va tez-tez o‘zgaradimi?",
+                       "Резко и часто ли меняется его настроение?"),
+         U("o‘zgaradi"), U("o‘zgarmaydi"), reverse=True),
 ]
 
 TEST = TestDef(
@@ -278,7 +276,6 @@ TEST = TestDef(
     ),
     validated=False,
     kind="index",
-    anchors=ANCHORS,
     scales=SCALES,
     items=ITEMS,
     minutes=L("4–6 daqiqa", "4–6 минут"),

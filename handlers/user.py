@@ -1,6 +1,7 @@
 """Foydalanuvchi oqimi: til, testlar menyusi, savollar, natija."""
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from aiogram import F, Router
@@ -27,6 +28,26 @@ class Quiz(StatesGroup):
 
 
 # --- Yordamchilar -----------------------------------------------------------
+
+
+async def _awaited(awaitable):
+    """asyncio.gather uchun o'ram.
+
+    aiogram'ning `message.answer()` va `callback.answer()` korutina emas,
+    metod obyektini qaytaradi — ularni to'g'ridan-to'g'ri gather ga berib
+    bo'lmaydi. Shu o'ram ularni korutinaga aylantiradi.
+    """
+    return await awaitable
+
+
+async def parallel(*awaitables):
+    """Bir nechta Telegram so'rovini bir vaqtda yuboradi.
+
+    Ketma-ket yuborilganda har bir so'rov tarmoqni alohida kutadi. Bittasi
+    ~150 ms bo'lsa, ikkitasi 300 ms bo‘lardi; parallel yuborilganda esa
+    ikkalasi birga ~150 ms da tugaydi.
+    """
+    return await asyncio.gather(*(_awaited(a) for a in awaitables))
 
 
 async def safe_edit(message: Message, text: str, reply_markup=None) -> None:
@@ -96,7 +117,8 @@ def card_text(test_key: str, lang: str) -> str:
 
 
 async def show_menu(message: Message, lang: str, edit: bool = True) -> None:
-    text, markup = t("menu", lang), kb.main_menu(lang)
+    markup = kb.main_menu(lang, await db.disabled_tests())
+    text = t("menu", lang)
     if edit:
         await safe_edit(message, text, reply_markup=markup)
     else:
@@ -109,10 +131,14 @@ async def start_quiz(
 ) -> None:
     await state.update_data(test_key=test_key, age_group=age_group, answers=[])
     await state.set_state(Quiz.answering)
-    await safe_edit(message, card_text(test_key, lang))
-    await message.answer(
-        question_text(test_key, 0, lang),
-        reply_markup=kb.answer_menu(test_key, 0, lang),
+    # Boshlanishni yozamiz — keyin nechtasi tugatgani bilan solishtiriladi.
+    await db.log_start(message.chat.id, test_key)
+    await parallel(
+        safe_edit(message, card_text(test_key, lang)),
+        message.answer(
+            question_text(test_key, 0, lang),
+            reply_markup=kb.answer_menu(test_key, 0, lang),
+        ),
     )
 
 
@@ -149,7 +175,7 @@ async def cmd_help(message: Message, lang: str) -> None:
 @router.message(Command("bekor", "cancel"))
 async def cmd_cancel(message: Message, state: FSMContext, lang: str) -> None:
     await state.clear()
-    await message.answer(t("cancelled", lang), reply_markup=kb.main_menu(lang))
+    await message.answer(t("cancelled", lang), reply_markup=kb.main_menu(lang, await db.disabled_tests()))
 
 
 @router.message(Command("natijalar", "results"))
@@ -214,7 +240,7 @@ async def nav_history(callback: CallbackQuery, lang: str) -> None:
 @router.callback_query(F.data == "nav:cancel")
 async def nav_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     await state.clear()
-    await safe_edit(callback.message, t("cancelled", lang), reply_markup=kb.main_menu(lang))
+    await safe_edit(callback.message, t("cancelled", lang), reply_markup=kb.main_menu(lang, await db.disabled_tests()))
     await callback.answer()
 
 
@@ -224,8 +250,9 @@ async def nav_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> N
 @router.callback_query(F.data.startswith("test:"))
 async def show_card(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     test_key = callback.data.split(":", 1)[1]
-    if test_key not in REGISTRY:
+    if test_key not in REGISTRY or test_key in await db.disabled_tests():
         await callback.answer()
+        await show_menu(callback.message, lang)
         return
     await state.clear()
     await safe_edit(
@@ -256,8 +283,9 @@ async def show_source(callback: CallbackQuery, lang: str) -> None:
 async def begin(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     test_key = callback.data.split(":", 1)[1]
     test = REGISTRY.get(test_key)
-    if not test:
+    if not test or test_key in await db.disabled_tests():
         await callback.answer()
+        await show_menu(callback.message, lang)
         return
 
     await state.clear()
@@ -319,12 +347,16 @@ async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
 
     test = REGISTRY[test_key]
     if len(answers) < test.size:
-        await safe_edit(
-            callback.message,
-            question_text(test_key, len(answers), lang),
-            reply_markup=kb.answer_menu(test_key, len(answers), lang),
+        # Ikkala so'rov Telegram'ga PARALLEL ketadi. Ketma-ket yuborilganda
+        # har bosish ikki marta tarmoq kutardi (~340 ms); endi bittasi.
+        await parallel(
+            callback.answer(),
+            safe_edit(
+                callback.message,
+                question_text(test_key, len(answers), lang),
+                reply_markup=kb.answer_menu(test_key, len(answers), lang),
+            ),
         )
-        await callback.answer()
         return
 
     await finish(callback, state, test_key, lang, data.get("age_group"), answers)
@@ -342,12 +374,14 @@ async def go_back(callback: CallbackQuery, state: FSMContext, lang: str) -> None
 
     answers.pop()
     await state.update_data(answers=answers)
-    await safe_edit(
-        callback.message,
-        question_text(test_key, len(answers), lang),
-        reply_markup=kb.answer_menu(test_key, len(answers), lang),
+    await parallel(
+        callback.answer(),
+        safe_edit(
+            callback.message,
+            question_text(test_key, len(answers), lang),
+            reply_markup=kb.answer_menu(test_key, len(answers), lang),
+        ),
     )
-    await callback.answer()
 
 
 async def finish(

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 import logging
 
 from aiogram import Bot, F, Router
@@ -9,13 +11,13 @@ from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import BaseFilter, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
 import database as db
 import keyboards as kb
 from config import is_admin
 from locales import tr
-from psytests import REGISTRY
+from psytests import ORDER, REGISTRY
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +60,7 @@ async def show_stats(callback: CallbackQuery) -> None:
         "",
         f"📝 Jami testlar: <b>{data['tests']:.0f}</b>",
         f"📅 Bugun: <b>{data['tests_today']:.0f}</b>",
+        f"🟢 Hozir test yechayotganlar: <b>{await db.active_now():.0f}</b>",
     ]
 
     if data["per_test"]:
@@ -70,6 +73,12 @@ async def show_stats(callback: CallbackQuery) -> None:
             if row["avg"] is not None:
                 line += f" · o‘rtacha <b>{row['avg']:.1f}</b>"
             lines.append(line)
+
+    daily = await db.daily(7)
+    if daily:
+        lines += ["", "<b>Oxirgi kunlar</b> (yangi / test):"]
+        for day, users, results in daily:
+            lines.append(f"<code>{day}</code>  {users} / {results}")
 
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_menu())
     await callback.answer()
@@ -171,4 +180,162 @@ async def do_broadcast(callback: CallbackQuery, state: FSMContext, bot: Bot) -> 
         f"Bloklagan: <b>{blocked}</b>\n"
         f"Xatolik: <b>{failed}</b>",
         reply_markup=kb.admin_menu(),
+    )
+
+
+# --- Bosh sahifa ------------------------------------------------------------
+
+
+@router.callback_query(F.data == "adm:home")
+async def admin_home(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    await callback.message.edit_text("🛠 <b>Admin panel</b>", reply_markup=kb.admin_menu())
+    await callback.answer()
+
+
+# --- Tugatish darajasi ------------------------------------------------------
+
+
+@router.callback_query(F.data == "adm:funnel")
+async def show_funnel(callback: CallbackQuery) -> None:
+    rows = await db.funnel()
+    lines = ["📈 <b>Tugatish darajasi</b>", "",
+             "<i>Boshlagan → tugatgan. Past foiz = test uzun yoki zerikarli.</i>", ""]
+    if not rows:
+        lines.append("Hali ma’lumot yo‘q.")
+    for row in rows:
+        test = REGISTRY.get(row["key"])
+        title = tr(test.title, "uz") if test else row["key"]
+        emoji = test.emoji if test else "•"
+        rate = f"{row['rate']:.0f}%" if row["rate"] is not None else "—"
+        line = f"{emoji} <b>{title}</b>\n   {row['starts']} boshladi → {row['done']} tugatdi · <b>{rate}</b>"
+        if row["avg"] is not None:
+            line += f" · o‘rtacha ball {row['avg']:.1f}"
+        lines.append(line)
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_back())
+    await callback.answer()
+
+
+# --- Foydalanuvchilar -------------------------------------------------------
+
+
+@router.callback_query(F.data == "adm:users")
+async def show_users(callback: CallbackQuery) -> None:
+    rows = await db.recent_users()
+    lines = ["👥 <b>Oxirgi qo‘shilganlar</b>", ""]
+    if not rows:
+        lines.append("Hali foydalanuvchi yo‘q.")
+    for row in rows:
+        name = (row["full_name"] or "?")[:24]
+        uname = f"@{row['username']}" if row["username"] else f"id{row['user_id']}"
+        flag = {"uz": "🇺🇿", "ru": "🇷🇺"}.get(row["lang"] or "", "❔")
+        lines.append(
+            f"{flag} <b>{name}</b> · {uname} · {row['tests']} test "
+            f"· <i>{(row['created_at'] or '')[:10]}</i>"
+        )
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_back())
+    await callback.answer()
+
+
+# --- Testlarni boshqarish ---------------------------------------------------
+
+
+@router.callback_query(F.data == "adm:tests")
+async def list_tests(callback: CallbackQuery) -> None:
+    off = await db.disabled_tests()
+    text = (
+        "🧩 <b>Testlarni boshqarish</b>\n\n"
+        "🟢 — foydalanuvchilarga ko‘rinadi\n"
+        "🔴 — menyudan yashirilgan\n\n"
+        "Testni tanlab, savollarini ko‘rishingiz yoki vaqtincha "
+        "o‘chirib qo‘yishingiz mumkin."
+    )
+    await callback.message.edit_text(text, reply_markup=kb.admin_tests(off))
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("admtest:"))
+async def show_test(callback: CallbackQuery) -> None:
+    key = callback.data.split(":", 1)[1]
+    test = REGISTRY.get(key)
+    if not test:
+        await callback.answer()
+        return
+    off = await db.disabled_tests()
+    rows = await db.funnel()
+    stat = next((r for r in rows if r["key"] == key), None)
+
+    lines = [
+        f"{test.emoji} <b>{tr(test.title, 'uz')}</b>",
+        "🔴 Hozir o‘chirilgan" if key in off else "🟢 Hozir yoqilgan",
+        "",
+        f"Savollar: <b>{test.size}</b> · yo‘nalishlar: <b>{len(test.scales)}</b>",
+        f"Teskari savollar: <b>{sum(1 for i in test.items if i.reverse)}</b>",
+    ]
+    if stat:
+        rate = f"{stat['rate']:.0f}%" if stat["rate"] is not None else "—"
+        lines.append(f"Boshlagan: <b>{stat['starts']}</b> · tugatgan: "
+                     f"<b>{stat['done']}</b> ({rate})")
+    await callback.message.edit_text(
+        "\n".join(lines), reply_markup=kb.admin_test_one(key, key in off))
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("admtoggle:"))
+async def toggle(callback: CallbackQuery) -> None:
+    key = callback.data.split(":", 1)[1]
+    if key not in REGISTRY:
+        await callback.answer()
+        return
+    enabled = await db.toggle_test(key)
+    await callback.answer("🟢 Yoqildi" if enabled else "🔴 O‘chirildi", show_alert=True)
+    await show_test(callback)
+
+
+PER_PAGE = 8
+
+
+@router.callback_query(F.data.startswith("admq:"))
+async def show_questions(callback: CallbackQuery) -> None:
+    _, key, raw_page = callback.data.split(":")
+    test = REGISTRY.get(key)
+    if not test:
+        await callback.answer()
+        return
+    page = int(raw_page)
+    pages = (test.size + PER_PAGE - 1) // PER_PAGE
+    chunk = test.items[page * PER_PAGE:(page + 1) * PER_PAGE]
+
+    lines = [f"{test.emoji} <b>{tr(test.title, 'uz')}</b> — "
+             f"savollar {page * PER_PAGE + 1}–{page * PER_PAGE + len(chunk)} "
+             f"/ {test.size}", ""]
+    for i, item in enumerate(chunk, start=page * PER_PAGE + 1):
+        mark = " <i>(teskari)</i>" if item.reverse else ""
+        lines.append(f"<b>{i}. {tr(item.text, 'uz')}</b>{mark}")
+        lines.append("   " + " · ".join(
+            a.split(" ", 1)[1] for a in item.answers("uz")))
+        lines.append("")
+    await callback.message.edit_text(
+        "\n".join(lines), reply_markup=kb.admin_questions(key, page, pages))
+    await callback.answer()
+
+
+# --- Eksport ----------------------------------------------------------------
+
+
+@router.callback_query(F.data == "adm:export")
+async def export(callback: CallbackQuery) -> None:
+    await callback.answer("Tayyorlanmoqda…")
+    rows = await db.export_results()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["sana", "user_id", "username", "til", "test",
+                     "yosh_guruhi", "umumiy_ball", "shkalalar"])
+    for row in rows:
+        writer.writerow(row)
+    data = buf.getvalue().encode("utf-8-sig")  # Excel uchun BOM
+    await callback.message.answer_document(
+        BufferedInputFile(data, filename="natijalar.csv"),
+        caption=f"📥 {len(rows)} ta natija",
+        reply_markup=kb.admin_back(),
     )

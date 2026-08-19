@@ -4,18 +4,14 @@ Manba: International Personality Item Pool (ipip.ori.org), Goldberg (1992).
 IPIP elementlari **ochiq mulk (public domain)** — ruxsatsiz va to'lovsiz
 nusxalash, tarjima qilish va tijorat maqsadida ishlatish mumkin.
 
-Bu — botdagi yagona to'liq validatsiyadan o'tgan asbob. Shu sababli natijada
-umumiy "ball" chiqarilmaydi: Big Five odamni yaxshi-yomonga ajratmaydi.
-"""
-from .base import Item, L, Scale, TestDef
+Elementlar mazmuni asl manbadagidek, lekin ular gap emas, SAVOL shaklida
+beriladi va javoblar savolning fe'lini takrorlaydi. Sabab: mavhum
+"to'liq to'g'ri" shkalasini oddiy foydalanuvchi tushunmaydi.
 
-ANCHORS = [
-    L("1️⃣ Umuman to‘g‘ri emas", "1️⃣ Совсем не про меня"),
-    L("2️⃣ Ko‘proq to‘g‘ri emas", "2️⃣ Скорее не про меня"),
-    L("3️⃣ Bilmayman", "3️⃣ Не знаю"),
-    L("4️⃣ Ko‘proq to‘g‘ri", "4️⃣ Скорее про меня"),
-    L("5️⃣ To‘liq to‘g‘ri", "5️⃣ Точно про меня"),
-]
+Bu — botdagi yagona to'liq tekshirilgan asbob. Shu sababli natijada umumiy
+"ball" chiqarilmaydi: Big Five odamni yaxshi-yomonga ajratmaydi.
+"""
+from .base import Item, L, Scale, TestDef, U
 
 SCALES = {
     "E": Scale(
@@ -171,90 +167,109 @@ SCALES = {
 }
 
 # IPIP Big-Five Factor Markers, 50 element. Tartib asl manbadagidek.
+# Gaplar savol shakliga o'tkazilgan, javoblar har bir savolning fe'lini
+# takrorlaydi — mavhum "to'liq to'g'ri" o'rniga.
 ITEMS = [
-    Item("E", L("Davra men bilan jonlanadi.", "С моим приходом компания оживает.")),
-    Item("A", L("Boshqalarning ahvoli meni kam qiziqtiradi.",
-                "Меня мало волнует, что происходит с другими."), reverse=True),
-    Item("C", L("Har doim tayyor bo‘laman.", "Я всегда подготовлен.")),
-    Item("S", L("Tez asabga tegaman.", "Я легко впадаю в стресс."), reverse=True),
-    Item("O", L("So‘z boyligim katta.", "У меня богатый словарный запас.")),
-    Item("E", L("Ko‘p gapirmayman.", "Я мало говорю."), reverse=True),
-    Item("A", L("Odamlar menga qiziq.", "Мне интересны люди.")),
-    Item("C", L("Narsalarimni joyiga qo‘ymay tashlab ketaman.",
-                "Я разбрасываю свои вещи."), reverse=True),
-    Item("S", L("Ko‘p vaqt o‘zimni tinch his qilaman.",
-                "Большую часть времени я спокоен.")),
-    Item("O", L("Mavhum fikrlarni tushunish menga qiyin.",
-                "Мне трудно понимать абстрактные идеи."), reverse=True),
-    Item("E", L("Odamlar orasida o‘zimni erkin his qilaman.",
-                "Мне комфортно среди людей.")),
-    Item("A", L("Odamning ko‘nglini og‘ritadigan gap aytib yuboraman.",
-                "Я могу задеть человека словом."), reverse=True),
-    Item("C", L("Mayda narsalarga ham e’tibor beraman.",
-                "Я обращаю внимание на детали.")),
-    Item("S", L("Ko‘p narsadan tashvishlanaman.",
-                "Я много о чём тревожусь."), reverse=True),
-    Item("O", L("Xayolim boy.", "У меня живое воображение.")),
-    Item("E", L("Ko‘zga tashlanmay, chetda turishni yoqtiraman.",
-                "Предпочитаю оставаться в тени."), reverse=True),
-    Item("A", L("Boshqalarning ahvoliga achinaman.",
-                "Я сочувствую переживаниям других.")),
-    Item("C", L("Ishni chalkashtirib yuboraman.",
-                "Я всё запутываю и порчу."), reverse=True),
-    Item("S", L("Kayfiyatim kamdan-kam tushadi.", "Мне редко бывает грустно.")),
-    Item("O", L("Mavhum fikrlar meni qiziqtirmaydi.",
-                "Абстрактные идеи меня не интересуют."), reverse=True),
-    Item("E", L("Gapni birinchi bo‘lib o‘zim boshlayman.",
-                "Я первым начинаю разговор.")),
-    Item("A", L("Boshqalarning muammosi bilan qiziqmayman.",
-                "Меня не интересуют чужие проблемы."), reverse=True),
-    Item("C", L("Yumushlarni darrov bajaraman.", "Я сразу выполняю дела.")),
-    Item("S", L("Meni osongina bezovta qilish mumkin.",
-                "Меня легко вывести из равновесия."), reverse=True),
-    Item("O", L("Menda zo‘r fikrlar paydo bo‘ladi.",
-                "У меня появляются отличные идеи.")),
-    Item("E", L("Aytadigan gapim kam bo‘ladi.",
-                "Мне обычно нечего сказать."), reverse=True),
-    Item("A", L("Ko‘nglim yumshoq.", "У меня мягкое сердце.")),
-    Item("C", L("Narsani joyiga qaytarib qo‘yishni ko‘pincha unutaman.",
-                "Я часто забываю класть вещи на место."), reverse=True),
-    Item("S", L("Tez xafa bo‘laman.", "Я легко расстраиваюсь."), reverse=True),
-    Item("O", L("Xayolim unchalik kuchli emas.",
-                "Воображение у меня слабое."), reverse=True),
-    Item("E", L("To‘yu tadbirlarda ko‘p odam bilan gaplashaman.",
-                "На мероприятиях я общаюсь со многими людьми.")),
-    Item("A", L("Ochig‘i, boshqalar meni qiziqtirmaydi.",
-                "По правде говоря, другие люди мне неинтересны."), reverse=True),
-    Item("C", L("Tartibni yoqtiraman.", "Я люблю порядок.")),
-    Item("S", L("Kayfiyatim tez-tez o‘zgaradi.",
-                "Моё настроение часто меняется."), reverse=True),
-    Item("O", L("Narsalarni tez tushunaman.", "Я быстро всё схватываю.")),
-    Item("E", L("O‘zimga e’tibor tortishni yoqtirmayman.",
-                "Я не люблю привлекать к себе внимание."), reverse=True),
-    Item("A", L("Boshqalar uchun vaqt ajrataman.", "Я нахожу время для других.")),
-    Item("C", L("Vazifamdan bo‘yin tovlayman.",
-                "Я уклоняюсь от своих обязанностей."), reverse=True),
-    Item("S", L("Kayfiyatim keskin o‘zgarib turadi.",
-                "У меня бывают резкие перепады настроения."), reverse=True),
-    Item("O", L("Og‘ir so‘zlarni ishlataman.", "Я использую сложные слова.")),
-    Item("E", L("E’tibor markazida bo‘lish meni qiynamaydi.",
-                "Быть в центре внимания меня не смущает.")),
-    Item("A", L("Boshqalarning kayfiyatini sezib turaman.",
-                "Я чувствую настроение других людей.")),
-    Item("C", L("Belgilangan jadvalga amal qilaman.",
-                "Я придерживаюсь расписания.")),
-    Item("S", L("Tez jahlim chiqadi.", "Я легко раздражаюсь."), reverse=True),
-    Item("O", L("O‘ylanib o‘tirishni yoqtiraman.",
-                "Я люблю размышлять над вещами.")),
-    Item("E", L("Notanish odam oldida kamgap bo‘lib qolaman.",
-                "С незнакомыми людьми я молчалив."), reverse=True),
-    Item("A", L("Odamlar mening yonimda o‘zini erkin his qiladi.",
-                "Рядом со мной людям спокойно.")),
-    Item("C", L("Ishimda aniqlikni talab qilaman.",
-                "В работе я требователен к точности.")),
-    Item("S", L("Ko‘pincha xafa bo‘lib yuraman.",
-                "Мне часто бывает тоскливо."), reverse=True),
-    Item("O", L("Boshim fikrlarga to‘la.", "Я полон идей.")),
+    Item("E", L("Davra siz bilan jonlanadimi?", "Компания оживает с вашим приходом?"),
+         U("jonlanadi"), U("jonlanmaydi")),
+    Item("A", L("Boshqalarning ahvoliga befarqmisiz?", "Вам безразлично, что происходит с другими?"),
+         U("befarqman"), U("befarq emasman"), kind="deg", reverse=True),
+    Item("C", L("Ishga tayyor holda kirishasizmi?", "Вы приступаете к делу подготовленным?"),
+         U("tayyor bo‘laman"), U("tayyor bo‘lmayman")),
+    Item("S", L("Tez asabiylashasizmi?", "Вы легко впадаете в стресс?"),
+         U("asabiylashaman"), U("asabiylashmayman"), reverse=True),
+    Item("O", L("So‘z boyligingiz kattami?", "У вас богатый словарный запас?"),
+         U("katta"), U("katta emas"), kind="deg"),
+    Item("E", L("Kamgapmisiz?", "Вы немногословны?"),
+         U("kamgapman"), U("kamgap emasman"), kind="deg", reverse=True),
+    Item("A", L("Odamlar sizga qiziqmi?", "Вам интересны люди?"),
+         U("qiziq"), U("qiziq emas"), kind="deg"),
+    Item("C", L("Narsalaringizni joyiga qo‘ymay tashlab ketasizmi?", "Вы разбрасываете свои вещи?"),
+         U("tashlab ketaman"), U("tashlab ketmayman"), reverse=True),
+    Item("S", L("Ko‘p vaqt o‘zingizni tinch his qilasizmi?", "Большую часть времени вы спокойны?"),
+         U("tinchman"), U("tinch emasman"), kind="deg"),
+    Item("O", L("Mavhum fikrlarni tushunish sizga qiyinmi?", "Вам трудно понимать абстрактные идеи?"),
+         U("qiyin"), U("qiyin emas"), kind="deg", reverse=True),
+    Item("E", L("Odamlar orasida o‘zingizni erkin his qilasizmi?", "Вам комфортно среди людей?"),
+         U("erkinman"), U("erkin emasman"), kind="deg"),
+    Item("A", L("Odamning ko‘nglini og‘ritadigan gap aytib yuborasizmi?", "Вы можете задеть человека словом?"),
+         U("aytib yuboraman"), U("aytmayman"), reverse=True),
+    Item("C", L("Mayda narsalarga e’tibor berasizmi?", "Вы обращаете внимание на детали?"),
+         U("e’tibor beraman"), U("e’tibor bermayman")),
+    Item("S", L("Ko‘p narsadan tashvishlanasizmi?", "Вы много о чём тревожитесь?"),
+         U("tashvishlanaman"), U("tashvishlanmayman"), reverse=True),
+    Item("O", L("Xayolingiz boymi?", "У вас живое воображение?"),
+         U("boy"), U("boy emas"), kind="deg"),
+    Item("E", L("Chetda, ko‘zga tashlanmay turishni yoqtirasizmi?", "Вы предпочитаете оставаться в тени?"),
+         U("yoqtiraman"), U("yoqtirmayman"), reverse=True),
+    Item("A", L("Boshqalarning ahvoliga achinasizmi?", "Вы сочувствуете переживаниям других?"),
+         U("achinaman"), U("achinmayman")),
+    Item("C", L("Ishni chalkashtirib yuborasizmi?", "Вы всё запутываете и портите?"),
+         U("chalkashtiraman"), U("chalkashtirmayman"), reverse=True),
+    Item("S", L("Kayfiyatingiz tez-tez tushadimi?", "У вас часто портится настроение?"),
+         U("tushadi"), U("tushmaydi"), reverse=True),
+    Item("O", L("Chuqur, mavhum mavzular sizni qiziqtiradimi?", "Вас занимают глубокие, отвлечённые темы?"),
+         U("qiziqtiradi"), U("qiziqtirmaydi")),
+    Item("E", L("Gapni birinchi bo‘lib o‘zingiz boshlaysizmi?", "Вы первым начинаете разговор?"),
+         U("o‘zim boshlayman"), U("o‘zim boshlamayman")),
+    Item("A", L("Boshqalarning muammosidan o‘zingizni chetga olasizmi?", "Вы держитесь в стороне от чужих проблем?"),
+         U("chetga olaman"), U("chetga olmayman"), reverse=True),
+    Item("C", L("Yumushlarni darrov bajarasizmi?", "Вы сразу выполняете дела?"),
+         U("darrov bajaraman"), U("darrov bajarmayman")),
+    Item("S", L("Sizni osongina bezovta qilish mumkinmi?", "Вас легко вывести из равновесия?"),
+         U("mumkin"), U("mumkin emas"), kind="deg", reverse=True),
+    Item("O", L("Sizda zo‘r fikrlar paydo bo‘ladimi?", "У вас появляются отличные идеи?"),
+         U("paydo bo‘ladi"), U("paydo bo‘lmaydi")),
+    Item("E", L("Aytadigan gapingiz kam bo‘ladimi?", "Вам обычно нечего сказать?"),
+         U("kam bo‘ladi"), U("kam bo‘lmaydi"), reverse=True),
+    Item("A", L("Ko‘nglingiz yumshoqmi?", "У вас мягкое сердце?"),
+         U("yumshoq"), U("yumshoq emas"), kind="deg"),
+    Item("C", L("Narsani joyiga qaytarib qo‘yishni unutasizmi?", "Вы забываете класть вещи на место?"),
+         U("unutaman"), U("unutmayman"), reverse=True),
+    Item("S", L("Tez xafa bo‘lasizmi?", "Вы легко расстраиваетесь?"),
+         U("xafa bo‘laman"), U("xafa bo‘lmayman"), reverse=True),
+    Item("O", L("Xayolingiz kuchsizmi?", "Воображение у вас слабое?"),
+         U("kuchsiz"), U("kuchsiz emas"), kind="deg", reverse=True),
+    Item("E", L("To‘yu tadbirlarda ko‘p odam bilan gaplashasizmi?", "На мероприятиях вы общаетесь со многими людьми?"),
+         U("gaplashaman"), U("gaplashmayman")),
+    Item("A", L("Boshqalarning hayoti sizga qiziqmi?", "Вам интересна жизнь других людей?"),
+         U("qiziq"), U("qiziq emas"), kind="deg"),
+    Item("C", L("Tartibni yoqtirasizmi?", "Вы любите порядок?"),
+         U("yoqtiraman"), U("yoqtirmayman")),
+    Item("S", L("Kayfiyatingiz tez-tez o‘zgaradimi?", "Ваше настроение часто меняется?"),
+         U("o‘zgaradi"), U("o‘zgarmaydi"), reverse=True),
+    Item("O", L("Narsalarni tez tushunasizmi?", "Вы быстро всё схватываете?"),
+         U("tez tushunaman"), U("tez tushunmayman")),
+    Item("E", L("O‘zingizga e’tibor tortishdan qochasizmi?", "Вы избегаете привлекать к себе внимание?"),
+         U("qochaman"), U("qochmayman"), reverse=True),
+    Item("A", L("Boshqalar uchun vaqt ajratasizmi?", "Вы находите время для других?"),
+         U("ajrataman"), U("ajratmayman")),
+    Item("C", L("Vazifangizdan bo‘yin tovlaysizmi?", "Вы уклоняетесь от своих обязанностей?"),
+         U("bo‘yin tovlayman"), U("bo‘yin tovlamayman"), reverse=True),
+    Item("S", L("Kayfiyatingiz keskin o‘zgarib turadimi?", "У вас бывают резкие перепады настроения?"),
+         U("o‘zgarib turadi"), U("o‘zgarmaydi"), reverse=True),
+    Item("O", L("Og‘ir, murakkab so‘zlarni ishlatasizmi?", "Вы используете сложные слова?"),
+         U("ishlataman"), U("ishlatmayman")),
+    Item("E", L("E’tibor markazida bo‘lishni yoqtirasizmi?", "Вам нравится быть в центре внимания?"),
+         U("yoqtiraman"), U("yoqtirmayman")),
+    Item("A", L("Boshqalarning kayfiyatini sezib turasizmi?", "Вы чувствуете настроение других людей?"),
+         U("sezaman"), U("sezmayman")),
+    Item("C", L("Belgilangan jadvalga amal qilasizmi?", "Вы придерживаетесь расписания?"),
+         U("amal qilaman"), U("amal qilmayman")),
+    Item("S", L("Tez jahlingiz chiqadimi?", "Вы легко раздражаетесь?"),
+         U("chiqadi"), U("chiqmaydi"), reverse=True),
+    Item("O", L("O‘ylanib o‘tirishni yoqtirasizmi?", "Вы любите размышлять?"),
+         U("yoqtiraman"), U("yoqtirmayman")),
+    Item("E", L("Notanish odam oldida kamgap bo‘lib qolasizmi?", "С незнакомыми людьми вы молчаливы?"),
+         U("bo‘lib qolaman"), U("bo‘lib qolmayman"), reverse=True),
+    Item("A", L("Odamlar yoningizda o‘zini erkin his qiladimi?", "Рядом с вами людям спокойно?"),
+         U("erkin his qiladi"), U("erkin his qilmaydi")),
+    Item("C", L("Ishingizda aniqlikni talab qilasizmi?", "В работе вы требовательны к точности?"),
+         U("talab qilaman"), U("talab qilmayman")),
+    Item("S", L("Ko‘pincha ichingiz siqiladimi?", "Вам часто бывает тоскливо?"),
+         U("siqiladi"), U("siqilmaydi"), reverse=True),
+    Item("O", L("Boshingiz fikrlarga to‘lami?", "Вы полны идей?"),
+         U("to‘la"), U("to‘la emas"), kind="deg"),
 ]
 
 TEST = TestDef(
@@ -267,32 +282,35 @@ TEST = TestDef(
     ),
     intro=L(
         "Bu — botdagi <b>yagona to‘liq tekshirilgan</b> test.\n\n"
-        "Har bir gap sizga qanchalik <b>to‘g‘ri kelishini</b> belgilang. "
-        "To‘g‘ri javob yo‘q — o‘zingizni qanday ko‘rsatmoqchi ekaningizni "
-        "emas, aslida qandayligingizni belgilang.\n\n"
+        "50 ta savol beriladi. Har biriga o‘zingizga qarab javob bering — "
+        "to‘g‘ri javob yo‘q. Qanday ko‘rinmoqchi ekaningizni emas, aslida "
+        "qandayligingizni belgilang.\n\n"
         "Umumiy ball bo‘lmaydi: Big Five odamni yaxshi-yomonga ajratmaydi, "
         "u beshta alohida o‘lchov bo‘yicha profil beradi.",
         "Это <b>единственный полностью проверенный</b> тест в боте.\n\n"
-        "Отметьте, насколько каждое утверждение <b>про вас</b>. Правильных "
-        "ответов нет — отмечайте не то, каким хотите казаться, а то, какой вы "
-        "есть.\n\n"
+        "Будет 50 вопросов. Отвечайте про себя — правильных ответов нет. "
+        "Отмечайте не то, каким хотите казаться, а то, какой вы есть.\n\n"
         "Общего балла не будет: Big Five не делит людей на хороших и плохих, "
         "он даёт профиль по пяти отдельным шкалам.",
     ),
     source=L(
         "IPIP Big-Five Factor Markers (50 element), Goldberg, 1992. "
         "International Personality Item Pool — ochiq mulk (public domain). "
-        "Big Five modeli minglab tadqiqotda sinalgan va bugungi akademik "
-        "psixologiyada shaxsiyatning asosiy modeli hisoblanadi.",
+        "Big Five modeli minglab tadqiqotda sinalgan.\n\n"
+        "Bir narsani ochiq aytamiz: elementlar mazmuni asl manbadan olingan, "
+        "lekin ular o‘zbek tiliga o‘girilgan va savol shakliga keltirilgan, "
+        "javob variantlari ham soddalashtirilgan. Bu tushunarlilikni "
+        "oshiradi, lekin natija asl inglizcha variantning aynan o‘zi emas.",
         "IPIP Big-Five Factor Markers (50 пунктов), Goldberg, 1992. "
         "International Personality Item Pool — общественное достояние "
-        "(public domain). Модель Big Five проверена в тысячах исследований и "
-        "является основной моделью личности в современной академической "
-        "психологии.",
+        "(public domain). Модель Big Five проверена в тысячах исследований.\n\n"
+        "Скажем прямо: содержание пунктов взято из оригинала, но они "
+        "переведены и переформулированы в виде вопросов, а варианты ответов "
+        "упрощены. Это повышает понятность, но результат не идентичен "
+        "оригинальной англоязычной версии.",
     ),
     validated=True,
     kind="traits",
-    anchors=ANCHORS,
     scales=SCALES,
     items=ITEMS,
     minutes=L("7–10 daqiqa", "7–10 минут"),

@@ -19,9 +19,11 @@ def language_menu() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def main_menu(lang: str) -> InlineKeyboardMarkup:
+def main_menu(lang: str, disabled: set[str] | None = None) -> InlineKeyboardMarkup:
+    disabled = disabled or set()
+    shown = [k for k in ORDER if k not in disabled]
     builder = InlineKeyboardBuilder()
-    for key in ORDER:
+    for key in shown:
         test = REGISTRY[key]
         builder.button(
             text=f"{test.emoji} {tr(test.title, lang)}",
@@ -30,7 +32,7 @@ def main_menu(lang: str) -> InlineKeyboardMarkup:
     builder.button(text=t("btn_results", lang), callback_data="nav:history")
     builder.button(text=t("btn_about", lang), callback_data="nav:about")
     builder.button(text=t("btn_language", lang), callback_data="nav:lang")
-    builder.adjust(*([1] * len(ORDER)), 2, 1)
+    builder.adjust(*([1] * len(shown)), 2, 1)
     return builder.as_markup()
 
 
@@ -61,10 +63,11 @@ def age_menu(subject: str, lang: str) -> InlineKeyboardMarkup:
 
 
 def answer_menu(test_key: str, index: int, lang: str) -> InlineKeyboardMarkup:
-    test = REGISTRY[test_key]
+    """Javob tugmalari — har bir savol o'z variantlarini beradi."""
+    item = REGISTRY[test_key].items[index]
     builder = InlineKeyboardBuilder()
-    for value, anchor in enumerate(test.anchors):
-        builder.button(text=tr(anchor, lang), callback_data=f"ans:{index}:{value}")
+    for value, text in enumerate(item.answers(lang)):
+        builder.button(text=text, callback_data=f"ans:{index}:{value}")
     builder.adjust(1)
     row = []
     if index > 0:
@@ -100,8 +103,61 @@ def back_to_menu(lang: str) -> InlineKeyboardMarkup:
 def admin_menu() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Statistika", callback_data="adm:stats")
+    builder.button(text="📈 Tugatish darajasi", callback_data="adm:funnel")
+    builder.button(text="👥 Oxirgi foydalanuvchilar", callback_data="adm:users")
+    builder.button(text="🧩 Testlarni boshqarish", callback_data="adm:tests")
+    builder.button(text="📥 Natijalarni yuklab olish", callback_data="adm:export")
     builder.button(text="📣 Xabar yuborish", callback_data="adm:broadcast")
+    builder.adjust(2, 2, 1, 1)
+    return builder.as_markup()
+
+
+def admin_back() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⬅️ Admin panel", callback_data="adm:home")
+    return builder.as_markup()
+
+
+def admin_tests(disabled: set[str]) -> InlineKeyboardMarkup:
+    """Har bir test uchun: ko'rish va yoqish/o'chirish."""
+    builder = InlineKeyboardBuilder()
+    for key in ORDER:
+        test = REGISTRY[key]
+        mark = "🔴" if key in disabled else "🟢"
+        builder.button(
+            text=f"{mark} {test.emoji} {tr(test.title, 'uz')}",
+            callback_data=f"admtest:{key}",
+        )
+    builder.button(text="⬅️ Admin panel", callback_data="adm:home")
     builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_test_one(test_key: str, disabled: bool, page: int = 0) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🟢 Yoqish" if disabled else "🔴 O‘chirish",
+        callback_data=f"admtoggle:{test_key}",
+    )
+    builder.button(text="📄 Savollarni ko‘rish", callback_data=f"admq:{test_key}:0")
+    builder.button(text="⬅️ Testlar", callback_data="adm:tests")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_questions(test_key: str, page: int, pages: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    row = []
+    if page > 0:
+        row.append(InlineKeyboardButton(
+            text="⬅️", callback_data=f"admq:{test_key}:{page - 1}"))
+    if page + 1 < pages:
+        row.append(InlineKeyboardButton(
+            text="➡️", callback_data=f"admq:{test_key}:{page + 1}"))
+    if row:
+        builder.row(*row)
+    builder.row(InlineKeyboardButton(
+        text="⬅️ Testga qaytish", callback_data=f"admtest:{test_key}"))
     return builder.as_markup()
 
 

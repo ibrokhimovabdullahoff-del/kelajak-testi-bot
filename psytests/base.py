@@ -1,7 +1,30 @@
 """Testlar uchun umumiy tuzilma: element, shkala, test ta'rifi va ball hisobi.
 
-Bu yerda hech qanday matn yo'q — faqat mexanika. Har bir test o'z faylida
-ta'riflanadi va `psytests/__init__.py` dagi REGISTRY ga qo'shiladi.
+Bu yerda hech qanday savol matni yo'q — faqat mexanika. Har bir test o'z
+faylida ta'riflanadi va `psytests/__init__.py` dagi REGISTRY ga qo'shiladi.
+
+JAVOB VARIANTLARI HAQIDA
+------------------------
+Avval hamma savolga bir xil mavhum javob berilardi ("To'liq to'g'ri").
+Psixolog mutaxassis to'g'ri ta'kidladi: oddiy odam bunday shkalani tushunmaydi,
+chunki gapni eslab turib, uning ustiga "to'g'ri/noto'g'ri" ni joylashtirish
+kerak bo'ladi.
+
+Endi har bir savol SAVOL shaklida beriladi va javoblar o'sha savolning
+fe'lini takrorlaydi:
+
+    "Davra siz bilan jonlanadimi?"
+        Umuman jonlanmaydi / Kamdan-kam / Bilmayman /
+        Ko'pincha jonlanadi / Ha, doim jonlanadi
+
+Buning uchun har bir element `yes` va `no` shakllarini beradi, javoblar esa
+shablondan yig'iladi. Ikki xil shablon bor:
+
+    "freq" — xatti-harakat uchun (necha marta): Umuman / Kamdan-kam / Ko'pincha
+    "deg"  — holat yoki xususiyat uchun (qanchalik): Umuman / Unchalik / Juda
+
+Ball hisobi o'zgarmadi: baribir 0..4, shuning uchun eski natijalar bilan
+solishtirsa bo'ladi.
 """
 from __future__ import annotations
 
@@ -9,20 +32,85 @@ from dataclasses import dataclass, field
 
 LANGS = ("uz", "ru")
 
+#: Javob shablonlari. {yes} va {no} har bir savolning o'z shakli bilan
+#: almashtiriladi. Bo'sh joy qolmasligi uchun ortiqcha probel tozalanadi.
+TEMPLATES = {
+    "freq": {
+        "uz": ["Umuman {no}", "Kamdan-kam", "Bilmayman", "Ko‘pincha {yes}",
+               "Ha, doim {yes}"],
+        "ru": ["Совсем нет", "Редко", "Не знаю", "Часто", "Да, всегда"],
+    },
+    "deg": {
+        "uz": ["Umuman {no}", "Unchalik emas", "Bilmayman", "Ha, {yes}",
+               "Ha, juda {yes}"],
+        "ru": ["Совсем нет", "Не очень", "Не знаю", "Да", "Да, очень"],
+    },
+    # "Bormi?" turidagi savollar uchun — bu yerda fe'lni takrorlash
+    # ("Ha, juda bor") g'aliz chiqadi, shuning uchun oddiy darajali ha/yo'q.
+    "yesno": {
+        "uz": ["Yo‘q", "Ko‘proq yo‘q", "Bilmayman", "Ko‘proq ha", "Ha, aniq"],
+        "ru": ["Нет", "Скорее нет", "Не знаю", "Скорее да", "Да, точно"],
+    },
+    # Qiziqish so'ralganda (kasb testi) fe'l takrorlanmaydi — savolning o'zi
+    # mashg'ulot nomi bo'ladi.
+    "interest": {
+        "uz": ["Umuman qiziq emas", "Unchalik qiziq emas", "Farqi yo‘q",
+               "Qiziq", "Juda qiziq"],
+        "ru": ["Совсем не интересно", "Не очень интересно", "Всё равно",
+               "Интересно", "Очень интересно"],
+    },
+}
+
+#: Javob tugmalari oldidagi raqamlar.
+DIGITS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
+
+MAX_ANSWER = len(DIGITS) - 1
+
 
 def L(uz: str, ru: str) -> dict[str, str]:
     """Ikki tilli matn."""
     return {"uz": uz, "ru": ru}
 
 
+def U(uz: str) -> dict[str, str]:
+    """Faqat o'zbekcha shakl.
+
+    Javob variantlaridagi fe'l takrori faqat o'zbek tilida kerak: rus tilida
+    savolga "Совсем нет / Часто / Да, всегда" deb javob berish o'z-o'zidan
+    tabiiy chiqadi, fe'lni takrorlash shart emas.
+    """
+    return {"uz": uz}
+
+
 @dataclass(frozen=True)
 class Item:
-    """Bitta savol (element)."""
+    """Bitta savol.
+
+    text — savol shaklida ("... -mi?")
+    yes  — tasdiq shakli, javobga qo'yiladi ("jonlanadi")
+    no   — inkor shakli ("jonlanmaydi")
+    kind — "freq" (necha marta) yoki "deg" (qanchalik) yoki "interest"
+    """
 
     scale: str
     text: dict[str, str]
-    #: True bo'lsa javob teskari hisoblanadi: (max - javob).
+    yes: dict[str, str] | None = None
+    no: dict[str, str] | None = None
+    kind: str = "freq"
+    #: True bo'lsa javob teskari hisoblanadi: (MAX_ANSWER - javob).
     reverse: bool = False
+
+    def answers(self, lang: str) -> list[str]:
+        """Shu savol uchun javob variantlari matni."""
+        template = TEMPLATES[self.kind][lang]
+        yes = (self.yes or {}).get(lang, "")
+        no = (self.no or {}).get(lang, "")
+        out = []
+        for i, raw in enumerate(template):
+            text = raw.format(yes=yes, no=no)
+            text = " ".join(text.split())  # ortiqcha probellarni olib tashlash
+            out.append(f"{DIGITS[i]} {text}")
+        return out
 
 
 @dataclass(frozen=True)
@@ -36,7 +124,7 @@ class Scale:
     levels: dict[str, dict[str, str]] = field(default_factory=dict)
     #: Umumiy indeksga qo'shadigan hissasi ("index" turidagi testlar uchun).
     weight: float = 1.0
-    #: Ixtiyoriy: shkala nima bashorat qilishi haqida bir jumla.
+    #: Ixtiyoriy: shkala nima ko'rsatishi haqida bir jumla.
     note: dict[str, str] | None = None
 
 
@@ -45,32 +133,22 @@ class TestDef:
     key: str
     emoji: str
     title: dict[str, str]
-    #: Menyudagi bir qatorlik izoh.
     tagline: dict[str, str]
-    #: Testdan oldingi ko'rsatma.
     intro: dict[str, str]
-    #: Savollar qayerdan olingani — foydalanuvchiga ochiq ko'rsatiladi.
     source: dict[str, str]
-    #: True — nashr etilgan, validatsiyadan o'tgan asbob.
-    #: False — ilmiy topilmalarga asoslangan mualliflik so'rovnomasi.
+    #: True — nashr etilgan, tekshirilgan asbob.
     validated: bool
-    #: "traits"    — profil, umumiy ball chiqarilmaydi (Big Five)
-    #: "index"     — og'irlangan umumiy ball chiqariladi
-    #: "interests" — eng yuqori 3 ta yo'nalish kodi (RIASEC)
+    #: "traits" | "index" | "interests"
     kind: str
-    #: Javob variantlari matni (past -> yuqori tartibda).
-    anchors: list[dict[str, str]]
     scales: dict[str, Scale]
     items: list[Item]
     minutes: dict[str, str]
-    #: Ixtiyoriy: yosh guruhini so'rash kerakmi.
     ask_age: bool = True
-    #: Ixtiyoriy: kimning nomidan javob berilishi ("self" yoki "child").
     subject: str = "self"
 
     @property
     def max_answer(self) -> int:
-        return len(self.anchors) - 1
+        return MAX_ANSWER
 
     @property
     def size(self) -> int:
@@ -87,11 +165,11 @@ def score(test: TestDef, answers: list[int]) -> dict:
 
     raw: dict[str, list[int]] = {key: [] for key in test.scales}
     for item, answer in zip(test.items, answers):
-        value = test.max_answer - answer if item.reverse else answer
+        value = MAX_ANSWER - answer if item.reverse else answer
         raw[item.scale].append(value)
 
     per_scale = {
-        key: (sum(v) / (len(v) * test.max_answer) * 100) if v else 0.0
+        key: (sum(v) / (len(v) * MAX_ANSWER) * 100) if v else 0.0
         for key, v in raw.items()
     }
 
@@ -107,18 +185,12 @@ def score(test: TestDef, answers: list[int]) -> dict:
         weights = sum(test.scales[key].weight for key in per_scale)
         result["total"] = round(
             sum(per_scale[key] * test.scales[key].weight for key in per_scale)
-            / weights,
-            1,
-        )
+            / weights, 1)
     return result
 
 
 def level_of(percent: float) -> str:
-    """Foizni "low" / "mid" / "high" darajasiga o'tkazadi.
-
-    Chegaralar Big Five uchun odatdagi taqsimotga yaqin olingan: aholining
-    katta qismi o'rta oraliqqa tushadi, chetlar esa ancha tor.
-    """
+    """Foizni "low" / "mid" / "high" darajasiga o'tkazadi."""
     if percent >= 65:
         return "high"
     if percent <= 35:

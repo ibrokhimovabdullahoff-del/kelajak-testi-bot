@@ -122,6 +122,8 @@ async def main() -> int:
     check("ommaviy xabar ro‘yxati ishlaydi",
           await db.all_user_ids() == [TEST_USER])
 
+    await db.close()
+
     print()
     if FAILURES:
         print(f"❌ {len(FAILURES)} ta muammo: {FAILURES}")

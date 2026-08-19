@@ -27,7 +27,9 @@ class UserContext(BaseMiddleware):
             return await handler(event, data)
 
         if isinstance(event, (Message, CallbackQuery)):
-            await db.upsert_user(user.id, user.username, user.full_name)
+            # /start da majburan yozamiz, qolganda kesh hal qiladi.
+            force = isinstance(event, Message) and (event.text or "").startswith("/start")
+            await db.upsert_user(user.id, user.username, user.full_name, force=force)
 
         lang = await db.get_lang(user.id)
         data["lang_known"] = lang in LANGS

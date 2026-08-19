@@ -308,6 +308,7 @@ async def main() -> int:
           last_text()[-80:])
 
     await bot.session.close()
+    await db.close()
 
     print()
     if FAILURES:

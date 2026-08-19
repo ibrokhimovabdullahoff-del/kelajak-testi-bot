@@ -5,15 +5,7 @@ uzoq muddatli kuzatuvlarda hayotdagi natija bilan bog'liqligi topilgan
 xususiyatga mos keladi, lekin so'rovnomaning o'zi alohida psixometrik
 sinovdan o'tmagan. Bu foydalanuvchiga ham ochiq aytiladi.
 """
-from .base import Item, L, Scale, TestDef
-
-ANCHORS = [
-    L("1️⃣ Umuman to‘g‘ri emas", "1️⃣ Совсем не про меня"),
-    L("2️⃣ Kamdan-kam", "2️⃣ Редко"),
-    L("3️⃣ Ba’zan", "3️⃣ Иногда"),
-    L("4️⃣ Ko‘pincha", "4️⃣ Часто"),
-    L("5️⃣ To‘liq to‘g‘ri", "5️⃣ Точно про меня"),
-]
+from .base import Item, L, Scale, TestDef, U
 
 SCALES = {
     "maqsad": Scale(
@@ -202,109 +194,98 @@ SCALES = {
 
 ITEMS = [
     # Maqsad va qat'iyat
-    Item("maqsad", L(
-        "Katta maqsadim bor — oylab, yillab bo‘lsa ham men undan voz "
-        "kechmayman.",
-        "У меня есть большая цель, и я не отказываюсь от неё, даже если идти "
-        "к ней месяцами и годами.")),
-    Item("maqsad", L(
-        "Boshlagan ishimni qiyinlashsa ham oxiriga yetkazaman.",
-        "Начатое я довожу до конца, даже если стало трудно.")),
-    Item("maqsad", L(
-        "Yangi qiziq narsa chiqishi bilan eski maqsadimni tashlab ketaman.",
-        "Как только появляется что-то новое и интересное, я бросаю прежнюю "
-        "цель."), reverse=True),
-    # Intizom
-    Item("intizom", L(
-        "Kunimni oldindan rejalashtiraman va rejaga amal qilaman.",
-        "Я планирую день заранее и следую плану.")),
-    Item("intizom", L(
-        "Bergan va’damni o‘z vaqtida bajaraman.",
-        "Я выполняю обещания в срок.")),
-    Item("intizom", L(
-        "Muhim ishni oxirgi kunga qoldiraman.",
-        "Важные дела я откладываю на последний день."), reverse=True),
+    Item("maqsad", L("Yillab intiladigan katta maqsadingiz bormi?",
+                     "Есть ли у вас большая цель, к которой вы идёте годами?"),
+         kind="yesno"),
+    Item("maqsad", L("Boshlagan ishingizni qiyinlashsa ham oxiriga yetkazasizmi?",
+                     "Доводите ли вы начатое до конца, даже когда стало трудно?"),
+         U("yetkazaman"), U("yetkazmayman")),
+    Item("maqsad", L("Yangi qiziq narsa chiqishi bilan eski maqsadingizni tashlab ketasizmi?",
+                     "Бросаете ли вы прежнюю цель, как только появляется что-то новое?"),
+         U("tashlab ketaman"), U("tashlab ketmayman"), reverse=True),
+    # Intizom va mas'uliyat
+    Item("intizom", L("Kuningizni oldindan rejalashtirasizmi?",
+                      "Планируете ли вы день заранее?"),
+         U("rejalashtiraman"), U("rejalashtirmayman")),
+    Item("intizom", L("Bergan va’dangizni o‘z vaqtida bajarasizmi?",
+                      "Выполняете ли вы обещания в срок?"),
+         U("bajaraman"), U("bajarmayman")),
+    Item("intizom", L("Muhim ishni oxirgi kunga qoldirasizmi?",
+                      "Откладываете ли вы важные дела на последний день?"),
+         U("qoldiraman"), U("qoldirmayman"), reverse=True),
     # O'sish va o'rganish
-    Item("tafakkur", L(
-        "Qobiliyat tug‘ma emas — mehnat bilan o‘stirsa bo‘ladi deb "
-        "hisoblayman.",
-        "Я считаю, что способности не даны от рождения — их можно развить "
-        "трудом.")),
-    Item("tafakkur", L(
-        "Xatolarim meni to‘xtatmaydi, men ulardan saboq olaman.",
-        "Ошибки меня не останавливают, я извлекаю из них урок.")),
-    Item("tafakkur", L(
-        "Har hafta yangi bir narsa o‘rganaman (kitob, kurs, amaliyot).",
-        "Каждую неделю я узнаю что-то новое (книга, курс, практика).")),
+    Item("tafakkur", L("Qobiliyatni mehnat bilan o‘stirsa bo‘ladi deb hisoblaysizmi?",
+                       "Считаете ли вы, что способности можно развить трудом?"),
+         kind="yesno"),
+    Item("tafakkur", L("Xatolaringizdan saboq olasizmi?",
+                       "Извлекаете ли вы урок из своих ошибок?"),
+         U("saboq olaman"), U("saboq olmayman")),
+    Item("tafakkur", L("Har hafta yangi bir narsa o‘rganasizmi?",
+                       "Узнаёте ли вы каждую неделю что-то новое?"),
+         U("o‘rganaman"), U("o‘rganmayman")),
     # O'zini tuta olish
-    Item("nazorat", L(
-        "Katta natija uchun bugungi zavqdan voz kecha olaman.",
-        "Ради большого результата я могу отказаться от удовольствия "
-        "сегодня.")),
-    Item("nazorat", L(
-        "Telefon va ijtimoiy tarmoq meni ishimdan tez chalg‘itadi.",
-        "Телефон и соцсети быстро отвлекают меня от работы."), reverse=True),
-    Item("nazorat", L(
-        "Jahlim chiqqanda ham o‘zimni tuta olaman.",
-        "Даже разозлившись, я могу себя сдержать.")),
+    Item("nazorat", L("Katta natija uchun bugungi zavqdan voz kecha olasizmi?",
+                      "Можете ли отказаться от удовольствия сегодня ради большого результата?"),
+         U("voz kecha olaman"), U("voz kecha olmayman")),
+    Item("nazorat", L("Telefon va ijtimoiy tarmoq sizni ishdan chalg‘itadimi?",
+                      "Отвлекают ли вас телефон и соцсети от работы?"),
+         U("chalg‘itadi"), U("chalg‘itmaydi"), reverse=True),
+    Item("nazorat", L("Jahlingiz chiqqanda o‘zingizni tuta olasizmi?",
+                      "Можете ли вы сдержаться, когда разозлились?"),
+         U("tuta olaman"), U("tuta olmayman")),
     # O'ziga bog'liqlik hissi
-    Item("mustaqillik", L(
-        "Hayotimdagi natija ko‘p jihatdan mening qarorimga bog‘liq.",
-        "Результаты в моей жизни во многом зависят от моих решений.")),
-    Item("mustaqillik", L(
-        "Ishim yurishmasa, avval o‘zimdan sabab qidiraman.",
-        "Если не получается, причину я ищу сначала в себе.")),
-    Item("mustaqillik", L(
-        "Ahvolim ko‘proq omadga va boshqa odamlarga bog‘liq deb o‘ylayman.",
-        "Я думаю, что моё положение больше зависит от удачи и других людей."),
-        reverse=True),
+    Item("mustaqillik", L("Hayotingizdagi natija ko‘proq o‘z qaroringizga bog‘liqmi?",
+                          "Результат в вашей жизни больше зависит от ваших решений?"),
+         U("bog‘liq"), U("bog‘liq emas"), kind="deg"),
+    Item("mustaqillik", L("Ishingiz yurishmasa, avval o‘zingizdan sabab qidirasizmi?",
+                          "Если не получается, ищете ли вы причину сначала в себе?"),
+         U("o‘zimdan qidiraman"), U("o‘zimdan qidirmayman")),
+    Item("mustaqillik", L("Ahvolingiz ko‘proq omadga va boshqalarga bog‘liq deb o‘ylaysizmi?",
+                          "Думаете ли вы, что ваше положение больше зависит от удачи и других?"),
+         kind="yesno", reverse=True),
     # Odamlar bilan aloqa
-    Item("muloqot", L(
-        "Qiyin paytda menga rostdan yordam beradigan yaqinlarim bor.",
-        "У меня есть близкие, которые в трудный момент помогут по-настоящему.")),
-    Item("muloqot", L(
-        "Yangi odam bilan tanishish men uchun oson.",
-        "Мне легко знакомиться с новыми людьми.")),
-    Item("muloqot", L(
-        "Menda o‘zimdan tajribaliroq ustoz yoki maslahatchi bor.",
-        "У меня есть наставник или советчик опытнее меня.")),
+    Item("muloqot", L("Qiyin paytda rostdan yordam beradigan yaqinlaringiz bormi?",
+                      "Есть ли близкие, которые в трудный момент правда помогут?"),
+         kind="yesno"),
+    Item("muloqot", L("Yangi odam bilan tanishish sizga osonmi?",
+                      "Легко ли вам знакомиться с новыми людьми?"),
+         U("oson"), U("oson emas"), kind="deg"),
+    Item("muloqot", L("Sizdan tajribaliroq ustoz yoki maslahatchingiz bormi?",
+                      "Есть ли у вас наставник или советчик опытнее вас?"),
+         kind="yesno"),
     # Bardoshlilik
-    Item("bardosh", L(
-        "Ishim yurishmay qolsa, tez o‘zimni qo‘lga olaman.",
-        "После неудачи я быстро прихожу в себя.")),
-    Item("bardosh", L(
-        "Vaziyat og‘ir bo‘lsa ham aniq fikrlay olaman.",
-        "Даже в тяжёлой ситуации я сохраняю ясность мышления.")),
-    Item("bardosh", L(
-        "Kelajak haqida o‘ylasam, ko‘proq xavotir bosadi.",
-        "Когда я думаю о будущем, чаще всего накрывает тревога."),
-        reverse=True),
+    Item("bardosh", L("Ishingiz yurishmay qolsa, tez o‘zingizni qo‘lga olasizmi?",
+                      "Быстро ли вы приходите в себя после неудачи?"),
+         U("tez qo‘lga olaman"), U("tez qo‘lga ololmayman")),
+    Item("bardosh", L("Vaziyat og‘ir bo‘lsa ham aniq fikrlay olasizmi?",
+                      "Сохраняете ли вы ясность мышления в тяжёлой ситуации?"),
+         U("fikrlay olaman"), U("fikrlay olmayman")),
+    Item("bardosh", L("Kelajak haqida o‘ylasangiz, xavotir bosadimi?",
+                      "Когда думаете о будущем, накрывает ли тревога?"),
+         U("bosadi"), U("bosmaydi"), reverse=True),
     # Uyqu va tana
-    Item("uyqu", L(
-        "Har kuni deyarli bir vaqtda yotib, bir vaqtda turaman.",
-        "Я ложусь и встаю примерно в одно и то же время.")),
-    Item("uyqu", L(
-        "Ertalab o‘zimni dam olgan va tetik his qilaman.",
-        "По утрам я чувствую себя отдохнувшим.")),
-    Item("uyqu", L(
-        "Uxlash vaqti kelganda ham telefonni qo‘ymayman.",
-        "Когда пора спать, я всё равно не откладываю телефон."), reverse=True),
-    Item("uyqu", L(
-        "Haftada kamida uch marta jismoniy harakat qilaman.",
-        "Я двигаюсь физически хотя бы три раза в неделю.")),
+    Item("uyqu", L("Uyqu vaqtingiz har kuni bir xilmi?",
+                   "Одинаковое ли у вас время сна каждый день?"),
+         U("bir xil"), U("bir xil emas"), kind="deg"),
+    Item("uyqu", L("Ertalab o‘zingizni dam olgan his qilasizmi?",
+                   "Чувствуете ли вы себя отдохнувшим по утрам?"),
+         U("dam olgan bo‘laman"), U("dam olgan bo‘lmayman")),
+    Item("uyqu", L("Uxlash vaqti kelganda ham telefonda o‘tirib qolasizmi?",
+                   "Засиживаетесь ли вы в телефоне, когда уже пора спать?"),
+         U("o‘tirib qolaman"), U("o‘tirib qolmayman"), reverse=True),
+    Item("uyqu", L("Haftada kamida uch marta jismoniy harakat qilasizmi?",
+                   "Двигаетесь ли вы физически хотя бы три раза в неделю?"),
+         U("qilaman"), U("qilmayman")),
     # Ichki boylik
-    Item("ichki", L(
-        "Hayotimda aniq ma’no va yo‘nalish bor.",
-        "В моей жизни есть ясный смысл и направление.")),
-    Item("ichki", L(
-        "Borimga shukr qilaman, boshqalarnikiga qarab o‘zimni kam his "
-        "qilmayman.",
-        "Я благодарен за то, что имею, и не чувствую себя хуже, глядя на "
-        "других.")),
-    Item("ichki", L(
-        "Baxt ko‘proq pul va narsalarga bog‘liq deb o‘ylayman.",
-        "Я думаю, что счастье больше зависит от денег и вещей."),
-        reverse=True),
+    Item("ichki", L("Hayotingizda aniq ma’no va yo‘nalish bormi?",
+                    "Есть ли в вашей жизни ясный смысл и направление?"),
+         kind="yesno"),
+    Item("ichki", L("Boringizga shukr qila olasizmi?",
+                    "Умеете ли вы быть благодарным за то, что имеете?"),
+         U("shukr qilaman"), U("shukr qilmayman")),
+    Item("ichki", L("Baxt ko‘proq pul va narsalarga bog‘liq deb o‘ylaysizmi?",
+                    "Думаете ли вы, что счастье больше зависит от денег и вещей?"),
+         kind="yesno", reverse=True),
 ]
 
 TEST = TestDef(
@@ -344,7 +325,6 @@ TEST = TestDef(
     ),
     validated=False,
     kind="index",
-    anchors=ANCHORS,
     scales=SCALES,
     items=ITEMS,
     minutes=L("5–7 daqiqa", "5–7 минут"),

@@ -40,6 +40,26 @@ jihatdan noto‘g‘ri qilib qo‘yardi.
 
 ---
 
+## Javob variantlari
+
+Savollar **savol shaklida** beriladi va javoblar o‘sha savolning fe‘lini
+takrorlaydi. Bu psixolog mutaxassisning tanqidiga javob: mavhum
+«to‘liq to‘g‘ri» shkalasini oddiy foydalanuvchi tushunmaydi.
+
+```
+Davra siz bilan jonlanadimi?
+  1️⃣ Umuman jonlanmaydi
+  2️⃣ Kamdan-kam
+  3️⃣ Bilmayman
+  4️⃣ Ko‘pincha jonlanadi
+  5️⃣ Ha, doim jonlanadi
+```
+
+Variantlar `psytests/base.py` dagi to‘rtta shablondan yig‘iladi
+(`freq`, `deg`, `yesno`, `interest`), har bir savol esa faqat o‘z fe‘lining
+tasdiq va inkor shaklini beradi. Shu sababli 132 savolning javoblari
+bir xil uslubda va xatosiz chiqadi.
+
 ## Ikki til
 
 Birinchi `/start` da til so‘raladi, tanlov bazada saqlanadi. Keyin hamma
