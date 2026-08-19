@@ -48,8 +48,8 @@ TEMPLATES = {
     # "Bormi?" turidagi savollar uchun — bu yerda fe'lni takrorlash
     # ("Ha, juda bor") g'aliz chiqadi, shuning uchun oddiy darajali ha/yo'q.
     "yesno": {
-        "uz": ["Yo‘q", "Ko‘proq yo‘q", "Bilmayman", "Ko‘proq ha", "Ha, aniq"],
-        "ru": ["Нет", "Скорее нет", "Не знаю", "Скорее да", "Да, точно"],
+        "uz": ["Yo‘q", "Aniq emas", "Bilmayman", "Ha, {yes}", "Ha, aniq {yes}"],
+        "ru": ["Нет", "Не уверен", "Не знаю", "Да", "Да, точно"],
     },
     # Qiziqish so'ralganda (kasb testi) fe'l takrorlanmaydi — savolning o'zi
     # mashg'ulot nomi bo'ladi.

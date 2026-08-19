@@ -172,7 +172,7 @@ def check_answers() -> None:
                 if len(set(opts)) != len(opts):
                     problems.append(f"{key}.item[{i}][{lang}]: takroriy variant")
             # fe'l shakli kerak bo'lgan turlarda u berilganmi
-            if item.kind in ("freq", "deg") and not (item.yes and item.no):
+            if item.kind in ("freq", "deg", "yesno") and not (item.yes and item.no):
                 problems.append(f"{key}.item[{i}]: yes/no shakli yo‘q")
         samples.append(f"{key}: «{tr_uz(test.items[0].text)}» → "
                        + " / ".join(a.split(" ", 1)[1] for a in test.items[0].answers("uz")))

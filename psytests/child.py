@@ -203,7 +203,7 @@ ITEMS = [
     # Mehnatsevarlik
     Item("mehnat", L("Uyda unga doimiy yumush biriktirilganmi?",
                      "Есть ли у него постоянные обязанности по дому?"),
-         kind="yesno"),
+         U("biriktirilgan"), U("biriktirilmagan"), kind="yesno"),
     Item("mehnat", L("Yumushini eslatmasdan bajaradimi?",
                      "Выполняет ли он обязанности без напоминаний?"),
          U("eslatmasdan bajaradi"), U("eslatmasdan bajarmaydi")),
@@ -217,9 +217,9 @@ ITEMS = [
     Item("oila", L("Uni tinglab, fikrini so‘raysizmi?",
                    "Слушаете ли вы его и спрашиваете его мнение?"),
          U("so‘rayman"), U("so‘ramayman")),
-    Item("oila", L("Oilangizda qoidalar har doim bir xil qo‘llanadimi?",
-                   "Правила в вашей семье применяются всегда одинаково?"),
-         U("bir xil"), U("bir xil emas"), kind="deg"),
+    Item("oila", L("Oilangizda qoidalar bir xil qo‘llanadimi?",
+                   "Правила в вашей семье применяются одинаково?"),
+         U("bir xil qo‘llanadi"), U("bir xil qo‘llanmaydi")),
     # Uyqu va harakat
     Item("sogliq", L("U yetarli uxlaydimi?",
                      "Высыпается ли он?"),

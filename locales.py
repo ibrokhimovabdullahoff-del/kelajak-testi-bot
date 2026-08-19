@@ -21,16 +21,18 @@ STRINGS: dict[str, dict[str, str]] = {
     # --- Bosh menyu --------------------------------------------------------
     "menu": L(
         "🧠 <b>Psixologik testlar</b>\n\n"
-        "Bu yerda o‘ylab topilgan «bashorat» testlari yo‘q. Har bir test "
-        "qaysi ilmiy manbaga asoslangani ochiq ko‘rsatilgan — va qaysi biri "
-        "validatsiyadan o‘tgan asbob, qaysi biri mualliflik so‘rovnomasi "
-        "ekani ham.\n\n"
-        "Testni tanlang 👇",
+        "Jahon psixologiyasida qo‘llanadigan testlar — o‘zbek tilida, bepul.\n\n"
+        "✅ Har bir test qaysi ilmiy manbadan olingani ochiq yozilgan\n"
+        "⚡️ Natijani darhol olasiz\n"
+        "🔒 Javoblaringizni hech kim ko‘rmaydi\n\n"
+        "Qaysi biridan boshlaymiz? 👇",
         "🧠 <b>Психологические тесты</b>\n\n"
-        "Здесь нет выдуманных «предсказаний». У каждого теста открыто указан "
-        "научный источник — и то, какой из них валидированный инструмент, "
-        "а какой авторский опросник.\n\n"
-        "Выберите тест 👇",
+        "Тесты, которые используют в мировой психологии — на русском, "
+        "бесплатно.\n\n"
+        "✅ У каждого теста открыто указан научный источник\n"
+        "⚡️ Результат сразу после теста\n"
+        "🔒 Ваши ответы никто не увидит\n\n"
+        "С какого начнём? 👇",
     ),
     "btn_results": L("📈 Mening natijalarim", "📈 Мои результаты"),
     "btn_about": L("ℹ️ Bot haqida", "ℹ️ О боте"),
