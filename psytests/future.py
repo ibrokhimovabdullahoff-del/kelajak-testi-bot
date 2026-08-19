@@ -264,9 +264,9 @@ ITEMS = [
                       "Когда думаете о будущем, накрывает ли тревога?"),
          U("bosadi"), U("bosmaydi"), reverse=True),
     # Uyqu va tana
-    Item("uyqu", L("Har kuni bir vaqtda uxlaysizmi?",
-                   "Вы ложитесь спать в одно и то же время?"),
-         U("bir vaqtda uxlayman"), U("bir vaqtda uxlamayman")),
+    Item("uyqu", L("Uyqu vaqtingiz har kuni bir xilmi?",
+                   "Одинаковое ли у вас время сна каждый день?"),
+         U("bir xil"), U("bir xil emas"), kind="yesno"),
     Item("uyqu", L("Ertalab o‘zingizni dam olgan his qilasizmi?",
                    "Чувствуете ли вы себя отдохнувшим по утрам?"),
          U("dam olgan bo‘laman"), U("dam olgan bo‘lmayman")),
@@ -283,9 +283,9 @@ ITEMS = [
     Item("ichki", L("Boringizga shukr qila olasizmi?",
                     "Умеете ли вы быть благодарным за то, что имеете?"),
          U("shukr qilaman"), U("shukr qilmayman")),
-    Item("ichki", L("Baxt ko‘proq pulga bog‘liqmi?",
-                    "Счастье больше зависит от денег?"),
-         U("bog‘liq"), U("bog‘liq emas"), kind="deg", reverse=True),
+    Item("ichki", L("Baxt ko‘proq pul va narsalarga bog‘liq deb o‘ylaysizmi?",
+                    "Думаете ли вы, что счастье больше зависит от денег и вещей?"),
+         U("shunday o‘ylayman"), U("unday o‘ylamayman"), kind="yesno", reverse=True),
 ]
 
 TEST = TestDef(

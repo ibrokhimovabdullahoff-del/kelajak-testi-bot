@@ -2,8 +2,8 @@
 
 Jami: 4 ta test, 132 ta savol.
 
-Har bir savol savol shaklida beriladi va javoblar o'sha savolning
-so'zini takrorlaydi. «teskari» — javob teskari hisoblanadi.
+Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
+«teskari» — javob teskari hisoblanadi.
 
 ---
 
@@ -26,8 +26,8 @@ so'zini takrorlaydi. «teskari» — javob teskari hisoblanadi.
 **5. Gapni birinchi bo‘lib o‘zingiz boshlaysizmi?**
    Umuman boshlamayman · Kamdan-kam · Bilmayman · Ko‘pincha boshlayman · Ha, doim boshlayman
 
-**6. Aytadigan gapingiz kammi?**  *(teskari)*
-   Umuman kam emas · Unchalik emas · Bilmayman · Ha, kam · Ha, juda kam
+**6. Aytadigan gapingiz kam bo‘ladimi?**  *(teskari)*
+   Yo‘q · Aniq emas · Bilmayman · Ha, kam bo‘ladi · Ha, aniq kam bo‘ladi
 
 **7. To‘yu tadbirlarda ko‘p odam bilan gaplashasizmi?**
    Umuman gaplashmayman · Kamdan-kam · Bilmayman · Ko‘pincha gaplashaman · Ha, doim gaplashaman
@@ -38,8 +38,8 @@ so'zini takrorlaydi. «teskari» — javob teskari hisoblanadi.
 **9. E’tibor markazida bo‘lishni yoqtirasizmi?**
    Umuman yoqtirmayman · Kamdan-kam · Bilmayman · Ko‘pincha yoqtiraman · Ha, doim yoqtiraman
 
-**10. Notanish odam oldida kamgap bo‘lasizmi?**  *(teskari)*
-   Umuman kamgap bo‘lmayman · Kamdan-kam · Bilmayman · Ko‘pincha kamgap bo‘laman · Ha, doim kamgap bo‘laman
+**10. Notanish odam oldida kamgap bo‘lib qolasizmi?**  *(teskari)*
+   Umuman kamgap bo‘lib qolmayman · Kamdan-kam · Bilmayman · Ko‘pincha kamgap bo‘lib qolaman · Ha, doim kamgap bo‘lib qolaman
 
 ### 🤝 Kelishuvchanlik
 
@@ -110,31 +110,31 @@ so'zini takrorlaydi. «teskari» — javob teskari hisoblanadi.
 **31. Tez asabiylashasizmi?**  *(teskari)*
    Umuman asabiylashmayman · Kamdan-kam · Bilmayman · Ko‘pincha asabiylashaman · Ha, doim asabiylashaman
 
-**32. O‘zingizni tinch his qilasizmi?**
+**32. Ko‘p vaqt o‘zingizni tinch his qilasizmi?**
    Umuman tinch emasman · Unchalik emas · Bilmayman · Ha, tinchman · Ha, juda tinchman
 
-**33. Har narsadan tashvishlanasizmi?**  *(teskari)*
+**33. Ko‘p narsadan tashvishlanasizmi?**  *(teskari)*
    Umuman tashvishlanmayman · Kamdan-kam · Bilmayman · Ko‘pincha tashvishlanaman · Ha, doim tashvishlanaman
 
-**34. Kayfiyatingiz tushib ketadimi?**  *(teskari)*
+**34. Kayfiyatingiz tez-tez tushadimi?**  *(teskari)*
    Umuman tushmaydi · Kamdan-kam · Bilmayman · Ko‘pincha tushadi · Ha, doim tushadi
 
-**35. Sizni bezovta qilish osonmi?**  *(teskari)*
-   Umuman oson emas · Unchalik emas · Bilmayman · Ha, oson · Ha, juda oson
+**35. Sizni osongina bezovta qilish mumkinmi?**  *(teskari)*
+   Yo‘q · Aniq emas · Bilmayman · Ha, mumkin · Ha, aniq mumkin
 
 **36. Tez xafa bo‘lasizmi?**  *(teskari)*
    Umuman xafa bo‘lmayman · Kamdan-kam · Bilmayman · Ko‘pincha xafa bo‘laman · Ha, doim xafa bo‘laman
 
-**37. Kayfiyatingiz o‘zgarib turadimi?**  *(teskari)*
+**37. Kayfiyatingiz tez-tez o‘zgaradimi?**  *(teskari)*
    Umuman o‘zgarmaydi · Kamdan-kam · Bilmayman · Ko‘pincha o‘zgaradi · Ha, doim o‘zgaradi
 
-**38. Kayfiyatingiz keskin o‘zgaradimi?**  *(teskari)*
-   Umuman keskin o‘zgarmaydi · Kamdan-kam · Bilmayman · Ko‘pincha keskin o‘zgaradi · Ha, doim keskin o‘zgaradi
+**38. Kayfiyatingiz keskin o‘zgarib turadimi?**  *(teskari)*
+   Umuman o‘zgarmaydi · Kamdan-kam · Bilmayman · Ko‘pincha o‘zgarib turadi · Ha, doim o‘zgarib turadi
 
 **39. Tez jahlingiz chiqadimi?**  *(teskari)*
    Umuman chiqmaydi · Kamdan-kam · Bilmayman · Ko‘pincha chiqadi · Ha, doim chiqadi
 
-**40. Ichingiz siqiladimi?**  *(teskari)*
+**40. Ko‘pincha ichingiz siqiladimi?**  *(teskari)*
    Umuman siqilmaydi · Kamdan-kam · Bilmayman · Ko‘pincha siqiladi · Ha, doim siqiladi
 
 ### 💡 Ochiqlik va intellekt
@@ -252,8 +252,8 @@ so'zini takrorlaydi. «teskari» — javob teskari hisoblanadi.
 
 ### 😴 Uyqu va tana
 
-**22. Har kuni bir vaqtda uxlaysizmi?**
-   Umuman bir vaqtda uxlamayman · Kamdan-kam · Bilmayman · Ko‘pincha bir vaqtda uxlayman · Ha, doim bir vaqtda uxlayman
+**22. Uyqu vaqtingiz har kuni bir xilmi?**
+   Yo‘q · Aniq emas · Bilmayman · Ha, bir xil · Ha, aniq bir xil
 
 **23. Ertalab o‘zingizni dam olgan his qilasizmi?**
    Umuman dam olgan bo‘lmayman · Kamdan-kam · Bilmayman · Ko‘pincha dam olgan bo‘laman · Ha, doim dam olgan bo‘laman
@@ -272,8 +272,8 @@ so'zini takrorlaydi. «teskari» — javob teskari hisoblanadi.
 **27. Boringizga shukr qila olasizmi?**
    Umuman shukr qilmayman · Kamdan-kam · Bilmayman · Ko‘pincha shukr qilaman · Ha, doim shukr qilaman
 
-**28. Baxt ko‘proq pulga bog‘liqmi?**  *(teskari)*
-   Umuman bog‘liq emas · Unchalik emas · Bilmayman · Ha, bog‘liq · Ha, juda bog‘liq
+**28. Baxt ko‘proq pul va narsalarga bog‘liq deb o‘ylaysizmi?**  *(teskari)*
+   Yo‘q · Aniq emas · Bilmayman · Ha, shunday o‘ylayman · Ha, aniq shunday o‘ylayman
 
 ---
 
@@ -448,7 +448,7 @@ so'zini takrorlaydi. «teskari» — javob teskari hisoblanadi.
 **17. Uni tinglab, fikrini so‘raysizmi?**
    Umuman so‘ramayman · Kamdan-kam · Bilmayman · Ko‘pincha so‘rayman · Ha, doim so‘rayman
 
-**18. Oilangizda qoidalar bir xil qo‘llanadimi?**
+**18. Oilangizda qoidalar har doim bir xil qo‘llanadimi?**
    Umuman bir xil qo‘llanmaydi · Kamdan-kam · Bilmayman · Ko‘pincha bir xil qo‘llanadi · Ha, doim bir xil qo‘llanadi
 
 ### 🌙 Uyqu va harakat
