@@ -88,11 +88,40 @@ CREATE TABLE IF NOT EXISTS results (
     scales      TEXT NOT NULL,
     created_at  TEXT NOT NULL
 );
+
+-- To'lovlar. Har bir yozuv — bitta urinish; huquq faqat status='paid'
+-- bo'lgan yozuvdan kelib chiqadi.
+CREATE TABLE IF NOT EXISTS payments (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL,
+    -- Nimaga to'landi: test kaliti ("bigfive") yoki "all" — barcha testlar.
+    product       TEXT NOT NULL,
+    amount        INTEGER NOT NULL,
+    -- "click" | "manual" (admin qo'lda ochgan)
+    method        TEXT NOT NULL,
+    -- "pending" (havola berildi) | "prepared" (Click tasdiqlashni boshladi)
+    -- | "paid" | "cancelled" | "revoked"
+    status        TEXT NOT NULL,
+    click_trans_id   TEXT,
+    click_prepare_id INTEGER,
+    click_confirm_id TEXT,
+    note          TEXT,
+    reviewed_by   INTEGER,
+    created_at    TEXT NOT NULL,
+    paid_at       TEXT
+);
 """
 
 # Indekslar jadval ustunlari ko'chirilgandan KEYIN yaratiladi — eski bazada
 # test_key ustuni hali bo'lmasligi mumkin.
 _INDEXES = """
+CREATE INDEX IF NOT EXISTS idx_pay_user ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_pay_status ON payments(status);
+-- Bitta Click tranzaksiyasi ikki marta yozilmasin: Click Complete so'rovini
+-- takror yuborishi mumkin va u holda odamdan ikki marta pul yechilgandek
+-- ko'rinib qolardi.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pay_click
+    ON payments(click_trans_id) WHERE click_trans_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_results_user ON results(user_id);
 CREATE INDEX IF NOT EXISTS idx_results_created ON results(created_at);
 CREATE INDEX IF NOT EXISTS idx_results_test ON results(test_key);
@@ -476,3 +505,253 @@ async def export_results() -> list[tuple]:
         """
     )
     return list(await cursor.fetchall())
+
+
+# --- To'lovlar --------------------------------------------------------------
+
+#: "Barcha testlar" paketi. Test kalitlari bilan bir xil maydonda yashaydi,
+#: shuning uchun hech qaysi test shu nom bilan atalmasligi kerak.
+ALL_PRODUCTS = "all"
+
+#: Kim nimaga huquq olgani. Huquq faqat to'lov tasdiqlanganda o'zgaradi,
+#: shuning uchun keshni har safar tekshirib o'tirish shart emas — testni
+#: boshlashdagi bazaga murojaat butunlay yo'qoladi.
+_access_cache: dict[int, set[str]] = {}
+
+
+def _drop_access_cache(user_id: int) -> None:
+    _access_cache.pop(user_id, None)
+
+
+async def paid_products(user_id: int) -> set[str]:
+    """Foydalanuvchi sotib olgan mahsulotlar to'plami."""
+    cached = _access_cache.get(user_id)
+    if cached is not None:
+        return cached
+    db = await connect()
+    cursor = await db.execute(
+        "SELECT DISTINCT product FROM payments WHERE user_id = ? AND status = 'paid'",
+        (user_id,),
+    )
+    products = {row[0] for row in await cursor.fetchall()}
+    _access_cache[user_id] = products
+    return products
+
+
+async def has_access(user_id: int, test_key: str) -> bool:
+    """Shu testni ochish huquqi bormi.
+
+    Bepul qilib qo'yilgan testda bu funksiya chaqirilmaydi — tekshiruv
+    handlerda `free_tests()` bilan boshlanadi.
+    """
+    products = await paid_products(user_id)
+    return ALL_PRODUCTS in products or test_key in products
+
+
+async def create_payment(
+    user_id: int, product: str, amount: int, method: str
+) -> int:
+    """Yangi to'lov urinishini ochadi va uning raqamini qaytaradi.
+
+    Shu raqam Click uchun `merchant_trans_id` bo'lib xizmat qiladi.
+    """
+    db = await connect()
+    cursor = await db.execute(
+        """
+        INSERT INTO payments (user_id, product, amount, method, status, created_at)
+        VALUES (?, ?, ?, ?, 'pending', ?)
+        """,
+        (user_id, product, amount, method, _now()),
+    )
+    await db.commit()
+    return cursor.lastrowid
+
+
+async def open_payment(user_id: int, product: str, amount: int) -> dict | None:
+    """Shu mahsulot uchun hali boshlanmagan to'lov bor-yo'qligini qaraydi.
+
+    Odam "To'lash" tugmasini bir necha marta bosishi mumkin. Har safar yangi
+    buyurtma ochsak, bazada axlat yig'iladi va Click kabinetida qaysi raqam
+    haqiqiy ekani chalkashadi. Shuning uchun tegilmagan buyurtmani qayta
+    ishlatamiz — Click tasdiqlashni boshlagani ("prepared") esa qayta
+    ishlatilmaydi.
+    """
+    db = await connect()
+    cursor = await db.execute(
+        """
+        SELECT * FROM payments
+        WHERE user_id = ? AND product = ? AND amount = ? AND status = 'pending'
+        ORDER BY id DESC LIMIT 1
+        """,
+        (user_id, product, amount),
+    )
+    rows = await _dicts(cursor)
+    return rows[0] if rows else None
+
+
+async def get_payment(payment_id: int) -> dict | None:
+    db = await connect()
+    cursor = await db.execute("SELECT * FROM payments WHERE id = ?", (payment_id,))
+    rows = await _dicts(cursor)
+    return rows[0] if rows else None
+
+
+async def mark_paid(
+    payment_id: int,
+    click_confirm_id: str | None = None,
+    reviewed_by: int | None = None,
+) -> bool:
+    """To'lovni "to'langan" deb belgilaydi.
+
+    Qaytaradi: shu chaqiruv haqiqatan holatni o'zgartirdimi. False bo'lsa —
+    to'lov allaqachon to'langan. Click Complete so'rovini takror yuborishi
+    mumkin; u holda foydalanuvchiga ikkinchi marta "to'lov qabul qilindi"
+    xabari ketmasligi kerak.
+    """
+    db = await connect()
+    cursor = await db.execute(
+        """
+        UPDATE payments
+        SET status = 'paid', paid_at = ?, click_confirm_id = ?, reviewed_by = ?
+        WHERE id = ? AND status != 'paid'
+        """,
+        (_now(), click_confirm_id, reviewed_by, payment_id),
+    )
+    await db.commit()
+    if cursor.rowcount:
+        row = await get_payment(payment_id)
+        if row:
+            _drop_access_cache(row["user_id"])
+        return True
+    return False
+
+
+async def set_status(payment_id: int, status: str, reviewed_by: int | None = None) -> None:
+    db = await connect()
+    await db.execute(
+        "UPDATE payments SET status = ?, reviewed_by = ? WHERE id = ?",
+        (status, reviewed_by, payment_id),
+    )
+    await db.commit()
+
+
+async def set_click_prepare(payment_id: int, click_trans_id: str) -> None:
+    """Click Prepare bosqichida tranzaksiya raqamini bog'laydi."""
+    db = await connect()
+    await db.execute(
+        """
+        UPDATE payments
+        SET click_trans_id = ?, click_prepare_id = ?, status = 'prepared'
+        WHERE id = ?
+        """,
+        (click_trans_id, payment_id, payment_id),
+    )
+    await db.commit()
+
+
+async def grant_access(user_id: int, product: str, admin_id: int) -> None:
+    """Admin qo'lda huquq beradi — pul boshqa yo'l bilan kelgan holatlar uchun."""
+    db = await connect()
+    await db.execute(
+        """
+        INSERT INTO payments
+            (user_id, product, amount, method, status, reviewed_by, created_at, paid_at)
+        VALUES (?, ?, 0, 'manual', 'paid', ?, ?, ?)
+        """,
+        (user_id, product, admin_id, _now(), _now()),
+    )
+    await db.commit()
+    _drop_access_cache(user_id)
+
+
+async def revoke_access(user_id: int, product: str) -> int:
+    """Huquqni bekor qiladi. Qaytaradi: nechta yozuv o'zgardi."""
+    db = await connect()
+    cursor = await db.execute(
+        """
+        UPDATE payments SET status = 'revoked'
+        WHERE user_id = ? AND product = ? AND status = 'paid'
+        """,
+        (user_id, product),
+    )
+    await db.commit()
+    _drop_access_cache(user_id)
+    return cursor.rowcount
+
+
+async def payment_stats() -> dict:
+    today = datetime.now(timezone.utc).date().isoformat()
+    db = await connect()
+
+    async def one(query: str, args: tuple = ()) -> float:
+        cursor = await db.execute(query, args)
+        row = await cursor.fetchone()
+        return row[0] if row and row[0] is not None else 0
+
+    paid = "status = 'paid' AND method != 'manual'"
+    return {
+        "count": await one(f"SELECT COUNT(*) FROM payments WHERE {paid}"),
+        "sum": await one(f"SELECT SUM(amount) FROM payments WHERE {paid}"),
+        "today": await one(
+            f"SELECT COUNT(*) FROM payments WHERE {paid} "
+            "AND substr(paid_at, 1, 10) = ?", (today,),
+        ),
+        "today_sum": await one(
+            f"SELECT SUM(amount) FROM payments WHERE {paid} "
+            "AND substr(paid_at, 1, 10) = ?", (today,),
+        ),
+        "started": await one("SELECT COUNT(*) FROM payments WHERE method = 'click'"),
+        "manual": await one("SELECT COUNT(*) FROM payments WHERE method = 'manual'"),
+    }
+
+
+async def recent_payments(limit: int = 15) -> list[dict]:
+    db = await connect()
+    cursor = await db.execute(
+        """
+        SELECT p.*, u.username, u.full_name
+        FROM payments p LEFT JOIN users u ON u.user_id = p.user_id
+        ORDER BY p.id DESC LIMIT ?
+        """,
+        (limit,),
+    )
+    return await _dicts(cursor)
+
+
+# --- Pullik testlar va narxlar (admin boshqaruvi) ---------------------------
+
+
+async def free_tests() -> set[str]:
+    """Pul so'ralmaydigan testlar.
+
+    Sukut bo'yicha ro'yxat BO'SH — ya'ni hamma test pullik. Admin ayrim
+    testni ochiq qilib qo'ymoqchi bo'lsa (masalan reklama uchun), uni shu
+    ro'yxatga qo'shadi.
+    """
+    raw = await get_setting("free_tests", "")
+    return {x for x in (raw or "").split(",") if x}
+
+
+async def toggle_free_test(test_key: str) -> bool:
+    """Testni bepul/pullik qiladi. Qaytaradi: endi bepulmi."""
+    free = await free_tests()
+    if test_key in free:
+        free.discard(test_key)
+        now_free = False
+    else:
+        free.add(test_key)
+        now_free = True
+    await set_setting("free_tests", ",".join(sorted(free)))
+    return now_free
+
+
+async def price_of(product: str, default: int) -> int:
+    """Mahsulot narxi. Admin o'zgartirmagan bo'lsa .env dagi qiymat."""
+    raw = await get_setting(f"price:{product}")
+    if raw and raw.isdigit():
+        return int(raw)
+    return default
+
+
+async def set_price(product: str, amount: int) -> None:
+    await set_setting(f"price:{product}", str(amount))

@@ -14,6 +14,16 @@ os.environ["BOT_TOKEN"] = "0:test"
 os.environ["ADMIN_ID"] = "1000001"
 os.environ["DB_PATH"] = tempfile.mktemp(suffix=".db")
 
+# To'lov oqimini ham sinash uchun Click sozlangandek ko'rsatamiz. Haqiqiy
+# Click serveriga murojaat qilinmaydi — protokolning o'zi clicktest.py da
+# tekshiriladi, bu yerda faqat botning xatti-harakati muhim.
+os.environ.update(
+    CLICK_SERVICE_ID="110965",
+    CLICK_MERCHANT_ID="64192",
+    CLICK_SECRET_KEY="test-secret",
+    PUBLIC_URL="https://example.test",
+)
+
 #: Sinov uchun soxta foydalanuvchi — haqiqiy Telegram ID emas.
 TEST_USER = 1000001
 
@@ -306,6 +316,66 @@ async def main() -> int:
     await press(dp, bot, "test:bigfive")
     check("yangi foydalanuvchi ruscha ko‘rdi", "50 вопросов" in last_text(),
           last_text()[-80:])
+
+    # --- 13. To'lov to'sig'i ------------------------------------------------
+    # Eng muhim qism: pul to'lanmaguncha test ochilmasligi kerak.
+    print("13. To‘lov to‘sig‘i")
+    as_user(999, "Oddiy")
+    CALLS.clear()
+    await press(dp, bot, "lang:uz")
+    await press(dp, bot, "test:bigfive")
+    card = last_text()
+    check("kartochkada narx bor", "Narxi" in card, card[-120:])
+    labels = [b.text for b in buttons()]
+    check("«To‘lash» tugmasi chiqdi",
+          any("to‘lash" in x.lower() for x in labels), str(labels))
+    check("«Boshlash» tugmasi yo‘q",
+          not any("Boshlash" in x for x in labels), str(labels))
+
+    CALLS.clear()
+    await press(dp, bot, "go:bigfive")
+    wall = last_text()
+    check("test o‘rniga paywall chiqdi", "Bu test pullik" in wall, wall[:80])
+    check("savol berilmadi", "Savol 1" not in all_text())
+
+    CALLS.clear()
+    await press(dp, bot, "pay:bigfive")
+    pay_text = last_text()
+    check("to‘lov ekrani ochildi", "Buyurtma" in pay_text, pay_text[:80])
+    urls = [b.url for b in buttons() if b.url]
+    check("my.click.uz havolasi berildi",
+          any("my.click.uz" in (u or "") for u in urls), str(urls))
+
+    payment = (await db.recent_payments(1))[0]
+    check("to‘lov bazaga yozildi",
+          payment["user_id"] == 999 and payment["status"] == "pending", str(payment))
+
+    CALLS.clear()
+    await press(dp, bot, "ans:0:4")
+    check("to‘lovsiz savolga javob berib bo‘lmadi", "Savol 2" not in all_text())
+
+    # Click "to'landi" dedi — endi ochilishi kerak.
+    await db.mark_paid(payment["id"])
+    check("huquq berildi", await db.has_access(999, "bigfive"))
+
+    CALLS.clear()
+    await press(dp, bot, "go:bigfive")
+    # Big Five yosh so'ramaydi — to'lovdan keyin darrov savolga o'tadi.
+    check("test ochildi va savol berildi", "Savol 1" in last_text(), last_text()[:60])
+    await press(dp, bot, "ans:0:4")
+    check("javob qabul qilindi", "Savol 2" in last_text(), last_text()[:60])
+
+    CALLS.clear()
+    await press(dp, bot, "pay:bigfive")
+    alert = last("AnswerCallbackQuery")
+    check("ikkinchi marta pul so‘ralmadi",
+          alert is not None and "allaqachon ochiq" in (alert.text or ""), str(alert))
+    check("yangi buyurtma ochilmadi",
+          len(await db.recent_payments(10)) == 1, str(await db.recent_payments(10)))
+
+    CALLS.clear()
+    await press(dp, bot, "test:career")
+    check("boshqa test hamon yopiq", "Narxi" in last_text(), last_text()[-80:])
 
     await bot.session.close()
     await db.close()

@@ -28,3 +28,47 @@ BOT_USERNAME = os.getenv("BOT_USERNAME", "").lstrip("@").strip()
 
 def is_admin(user_id: int) -> bool:
     return user_id in ADMINS
+
+
+# --- To'lov: umumiy ---------------------------------------------------------
+
+#: Narxlar so'mda. Adminlar bularni panel orqali ham o'zgartira oladi —
+#: bu yerdagi qiymat faqat boshlang'ich (baza bo'sh bo'lgandagi) narx.
+DEFAULT_PRICE = int(os.getenv("PRICE_UZS", "9900"))
+DEFAULT_PRICE_ALL = int(os.getenv("PRICE_ALL_UZS", "24900"))
+
+#: Ma'lumot uchun — narx yonida ko'rsatiladigan valyuta belgisi.
+CURRENCY = "so'm"
+
+
+# --- To'lov: Click ----------------------------------------------------------
+
+CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "").strip()
+CLICK_MERCHANT_ID = os.getenv("CLICK_MERCHANT_ID", "").strip()
+CLICK_SECRET_KEY = os.getenv("CLICK_SECRET_KEY", "").strip()
+CLICK_MERCHANT_USER_ID = os.getenv("CLICK_MERCHANT_USER_ID", "").strip()
+
+#: Click serveri bizga murojaat qiladigan ochiq manzil, masalan
+#: https://kelajak-bot.up.railway.app — oxiridagi "/" olib tashlanadi.
+PUBLIC_URL = os.getenv("PUBLIC_URL", "").strip().rstrip("/")
+
+#: Prepare/Complete so'rovlarini qabul qiladigan HTTP server porti.
+#: Railway va shunga o'xshash platformalar PORT ni o'zi beradi.
+PORT = int(os.getenv("PORT", "8080"))
+
+#: Click Up ilovasiga hisob-faktura (invoice) yuborish. Buning uchun Click
+#: xizmatingizga shu metodni yoqib berishi kerak, shuning uchun alohida
+#: kalit bilan boshqariladi: yoqilmagan bo'lsa faqat to'lov havolasi ishlaydi.
+CLICK_INVOICE = os.getenv("CLICK_INVOICE", "0").strip().lower() in ("1", "true", "yes")
+
+#: Click usuli faqat hamma kalit to'liq bo'lsa ko'rinadi. PUBLIC_URL shart,
+#: chunki usiz Click to'lov haqida bizga xabar bera olmaydi va odam pulini
+#: to'lab, testni ocholmay qoladi.
+CLICK_ENABLED = bool(
+    CLICK_SERVICE_ID and CLICK_MERCHANT_ID and CLICK_SECRET_KEY and PUBLIC_URL
+)
+
+#: Testlar pullik. Click sozlanmagan bo'lsa hech kim test ocha olmaydi —
+#: bu ataylab shunday: pulsiz kirish yo'li qolmasin. Adminlar istisno,
+#: aks holda sozlashni tekshirib ko'rishning iloji bo'lmasdi.
+PAYMENTS_ENABLED = CLICK_ENABLED

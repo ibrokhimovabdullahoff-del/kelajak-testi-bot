@@ -9,8 +9,10 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
 import database as db
-from config import BOT_TOKEN, LOG_LEVEL
+import payments
+from config import BOT_TOKEN, CLICK_ENABLED, LOG_LEVEL, PUBLIC_URL
 from handlers import build_router
+from handlers.payment import notify_paid, set_bot
 
 COMMANDS = {
     "uz": [
@@ -55,14 +57,32 @@ async def main() -> None:
     dispatcher = Dispatcher(storage=MemoryStorage())
     dispatcher.include_router(build_router())
 
+    # To'lov tasdiqlanganda foydalanuvchiga xabar yuborish uchun.
+    set_bot(bot)
+
     me = await bot.get_me()
     logging.info("Ishga tushdi: @%s (id=%s)", me.username, me.id)
+
+    # Click bizga Prepare/Complete so'rovlarini yuboradi — bot esa uzun
+    # so'rov (polling) bilan ishlaydi va o'zi hech narsa tinglamaydi.
+    # Shuning uchun yonida kichik HTTP server ko'tariladi.
+    runner = await payments.run_server(on_paid=notify_paid)
+    if CLICK_ENABLED:
+        logging.info("Click prepare:  %s/click/prepare", PUBLIC_URL)
+        logging.info("Click complete: %s/click/complete", PUBLIC_URL)
+    else:
+        logging.warning(
+            "Click SOZLANMAGAN — testlar hech kimga ochilmaydi. "
+            "CLICK_SERVICE_ID, CLICK_MERCHANT_ID, CLICK_SECRET_KEY va "
+            "PUBLIC_URL ni to'ldiring."
+        )
 
     await set_commands(bot)
     await bot.delete_webhook(drop_pending_updates=True)
     try:
         await dispatcher.start_polling(bot)
     finally:
+        await runner.cleanup()
         await bot.session.close()
         await db.close()
 

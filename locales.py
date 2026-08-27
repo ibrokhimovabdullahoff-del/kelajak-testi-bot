@@ -21,14 +21,13 @@ STRINGS: dict[str, dict[str, str]] = {
     # --- Bosh menyu --------------------------------------------------------
     "menu": L(
         "🧠 <b>Psixologik testlar</b>\n\n"
-        "Jahon psixologiyasida qo‘llanadigan testlar — o‘zbek tilida, bepul.\n\n"
+        "Jahon psixologiyasida qo‘llanadigan testlar — o‘zbek tilida.\n\n"
         "✅ Har bir test qaysi ilmiy manbadan olingani ochiq yozilgan\n"
         "⚡️ Natijani darhol olasiz\n"
         "🔒 Javoblaringizni hech kim ko‘rmaydi\n\n"
         "Qaysi biridan boshlaymiz? 👇",
         "🧠 <b>Психологические тесты</b>\n\n"
-        "Тесты, которые используют в мировой психологии — на русском, "
-        "бесплатно.\n\n"
+        "Тесты, которые используют в мировой психологии — на русском.\n\n"
         "✅ У каждого теста открыто указан научный источник\n"
         "⚡️ Результат сразу после теста\n"
         "🔒 Ваши ответы никто не увидит\n\n"
@@ -200,6 +199,109 @@ STRINGS: dict[str, dict[str, str]] = {
         "/haqida — о боте и источниках\n"
         "/bekor — отменить текущий тест",
     ),
+    # --- To'lov ------------------------------------------------------------
+    "paywall": L(
+        "🔒 <b>{title}</b>\n\n"
+        "Bu test pullik.\n\n"
+        "💳 Narxi: <b>{price} so‘m</b>\n"
+        "♾ To‘lov bir marta — test siz uchun doim ochiq qoladi\n"
+        "⚡️ To‘lovdan so‘ng darhol ochiladi\n\n"
+        "To‘lov <b>Click</b> orqali: bank kartasi yoki Click Up ilovasi.",
+        "🔒 <b>{title}</b>\n\n"
+        "Этот тест платный.\n\n"
+        "💳 Цена: <b>{price} сум</b>\n"
+        "♾ Оплата разовая — тест останется открытым навсегда\n"
+        "⚡️ Откроется сразу после оплаты\n\n"
+        "Оплата через <b>Click</b>: банковская карта или приложение Click Up.",
+    ),
+    "paywall_all": L(
+        "\n\n🎁 <b>Barcha testlar paketi — {price} so‘m</b>\n"
+        "Bittalab olgandan arzonroq: hamma test bir yo‘la ochiladi.",
+        "\n\n🎁 <b>Пакет «Все тесты» — {price} сум</b>\n"
+        "Дешевле, чем по одному: открываются сразу все тесты.",
+    ),
+    "pay_title_all": L("Barcha testlar", "Все тесты"),
+    "btn_pay": L("💳 Click orqali to‘lash", "💳 Оплатить через Click"),
+    "btn_pay_all": L("🎁 Barcha testlar — {price} so‘m", "🎁 Все тесты — {price} сум"),
+    "btn_pay_open": L("💳 To‘lovga o‘tish", "💳 Перейти к оплате"),
+    "btn_pay_invoice": L("📲 Click Up ilovamga yuborish", "📲 Отправить в Click Up"),
+    "btn_pay_check": L("✅ To‘ladim, tekshirish", "✅ Я оплатил, проверить"),
+    "pay_created": L(
+        "💳 <b>To‘lov</b>\n\n"
+        "{product}\n"
+        "Summa: <b>{price} so‘m</b>\n"
+        "Buyurtma: <code>#{payment_id}</code>\n\n"
+        "1️⃣ «To‘lovga o‘tish» tugmasini bosing\n"
+        "2️⃣ Click sahifasida to‘lovni yakunlang\n"
+        "3️⃣ Botga qayting — test o‘zi ochiladi\n\n"
+        "<i>To‘lov o‘tishi bilan bot sizga xabar beradi. Agar 1–2 daqiqada "
+        "xabar kelmasa, «To‘ladim» tugmasini bosing.</i>",
+        "💳 <b>Оплата</b>\n\n"
+        "{product}\n"
+        "Сумма: <b>{price} сум</b>\n"
+        "Заказ: <code>#{payment_id}</code>\n\n"
+        "1️⃣ Нажмите «Перейти к оплате»\n"
+        "2️⃣ Завершите оплату на странице Click\n"
+        "3️⃣ Вернитесь в бот — тест откроется сам\n\n"
+        "<i>Бот сообщит, как только оплата пройдёт. Если через 1–2 минуты "
+        "сообщения нет — нажмите «Я оплатил».</i>",
+    ),
+    "pay_success": L(
+        "✅ <b>To‘lov qabul qilindi!</b>\n\n"
+        "{product} ochildi. Omad tilaymiz 👇",
+        "✅ <b>Оплата принята!</b>\n\n"
+        "{product} — доступ открыт. Удачи 👇",
+    ),
+    "pay_pending": L(
+        "⏳ To‘lov hali tasdiqlanmadi.\n\n"
+        "Endigina to‘lagan bo‘lsangiz, bir daqiqa kuting va qayta bosing. "
+        "Pul yechilgan bo‘lsa-yu test ochilmasa, /yordam orqali yozing.",
+        "⏳ Оплата пока не подтверждена.\n\n"
+        "Если вы только что оплатили, подождите минуту и нажмите снова. "
+        "Если деньги списаны, а тест не открылся — напишите через /yordam.",
+    ),
+    "pay_unavailable": L(
+        "⚠️ To‘lov tizimi hozircha ishlamayapti. Birozdan keyin urinib ko‘ring.",
+        "⚠️ Платёжная система временно недоступна. Попробуйте чуть позже.",
+    ),
+    "pay_already": L(
+        "✅ Bu test sizda allaqachon ochiq.",
+        "✅ Этот тест у вас уже открыт.",
+    ),
+    "pay_ask_phone": L(
+        "📲 Click Up ilovangizga hisob yuboramiz.\n\n"
+        "Click'ga bog‘langan telefon raqamingizni yuboring:\n"
+        "<code>998901234567</code> yoki <code>+998 90 123 45 67</code>",
+        "📲 Отправим счёт в ваше приложение Click Up.\n\n"
+        "Пришлите номер телефона, привязанный к Click:\n"
+        "<code>998901234567</code> или <code>+998 90 123 45 67</code>",
+    ),
+    "pay_phone_bad": L(
+        "❌ Raqam noto‘g‘ri. O‘zbekiston raqamini yuboring, masalan "
+        "<code>998901234567</code>.",
+        "❌ Неверный номер. Пришлите узбекистанский номер, например "
+        "<code>998901234567</code>.",
+    ),
+    "pay_invoice_sent": L(
+        "📲 Hisob <b>{phone}</b> raqamiga yuborildi.\n\n"
+        "Click Up ilovasini oching va to‘lovni tasdiqlang. To‘lov o‘tishi "
+        "bilan test shu yerda ochiladi.",
+        "📲 Счёт отправлен на номер <b>{phone}</b>.\n\n"
+        "Откройте приложение Click Up и подтвердите оплату. Как только "
+        "оплата пройдёт, тест откроется здесь.",
+    ),
+    "pay_invoice_failed": L(
+        "❌ Hisob yuborilmadi. Yuqoridagi «To‘lovga o‘tish» tugmasidan "
+        "foydalaning — u har doim ishlaydi.",
+        "❌ Счёт не отправлен. Воспользуйтесь кнопкой «Перейти к оплате» "
+        "выше — она работает всегда.",
+    ),
+    "btn_open_test": L("▶️ Testni boshlash", "▶️ Начать тест"),
+    "card_price": L(
+        "\n💳 Narxi: <b>{price} so‘m</b> (bir marta)",
+        "\n💳 Цена: <b>{price} сум</b> (разово)",
+    ),
+    "card_free": L("\n🎁 <b>Bepul</b>", "\n🎁 <b>Бесплатно</b>"),
     "share_text": L(
         "Men psixologik test topshirdim 🧠 Sen ham sinab ko‘r",
         "Я прошёл психологический тест 🧠 Попробуй и ты",
@@ -215,3 +317,8 @@ def t(key: str, lang: str, **kwargs) -> str:
 def tr(value: dict[str, str], lang: str) -> str:
     """Ikki tilli dict dan tegishli tilni oladi."""
     return value.get(lang) or value[DEFAULT_LANG]
+
+
+def money(amount: int) -> str:
+    """9900 -> "9 900". Uch xonadan ajratib yozilgan raqam o'qishga oson."""
+    return f"{amount:,}".replace(",", " ")

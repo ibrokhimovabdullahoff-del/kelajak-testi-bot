@@ -14,8 +14,10 @@ from aiogram.types import CallbackQuery, Message
 import database as db
 import keyboards as kb
 import report
-from locales import LANGS, t, tr
+from locales import LANGS, money, t, tr
 from psytests import REGISTRY, score
+
+from . import payment as pay
 
 log = logging.getLogger(__name__)
 router = Router()
@@ -116,8 +118,17 @@ def card_text(test_key: str, lang: str) -> str:
     )
 
 
-async def show_menu(message: Message, lang: str, edit: bool = True) -> None:
-    markup = kb.main_menu(lang, await db.disabled_tests())
+async def show_menu(
+    message: Message, lang: str, user_id: int, edit: bool = True
+) -> None:
+    """Testlar menyusi.
+
+    `user_id` alohida beriladi: callback ichida `message.from_user` — bot
+    bo'lib chiqadi, qulf esa odamga qarab qo'yiladi.
+    """
+    markup = kb.main_menu(
+        lang, await db.disabled_tests(), await pay.locked_tests(user_id)
+    )
     text = t("menu", lang)
     if edit:
         await safe_edit(message, text, reply_markup=markup)
@@ -153,7 +164,7 @@ async def cmd_start(
     if not lang_known:
         await message.answer(t("choose_language", lang), reply_markup=kb.language_menu())
         return
-    await show_menu(message, lang, edit=False)
+    await show_menu(message, lang, message.from_user.id, edit=False)
 
 
 @router.message(Command("til", "language", "lang"))
@@ -175,7 +186,13 @@ async def cmd_help(message: Message, lang: str) -> None:
 @router.message(Command("bekor", "cancel"))
 async def cmd_cancel(message: Message, state: FSMContext, lang: str) -> None:
     await state.clear()
-    await message.answer(t("cancelled", lang), reply_markup=kb.main_menu(lang, await db.disabled_tests()))
+    await message.answer(
+        t("cancelled", lang),
+        reply_markup=kb.main_menu(
+            lang, await db.disabled_tests(),
+            await pay.locked_tests(message.from_user.id),
+        ),
+    )
 
 
 @router.message(Command("natijalar", "results"))
@@ -199,7 +216,7 @@ async def pick_language(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await db.set_lang(callback.from_user.id, code)
     await callback.answer(t("language_set", code))
-    await show_menu(callback.message, code)
+    await show_menu(callback.message, code, callback.from_user.id)
 
 
 @router.callback_query(F.data == "nav:lang")
@@ -216,7 +233,7 @@ async def ask_language(callback: CallbackQuery, lang: str) -> None:
 @router.callback_query(F.data == "nav:menu")
 async def nav_menu(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     await state.clear()
-    await show_menu(callback.message, lang)
+    await show_menu(callback.message, lang, callback.from_user.id)
     await callback.answer()
 
 
@@ -240,7 +257,13 @@ async def nav_history(callback: CallbackQuery, lang: str) -> None:
 @router.callback_query(F.data == "nav:cancel")
 async def nav_cancel(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     await state.clear()
-    await safe_edit(callback.message, t("cancelled", lang), reply_markup=kb.main_menu(lang, await db.disabled_tests()))
+    await safe_edit(
+        callback.message, t("cancelled", lang),
+        reply_markup=kb.main_menu(
+            lang, await db.disabled_tests(),
+            await pay.locked_tests(callback.from_user.id),
+        ),
+    )
     await callback.answer()
 
 
@@ -252,12 +275,18 @@ async def show_card(callback: CallbackQuery, state: FSMContext, lang: str) -> No
     test_key = callback.data.split(":", 1)[1]
     if test_key not in REGISTRY or test_key in await db.disabled_tests():
         await callback.answer()
-        await show_menu(callback.message, lang)
+        await show_menu(callback.message, lang, callback.from_user.id)
         return
     await state.clear()
+    locked = await pay.is_locked(callback.from_user.id, test_key)
+    text = card_text(test_key, lang)
+    if locked:
+        text += t("card_price", lang, price=money(await pay.price_for(test_key)))
+    elif test_key in await db.free_tests():
+        text += t("card_free", lang)
     await safe_edit(
-        callback.message, card_text(test_key, lang),
-        reply_markup=kb.test_card(test_key, lang),
+        callback.message, text,
+        reply_markup=kb.test_card(test_key, lang, locked=locked),
     )
     await callback.answer()
 
@@ -285,7 +314,16 @@ async def begin(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     test = REGISTRY.get(test_key)
     if not test or test_key in await db.disabled_tests():
         await callback.answer()
-        await show_menu(callback.message, lang)
+        await show_menu(callback.message, lang, callback.from_user.id)
+        return
+
+    # ASOSIY TO'SIQ: pul to'lanmagan bo'lsa, test bu yerdan nariga o'tmaydi.
+    # Kartochkadagi tugma allaqachon "To'lash" ga o'zgargan bo'ladi, lekin
+    # eski xabardagi tugma yoki manba ekranidan kelgan bosish ham shu
+    # tekshiruvdan o'tishi shart.
+    if await pay.is_locked(callback.from_user.id, test_key):
+        await pay.show_paywall(callback.message, callback.from_user.id, test_key, lang)
+        await callback.answer()
         return
 
     await state.clear()
@@ -309,7 +347,13 @@ async def picked_age(callback: CallbackQuery, state: FSMContext, lang: str) -> N
     data = await state.get_data()
     test_key = data.get("test_key")
     if test_key not in REGISTRY:
-        await show_menu(callback.message, lang)
+        await show_menu(callback.message, lang, callback.from_user.id)
+        await callback.answer()
+        return
+    # Eski xabardagi yosh tugmasi qayta bosilishi mumkin — huquqni yana
+    # bir bor tekshiramiz, chunki test aynan shu yerdan boshlanadi.
+    if await pay.is_locked(callback.from_user.id, test_key):
+        await pay.show_paywall(callback.message, callback.from_user.id, test_key, lang)
         await callback.answer()
         return
     await start_quiz(
@@ -332,7 +376,7 @@ async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
 
     if test_key not in REGISTRY:
         await state.clear()
-        await show_menu(callback.message, lang)
+        await show_menu(callback.message, lang, callback.from_user.id)
         await callback.answer()
         return
 
@@ -416,7 +460,7 @@ async def finish(
 @router.callback_query(F.data.startswith("ans:") | (F.data == "back"))
 async def stale_callback(callback: CallbackQuery, lang: str) -> None:
     await callback.answer(t("stale_test", lang), show_alert=True)
-    await show_menu(callback.message, lang, edit=False)
+    await show_menu(callback.message, lang, callback.from_user.id, edit=False)
 
 
 @router.message()
@@ -429,4 +473,4 @@ async def fallback(
     if not lang_known:
         await message.answer(t("choose_language", lang), reply_markup=kb.language_menu())
         return
-    await show_menu(message, lang, edit=False)
+    await show_menu(message, lang, message.from_user.id, edit=False)

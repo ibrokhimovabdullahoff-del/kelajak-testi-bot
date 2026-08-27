@@ -18,4 +18,10 @@ COPY . .
 RUN mkdir -p /data
 ENV DB_PATH=/data/kelajak.db
 
+# Click to'lov haqida BIZGA murojaat qiladi, shuning uchun bot yonida HTTP
+# server ham ishlaydi. Railway PORT ni o'zi beradi; bu yerdagi qiymat faqat
+# mahalliy ishga tushirish uchun.
+ENV PORT=8080
+EXPOSE 8080
+
 CMD ["python", "main.py"]

@@ -7,7 +7,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config import BOT_USERNAME
-from locales import LANGS, t, tr
+from locales import LANGS, money, t, tr
 from psytests import AGE_GROUPS, ORDER, REGISTRY
 
 
@@ -19,14 +19,26 @@ def language_menu() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def main_menu(lang: str, disabled: set[str] | None = None) -> InlineKeyboardMarkup:
+def main_menu(
+    lang: str,
+    disabled: set[str] | None = None,
+    locked: set[str] | None = None,
+) -> InlineKeyboardMarkup:
+    """Testlar ro'yxati.
+
+    `locked` — hali sotib olinmagan pullik testlar; ular yonida qulf
+    belgisi turadi, lekin menyudan yashirilmaydi: odam nima borligini
+    ko'rsin, narxni esa kartochkada bilib oladi.
+    """
     disabled = disabled or set()
+    locked = locked or set()
     shown = [k for k in ORDER if k not in disabled]
     builder = InlineKeyboardBuilder()
     for key in shown:
         test = REGISTRY[key]
+        mark = "🔒 " if key in locked else ""
         builder.button(
-            text=f"{test.emoji} {tr(test.title, lang)}",
+            text=f"{mark}{test.emoji} {tr(test.title, lang)}",
             callback_data=f"test:{key}",
         )
     builder.button(text=t("btn_results", lang), callback_data="nav:history")
@@ -36,9 +48,12 @@ def main_menu(lang: str, disabled: set[str] | None = None) -> InlineKeyboardMark
     return builder.as_markup()
 
 
-def test_card(test_key: str, lang: str) -> InlineKeyboardMarkup:
+def test_card(test_key: str, lang: str, locked: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text=t("btn_start_test", lang), callback_data=f"go:{test_key}")
+    if locked:
+        builder.button(text=t("btn_pay", lang), callback_data=f"pay:{test_key}")
+    else:
+        builder.button(text=t("btn_start_test", lang), callback_data=f"go:{test_key}")
     builder.button(text=t("btn_source", lang), callback_data=f"src:{test_key}")
     builder.button(text=t("btn_back", lang), callback_data="nav:menu")
     builder.adjust(1, 2)
@@ -108,7 +123,8 @@ def admin_menu() -> InlineKeyboardMarkup:
     builder.button(text="🧩 Testlarni boshqarish", callback_data="adm:tests")
     builder.button(text="📥 Natijalarni yuklab olish", callback_data="adm:export")
     builder.button(text="📣 Xabar yuborish", callback_data="adm:broadcast")
-    builder.adjust(2, 2, 1, 1)
+    builder.button(text="💳 To‘lovlar", callback_data="adm:pay")
+    builder.adjust(2, 2, 1, 1, 1)
     return builder.as_markup()
 
 
@@ -175,4 +191,95 @@ def broadcast_confirm() -> InlineKeyboardMarkup:
     builder.button(text="✅ Ha, yuborilsin", callback_data="adm:send")
     builder.button(text="❌ Bekor", callback_data="adm:cancel")
     builder.adjust(2)
+    return builder.as_markup()
+
+
+# --- To'lov -----------------------------------------------------------------
+
+
+def paywall(
+    test_key: str, lang: str, price_all: int | None = None
+) -> InlineKeyboardMarkup:
+    """Pullik test ochilishidan oldingi ekran."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("btn_pay", lang), callback_data=f"pay:{test_key}")
+    if price_all:
+        builder.button(
+            text=t("btn_pay_all", lang, price=money(price_all)),
+            callback_data="pay:all",
+        )
+    builder.button(text=t("btn_source", lang), callback_data=f"src:{test_key}")
+    builder.button(text=t("btn_back", lang), callback_data="nav:menu")
+    builder.adjust(1, 1, 2)
+    return builder.as_markup()
+
+
+def pay_links(
+    payment_id: int, url: str, lang: str, invoice: bool = False
+) -> InlineKeyboardMarkup:
+    """To'lov havolasi va uni tekshirish tugmalari.
+
+    "To'ladim" tugmasi zaxira yo'l: odatda huquqni Click'ning Complete
+    so'rovi ochadi, lekin u kechiksa odam kutib qolmasligi kerak.
+    """
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("btn_pay_open", lang), url=url)
+    if invoice:
+        builder.button(
+            text=t("btn_pay_invoice", lang), callback_data=f"payinv:{payment_id}"
+        )
+    builder.button(text=t("btn_pay_check", lang), callback_data=f"paychk:{payment_id}")
+    builder.button(text=t("btn_back", lang), callback_data="nav:menu")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def unlocked(test_key: str, lang: str) -> InlineKeyboardMarkup:
+    """To'lov o'tgandan keyin — to'g'ridan-to'g'ri testga kirish."""
+    builder = InlineKeyboardBuilder()
+    if test_key and test_key != "all":
+        builder.button(text=t("btn_open_test", lang), callback_data=f"go:{test_key}")
+    builder.button(text=t("btn_menu", lang), callback_data="nav:menu")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+# --- Admin: to'lovlar -------------------------------------------------------
+
+
+def admin_payments() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🧾 Oxirgi to‘lovlar", callback_data="adm:paylist")
+    builder.button(text="💰 Narxlarni o‘zgartirish", callback_data="adm:prices")
+    builder.button(text="🎁 Pullik / bepul testlar", callback_data="adm:freetests")
+    builder.button(text="🔓 Qo‘lda ochish", callback_data="adm:grant")
+    builder.button(text="⬅️ Admin panel", callback_data="adm:home")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_prices(products: list[tuple[str, str, int]]) -> InlineKeyboardMarkup:
+    """products: (kalit, ko'rinadigan nom, joriy narx)."""
+    builder = InlineKeyboardBuilder()
+    for key, title, price in products:
+        builder.button(
+            text=f"{title} — {money(price)} so‘m", callback_data=f"admprice:{key}"
+        )
+    builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_paid_tests(free: set[str]) -> InlineKeyboardMarkup:
+    """Qaysi test pullik, qaysi biri bepul."""
+    builder = InlineKeyboardBuilder()
+    for key in ORDER:
+        test = REGISTRY[key]
+        mark = "🎁" if key in free else "💳"
+        builder.button(
+            text=f"{mark} {test.emoji} {tr(test.title, 'uz')}",
+            callback_data=f"admfree:{key}",
+        )
+    builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
+    builder.adjust(1)
     return builder.as_markup()

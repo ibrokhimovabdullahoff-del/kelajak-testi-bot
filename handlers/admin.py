@@ -1,4 +1,7 @@
-"""Admin paneli: statistika va ommaviy xabar. Interfeys faqat o'zbekcha."""
+"""Admin paneli: statistika, to'lovlar va ommaviy xabar.
+
+Interfeys faqat o'zbekcha — uni faqat egasi ko'radi.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -15,9 +18,11 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
 import database as db
 import keyboards as kb
-from config import is_admin
-from locales import tr
+from config import CLICK_ENABLED, DEFAULT_PRICE, DEFAULT_PRICE_ALL, is_admin
+from locales import money, t, tr
 from psytests import ORDER, REGISTRY
+
+from . import payment
 
 log = logging.getLogger(__name__)
 
@@ -339,3 +344,227 @@ async def export(callback: CallbackQuery) -> None:
         caption=f"📥 {len(rows)} ta natija",
         reply_markup=kb.admin_back(),
     )
+
+
+# --- To'lovlar --------------------------------------------------------------
+
+
+class Prices(StatesGroup):
+    waiting_amount = State()
+
+
+class Grant(StatesGroup):
+    waiting_user = State()
+
+
+def _product_title(key: str) -> str:
+    if key == db.ALL_PRODUCTS:
+        return "🎁 Barcha testlar"
+    test = REGISTRY.get(key)
+    return f"{test.emoji} {tr(test.title, 'uz')}" if test else key
+
+
+@router.callback_query(F.data == "adm:pay")
+async def payments_home(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    data = await db.payment_stats()
+    free = await db.free_tests()
+
+    lines = [
+        "💳 <b>To‘lovlar</b>",
+        "",
+        f"✅ To‘langan: <b>{data['count']:.0f}</b> ta · "
+        f"<b>{money(int(data['sum']))}</b> so‘m",
+        f"📅 Bugun: <b>{data['today']:.0f}</b> ta · "
+        f"<b>{money(int(data['today_sum']))}</b> so‘m",
+        f"🧾 Boshlangan urinishlar: <b>{data['started']:.0f}</b>",
+        f"🔓 Qo‘lda ochilgan: <b>{data['manual']:.0f}</b>",
+        "",
+        f"Click ulanishi: {'🟢 sozlangan' if CLICK_ENABLED else '🔴 sozlanmagan'}",
+    ]
+    if not CLICK_ENABLED:
+        lines.append(
+            "<i>CLICK_* kalitlari va PUBLIC_URL to‘ldirilmagan — hech kim "
+            "to‘lov qila olmaydi.</i>"
+        )
+    lines += [
+        "",
+        "<b>Testlar:</b> 💳 pullik · 🎁 bepul",
+        " ".join(
+            ("🎁" if key in free else "💳") + REGISTRY[key].emoji for key in ORDER
+        ),
+    ]
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "adm:paylist")
+async def payment_list(callback: CallbackQuery) -> None:
+    rows = await db.recent_payments()
+    marks = {
+        "paid": "✅", "pending": "⏳", "prepared": "🔄",
+        "cancelled": "❌", "revoked": "🚫",
+    }
+    lines = ["🧾 <b>Oxirgi to‘lovlar</b>", ""]
+    if not rows:
+        lines.append("Hali to‘lov yo‘q.")
+    for row in rows:
+        who = f"@{row['username']}" if row["username"] else f"id{row['user_id']}"
+        mark = marks.get(row["status"], "•")
+        lines.append(
+            f"{mark} <code>#{row['id']}</code> {who} · "
+            f"{_product_title(row['product'])} · <b>{money(row['amount'])}</b> so‘m"
+        )
+        lines.append(f"   <i>{(row['paid_at'] or row['created_at'] or '')[:16]}"
+                     f" · {row['method']}</i>")
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments())
+    await callback.answer()
+
+
+# --- Narxlar ----------------------------------------------------------------
+
+
+async def _price_rows() -> list[tuple[str, str, int]]:
+    rows = [(db.ALL_PRODUCTS, "🎁 Barcha testlar",
+             await db.price_of(db.ALL_PRODUCTS, DEFAULT_PRICE_ALL))]
+    for key in ORDER:
+        rows.append((key, f"{REGISTRY[key].emoji} {tr(REGISTRY[key].title, 'uz')}",
+                     await db.price_of(key, DEFAULT_PRICE)))
+    return rows
+
+
+@router.callback_query(F.data == "adm:prices")
+async def show_prices(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    await callback.message.edit_text(
+        "💰 <b>Narxlar</b>\n\n"
+        "O‘zgartirish uchun mahsulotni tanlang.\n"
+        "<i>Narxni 0 qilsangiz, «Barcha testlar» paketi taklif qilinmaydi.</i>",
+        reply_markup=kb.admin_prices(await _price_rows()),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("admprice:"))
+async def ask_price(callback: CallbackQuery, state: FSMContext) -> None:
+    key = callback.data.split(":", 1)[1]
+    if key != db.ALL_PRODUCTS and key not in REGISTRY:
+        await callback.answer()
+        return
+    await state.set_state(Prices.waiting_amount)
+    await state.update_data(product=key)
+    await callback.message.edit_text(
+        f"💰 <b>{_product_title(key)}</b>\n\n"
+        "Yangi narxni so‘mda yuboring — faqat raqam, masalan <code>12000</code>.\n"
+        "Bekor qilish: /bekor"
+    )
+    await callback.answer()
+
+
+@router.message(Prices.waiting_amount, Command("bekor"))
+async def abort_price(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_payments())
+
+
+@router.message(Prices.waiting_amount)
+async def save_price(message: Message, state: FSMContext) -> None:
+    raw = "".join(c for c in (message.text or "") if c.isdigit())
+    if not raw:
+        await message.answer("Faqat raqam yuboring, masalan <code>12000</code>.")
+        return
+
+    data = await state.get_data()
+    await state.clear()
+    product = data.get("product", "")
+    await db.set_price(product, int(raw))
+    await message.answer(
+        f"✅ <b>{_product_title(product)}</b> narxi endi "
+        f"<b>{money(int(raw))}</b> so‘m.",
+        reply_markup=kb.admin_prices(await _price_rows()),
+    )
+
+
+# --- Pullik / bepul ---------------------------------------------------------
+
+
+@router.callback_query(F.data.startswith("admfree:"))
+async def toggle_free(callback: CallbackQuery) -> None:
+    key = callback.data.split(":", 1)[1]
+    if key not in REGISTRY:
+        await callback.answer()
+        return
+    now_free = await db.toggle_free_test(key)
+    await callback.answer(
+        "🎁 Endi bepul" if now_free else "💳 Endi pullik", show_alert=True
+    )
+    await callback.message.edit_reply_markup(
+        reply_markup=kb.admin_paid_tests(await db.free_tests())
+    )
+
+
+# --- Qo'lda ochish ----------------------------------------------------------
+
+
+@router.callback_query(F.data == "adm:grant")
+async def ask_grant(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Grant.waiting_user)
+    await callback.message.edit_text(
+        "🔓 <b>Qo‘lda ochish</b>\n\n"
+        "Foydalanuvchi ID sini va mahsulotni yuboring:\n"
+        "<code>123456789 all</code> — barcha testlar\n"
+        "<code>123456789 bigfive</code> — bitta test\n\n"
+        f"Mavjud kalitlar: <code>{'</code>, <code>'.join(ORDER)}</code>\n"
+        "Bekor qilish: /bekor"
+    )
+    await callback.answer()
+
+
+@router.message(Grant.waiting_user, Command("bekor"))
+async def abort_grant(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_payments())
+
+
+@router.message(Grant.waiting_user)
+async def do_grant(message: Message, state: FSMContext, bot: Bot) -> None:
+    parts = (message.text or "").split()
+    if len(parts) != 2 or not parts[0].isdigit():
+        await message.answer("Format: <code>123456789 all</code>")
+        return
+    user_id, product = int(parts[0]), parts[1]
+    if product != db.ALL_PRODUCTS and product not in REGISTRY:
+        await message.answer(f"<code>{product}</code> — bunday test yo‘q.")
+        return
+
+    await state.clear()
+    await db.grant_access(user_id, product, message.from_user.id)
+    await message.answer(
+        f"✅ <code>{user_id}</code> uchun <b>{_product_title(product)}</b> ochildi.",
+        reply_markup=kb.admin_payments(),
+    )
+    # Odamning o'zini ham xabardor qilamiz — aks holda u ochilganini bilmaydi.
+    try:
+        lang = await db.get_lang(user_id) or "uz"
+        await bot.send_message(
+            user_id,
+            t("pay_success", lang, product=payment.product_title(product, lang)),
+            reply_markup=kb.unlocked(
+                "" if product == db.ALL_PRODUCTS else product, lang
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Qo‘lda ochish haqida xabar ketmadi (%s): %s", user_id, exc)
+
+
+@router.callback_query(F.data == "adm:freetests")
+async def free_tests_screen(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    await callback.message.edit_text(
+        "🎁 <b>Pullik / bepul testlar</b>\n\n"
+        "💳 — test pullik, ochish uchun to‘lov kerak\n"
+        "🎁 — test bepul, hamma ochaveradi\n\n"
+        "Holatini almashtirish uchun testni bosing.",
+        reply_markup=kb.admin_paid_tests(await db.free_tests()),
+    )
+    await callback.answer()

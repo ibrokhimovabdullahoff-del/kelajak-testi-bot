@@ -1,3 +1,6 @@
 aiogram==3.30.0
 aiosqlite==0.22.1
 python-dotenv==1.2.2
+# aiogram bilan birga keladi, lekin biz uni Click serveri uchun
+# bevosita ishlatamiz — shuning uchun alohida yozib qo'yamiz.
+aiohttp>=3.9

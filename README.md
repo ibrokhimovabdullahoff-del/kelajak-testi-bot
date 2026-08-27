@@ -89,7 +89,8 @@ python3 -m venv venv && ./venv/bin/pip install -r requirements.txt && cp .env.ex
 Har qanday o‘zgarishdan keyin uchalasini ishlating:
 
 ```bash
-./venv/bin/python selftest.py && ./venv/bin/python flowtest.py && ./venv/bin/python migrationtest.py
+./venv/bin/python selftest.py && ./venv/bin/python flowtest.py && \
+  ./venv/bin/python migrationtest.py && ./venv/bin/python clicktest.py
 ```
 
 **`selftest.py`** — 323 ta ikki tilli matnni tekshiradi:
@@ -110,6 +111,13 @@ bilan haqiqatan ishga tushiriladi — ikkala tilda test topshirish, «Orqaga»,
 ikki marta bosish himoyasi, eski tugma, tarix, admin panel, oddiy
 foydalanuvchining admin panelga kira olmasligi. **Hech kimga xabar
 yubormaydi**, vaqtinchalik bazaga yozadi.
+
+**`clicktest.py`** — Click integratsiyasi. Haqiqiy Click serveriga
+ulanmaydi: skriptning o‘zi Click bo‘lib, hujjatdagi formula bo‘yicha imzo
+yasaydi va o‘z serverimizga so‘rov yuboradi. Shu sababli internetsiz ham
+ishlaydi. Tekshiriladi: imzo, soxta imzo rad etilishi, noto‘g‘ri summa,
+mavjud bo‘lmagan buyurtma, takroriy Complete (huquq ikki marta berilmasligi)
+va bekor qilingan to‘lov.
 
 **`migrationtest.py`** — eski bazadan ko‘chishni sinaydi va **ko‘chgandan
 keyin yangi natija yozilishini** tekshiradi. Bu alohida skript, chunki
@@ -137,7 +145,10 @@ turgan botga chiqib ketgan edi.
 | `database.py` | SQLite + eski bazadan avtomatik ko‘chirish |
 | `handlers/middleware.py` | foydalanuvchi va tilni aniqlash |
 | `handlers/user.py` | menyu, test oqimi, natija |
-| `handlers/admin.py` | statistika va ommaviy xabar |
+| `handlers/admin.py` | statistika, to‘lovlar va ommaviy xabar |
+| `handlers/payment.py` | paywall, Click havolasi, huquq tekshiruvi |
+| `payments/click.py` | Click protokoli: imzo, havola, invoice (Telegramsiz) |
+| `payments/webapp.py` | Click so‘rovlarini qabul qiladigan HTTP server |
 
 ### Yangi test qo‘shish
 
@@ -163,6 +174,34 @@ Faqat tegishli `psytests/*.py` faylini tahrirlang. Ikkala tilni ham yozing —
   bo‘linish**, har bir test bo‘yicha soni va o‘rtacha ball
 - 📣 **Xabar yuborish** — hammaga, faqat o‘zbekchaga yoki faqat ruschaga.
   Tasdiqlash so‘raladi, bloklaganlar avtomatik belgilanadi
+- 💳 **To‘lovlar** — tushum, oxirgi to‘lovlar, narxlarni deploy qilmasdan
+  o‘zgartirish, testni vaqtincha bepul qilish, huquqni qo‘lda ochish
+
+---
+
+## To‘lov (Click)
+
+Testlar **pullik**: test faqat to‘lov Click tomonidan tasdiqlangandan keyin
+ochiladi. To‘lov `my.click.uz` havolasi orqali — karta bilan yoki Click Up
+ilovasida.
+
+Huquq **faqat bitta joyda** beriladi: Click ning `/click/complete` so‘rovi
+kelganda. Botdagi «To‘ladim» tugmasi ham o‘zicha hech narsa ochmaydi — u
+Click API dan holatni so‘raydi. Ya‘ni to‘lamay turib testga kirish yo‘li
+yo‘q.
+
+Bot endi **web-servis** (avval `worker` edi): Click bizga so‘rov yuborishi
+uchun ochiq manzil kerak. Ochiladigan yo‘llar:
+
+| Yo‘l | Kim so‘raydi |
+|---|---|
+| `POST /click/prepare` | Click — «buyurtma bormi, summa to‘g‘rimi?» |
+| `POST /click/complete` | Click — «pul yechildi, xizmatni bering» |
+| `GET /click/return` | to‘lovdan keyin odam tushadigan sahifa |
+| `GET /health` | platformaning sog‘liq tekshiruvi |
+
+Sozlash bo‘yicha to‘liq qo‘llanma — **[CLICK.md](CLICK.md)**: merchant
+kabinetiga nima yozish, Click‘ga qanday xabar yuborish, statik IP masalasi.
 
 ---
 
@@ -173,7 +212,14 @@ Railway panelida qo‘ying, `.env` faylini serverga yuklamang:
 
 ```
 BOT_TOKEN, ADMIN_ID, BOT_USERNAME, DB_PATH
+CLICK_SERVICE_ID, CLICK_MERCHANT_ID, CLICK_SECRET_KEY, CLICK_MERCHANT_USER_ID
+PUBLIC_URL, PRICE_UZS, PRICE_ALL_UZS
 ```
+
+`PUBLIC_URL` — Railway bergan ochiq domen (**Settings → Networking →
+Generate Domain**), oxirida `/` bo‘lmasin. U bo‘sh bo‘lsa Click to‘lov
+haqida xabar bera olmaydi va hech kimga test ochilmaydi — bot ishga
+tushganda logda ogohlantirish chiqadi.
 
 **SQLite fayli uchun doimiy disk (volume) ulang** va `DB_PATH` ni o‘shanga
 yo‘naltiring (`/data/kelajak.db`). Aks holda har qayta deployda barcha
