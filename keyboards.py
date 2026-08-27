@@ -247,8 +247,12 @@ def unlocked(test_key: str, lang: str) -> InlineKeyboardMarkup:
 # --- Admin: to'lovlar -------------------------------------------------------
 
 
-def admin_payments() -> InlineKeyboardMarkup:
+def admin_payments(admin_pays: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🧪 Sinov rejimi: YOQIQ" if admin_pays else "🧪 Sinov rejimi: o‘chiq",
+        callback_data="adm:testmode",
+    )
     builder.button(text="🧾 Oxirgi to‘lovlar", callback_data="adm:paylist")
     builder.button(text="💰 Narxlarni o‘zgartirish", callback_data="adm:prices")
     builder.button(text="🎁 Pullik / bepul testlar", callback_data="adm:freetests")

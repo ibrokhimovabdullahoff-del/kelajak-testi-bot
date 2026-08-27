@@ -72,7 +72,7 @@ async def is_locked(user_id: int, test_key: str) -> bool:
     Adminlar hech qachon to'siqqa uchramaydi: aks holda sozlamani tekshirib
     ko'rish uchun ham pul to'lash kerak bo'lardi.
     """
-    if is_admin(user_id):
+    if is_admin(user_id) and not await db.admin_pays():
         return False
     if test_key in await db.free_tests():
         return False
@@ -81,7 +81,7 @@ async def is_locked(user_id: int, test_key: str) -> bool:
 
 async def locked_tests(user_id: int) -> set[str]:
     """Menyuda qulf bilan ko'rsatiladigan testlar."""
-    if is_admin(user_id):
+    if is_admin(user_id) and not await db.admin_pays():
         return set()
     free = await db.free_tests()
     owned = await db.paid_products(user_id)

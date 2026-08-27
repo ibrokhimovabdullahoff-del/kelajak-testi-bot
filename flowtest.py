@@ -377,6 +377,34 @@ async def main() -> int:
     await press(dp, bot, "test:career")
     check("boshqa test hamon yopiq", "Narxi" in last_text(), last_text()[-80:])
 
+    # --- 14. Sinov rejimi ---------------------------------------------------
+    # Admin odatda to'siqni ko'rmaydi — bu tugma uni ham to'siq ortiga qo'yadi,
+    # aks holda to'lov oqimini o'z akkauntida sinab bo'lmaydi.
+    print("14. Admin sinov rejimi")
+    as_user(TEST_USER)
+    # Bu foydalanuvchi 9-bo'limda ruschaga o'tgan edi — tekshiruvlar
+    # o'zbekcha matnga tayanadi, shuning uchun tilni qaytaramiz.
+    await press(dp, bot, "lang:uz")
+    CALLS.clear()
+    await press(dp, bot, "test:career")
+    check("admin to‘siqni ko‘rmaydi", "Narxi" not in last_text(), last_text()[-60:])
+
+    await press(dp, bot, "adm:testmode")
+    check("sinov rejimi yoqildi", await db.admin_pays())
+    CALLS.clear()
+    await press(dp, bot, "test:career")
+    check("endi admin ham narxni ko‘radi", "Narxi" in last_text(), last_text()[-60:])
+    CALLS.clear()
+    await press(dp, bot, "go:career")
+    check("admin ham to‘siqqa uchradi", "Bu test pullik" in last_text(),
+          last_text()[:60])
+
+    await press(dp, bot, "adm:testmode")
+    check("sinov rejimi o‘chirildi", not await db.admin_pays())
+    CALLS.clear()
+    await press(dp, bot, "go:career")
+    check("admin uchun yana ochiq", "Savol 1" in last_text(), last_text()[:60])
+
     await bot.session.close()
     await db.close()
 

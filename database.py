@@ -745,6 +745,24 @@ async def toggle_free_test(test_key: str) -> bool:
     return now_free
 
 
+async def admin_pays() -> bool:
+    """Adminlar ham to'lov ekranini ko'radimi.
+
+    Odatda yo'q — aks holda sozlamani tekshirib ko'rish uchun ham pul
+    to'lash kerak bo'lardi. Lekin to'lov oqimini haqiqiy holatda sinash
+    uchun buni vaqtincha yoqib qo'yish kerak, aks holda ikkinchi Telegram
+    akkaunt qidirishga to'g'ri keladi.
+    """
+    return await get_setting("admin_pays", "0") == "1"
+
+
+async def toggle_admin_pays() -> bool:
+    """Qaytaradi: endi adminlar ham to'laydimi."""
+    now_on = not await admin_pays()
+    await set_setting("admin_pays", "1" if now_on else "0")
+    return now_on
+
+
 async def price_of(product: str, default: int) -> int:
     """Mahsulot narxi. Admin o'zgartirmagan bo'lsa .env dagi qiymat."""
     raw = await get_setting(f"price:{product}")

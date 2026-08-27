@@ -367,6 +367,15 @@ def _product_title(key: str) -> str:
 @router.callback_query(F.data == "adm:pay")
 async def payments_home(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
+    await draw_payments(callback)
+
+
+async def draw_payments(callback: CallbackQuery) -> None:
+    """To'lovlar ekranini chizadi.
+
+    Handlerdan ajratilgan, chunki uni sinov rejimi tugmasi ham chaqiradi —
+    u yerda esa FSMContext yo'q.
+    """
     data = await db.payment_stats()
     free = await db.free_tests()
 
@@ -382,6 +391,11 @@ async def payments_home(callback: CallbackQuery, state: FSMContext) -> None:
         "",
         f"Click ulanishi: {'🟢 sozlangan' if CLICK_ENABLED else '🔴 sozlanmagan'}",
     ]
+    if await db.admin_pays():
+        lines.append(
+            "🧪 <b>Sinov rejimi yoqiq</b> — adminlar ham to‘lov ekranini "
+            "ko‘radi. Sinab bo‘lgach o‘chirib qo‘ying."
+        )
     if not CLICK_ENABLED:
         lines.append(
             "<i>CLICK_* kalitlari va PUBLIC_URL to‘ldirilmagan — hech kim "
@@ -394,7 +408,7 @@ async def payments_home(callback: CallbackQuery, state: FSMContext) -> None:
             ("🎁" if key in free else "💳") + REGISTRY[key].emoji for key in ORDER
         ),
     ]
-    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments())
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays()))
     await callback.answer()
 
 
@@ -417,7 +431,7 @@ async def payment_list(callback: CallbackQuery) -> None:
         )
         lines.append(f"   <i>{(row['paid_at'] or row['created_at'] or '')[:16]}"
                      f" · {row['method']}</i>")
-    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments())
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays()))
     await callback.answer()
 
 
@@ -464,7 +478,7 @@ async def ask_price(callback: CallbackQuery, state: FSMContext) -> None:
 @router.message(Prices.waiting_amount, Command("bekor"))
 async def abort_price(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_payments())
+    await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_payments(await db.admin_pays()))
 
 
 @router.message(Prices.waiting_amount)
@@ -523,7 +537,7 @@ async def ask_grant(callback: CallbackQuery, state: FSMContext) -> None:
 @router.message(Grant.waiting_user, Command("bekor"))
 async def abort_grant(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_payments())
+    await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_payments(await db.admin_pays()))
 
 
 @router.message(Grant.waiting_user)
@@ -541,7 +555,7 @@ async def do_grant(message: Message, state: FSMContext, bot: Bot) -> None:
     await db.grant_access(user_id, product, message.from_user.id)
     await message.answer(
         f"✅ <code>{user_id}</code> uchun <b>{_product_title(product)}</b> ochildi.",
-        reply_markup=kb.admin_payments(),
+        reply_markup=kb.admin_payments(await db.admin_pays()),
     )
     # Odamning o'zini ham xabardor qilamiz — aks holda u ochilganini bilmaydi.
     try:
@@ -568,3 +582,20 @@ async def free_tests_screen(callback: CallbackQuery, state: FSMContext) -> None:
         reply_markup=kb.admin_paid_tests(await db.free_tests()),
     )
     await callback.answer()
+
+
+@router.callback_query(F.data == "adm:testmode")
+async def toggle_test_mode(callback: CallbackQuery) -> None:
+    """Adminni ham to'lov to'sig'i ortiga qo'yadi.
+
+    To'lov oqimini haqiqiy holatda sinash uchun kerak: adminlar odatda
+    to'siqni ko'rmaydi, shuning uchun o'z akkauntida tekshirib bo'lmaydi.
+    """
+    now_on = await db.toggle_admin_pays()
+    await callback.answer(
+        "🧪 Sinov rejimi yoqildi — endi siz ham to‘lov ekranini ko‘rasiz."
+        if now_on else
+        "✅ Sinov rejimi o‘chirildi — testlar siz uchun yana ochiq.",
+        show_alert=True,
+    )
+    await draw_payments(callback)
