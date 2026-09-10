@@ -90,15 +90,12 @@ async def _announce_wallet_aware(message, payment: dict, lang: str, original_ann
     await original_announce(message, payment, lang)
 
 
-# payment.py is imported before this module by handlers/__init__.py. Wrap its
-# notification functions so both webhook Complete and the manual "Paid" check
-# credit wallet_topup payments atomically/idempotently.
 from handlers import payment as _payment_module
 
 _original_announce = _payment_module._announce
 
 
-async def _announce(message, payment: dict, lang: str) -> None:
+async def _announce(message, payment, lang: str) -> None:
     await _announce_wallet_aware(message, payment, lang, _original_announce)
 
 
@@ -133,20 +130,24 @@ async def notify_paid(payment_id: int) -> None:
 _payment_module.notify_paid = notify_paid
 
 
-async def _create_click_payment(message, user_id: int, amount: int, lang: str) -> None:
+async def _payment_text(amount: int, payment_id: int, lang: str) -> str:
+    return bi(
+        lang,
+        f"💳 <b>Click orqali balansni to‘ldirish</b>\n\n💰 Summa: <b>{money(amount)} so‘m</b>\n🧾 To‘lov: <code>#{payment_id}</code>\n\nClick orqali to‘lang. To‘lov tasdiqlangach, pul balansingizga avtomatik qo‘shiladi.",
+        f"💳 <b>Пополнение баланса через Click</b>\n\n💰 Сумма: <b>{money(amount)} сум</b>\n🧾 Платёж: <code>#{payment_id}</code>\n\nОплатите через Click. После подтверждения деньги автоматически зачислятся на баланс.",
+    )
+
+
+async def _send_click_payment(target, user_id: int, amount: int, lang: str) -> None:
     existing = await db.open_payment(user_id, PRODUCT, amount)
     payment_id = existing["id"] if existing else await db.create_payment(user_id, PRODUCT, amount, "click")
     url = click.payment_url(payment_id, amount)
-    await message.edit_text(
-        bi(
-            lang,
-            f"💳 <b>Click orqali balansni to‘ldirish</b>\n\n💰 Summa: <b>{money(amount)} so‘m</b>\n🧾 To‘lov: <code>#{payment_id}</code>\n\n"
-            "Click orqali to‘lang. To‘lov tasdiqlangach, pul balansingizga avtomatik qo‘shiladi.",
-            f"💳 <b>Пополнение баланса через Click</b>\n\n💰 Сумма: <b>{money(amount)} сум</b>\n🧾 Платёж: <code>#{payment_id}</code>\n\n"
-            "Оплатите через Click. После подтверждения деньги автоматически зачислятся на баланс.",
-        ),
-        reply_markup=kb.pay_links(payment_id, url, lang, invoice=False),
-    )
+    text = await _payment_text(amount, payment_id, lang)
+    markup = kb.pay_links(payment_id, url, lang, invoice=False)
+    if isinstance(target, CallbackQuery):
+        await target.message.edit_text(text, reply_markup=markup)
+    else:
+        await target.answer(text, reply_markup=markup)
 
 
 @router.callback_query(F.data == "wallet:topup")
@@ -167,18 +168,14 @@ async def manual_topup(callback: CallbackQuery, state: FSMContext, lang: str) ->
     from config import MANUAL_CARD_HOLDER, MANUAL_CARD_NUMBER
     await callback.message.edit_text(
         bi(lang,
-           "➕ <b>Balansni karta orqali to‘ldirish</b>\n\n"
-           "UZCARD/HUMO orqali quyidagi kartaga to‘lov qiling:\n"
+           "➕ <b>Balansni karta orqali to‘ldirish</b>\n\nUZCARD/HUMO orqali quyidagi kartaga to‘lov qiling:\n"
            f"💳 <code>{MANUAL_CARD_NUMBER}</code>\n"
            f"👤 {MANUAL_CARD_HOLDER}\n\n"
-           "To‘lagan summangizni faqat raqamda yuboring (masalan: 50000).\n"
-           "Bekor qilish: /bekor",
-           "➕ <b>Пополнение баланса картой</b>\n\n"
-           "Оплатите через UZCARD/HUMO на карту:\n"
+           "To‘lagan summangizni faqat raqamda yuboring (masalan: 50000).\nBekor qilish: /bekor",
+           "➕ <b>Пополнение баланса картой</b>\n\nОплатите через UZCARD/HUMO на карту:\n"
            f"💳 <code>{MANUAL_CARD_NUMBER}</code>\n"
            f"👤 {MANUAL_CARD_HOLDER}\n\n"
-           "Отправьте сумму оплаты цифрами (например: 50000).\n"
-           "Отмена: /bekor"),
+           "Отправьте сумму оплаты цифрами (например: 50000).\nОтмена: /bekor"),
     )
 
 
@@ -192,7 +189,8 @@ async def click_topup_menu(callback: CallbackQuery, lang: str) -> None:
         )
         return
     await callback.message.edit_text(
-        bi(lang, "💳 <b>Click orqali balansni to‘ldirish</b>\n\nSummani tanlang yoki o‘zingiz kiriting:",
+        bi(lang,
+           "💳 <b>Click orqali balansni to‘ldirish</b>\n\nSummani tanlang yoki o‘zingiz kiriting:",
            "💳 <b>Пополнение баланса через Click</b>\n\nВыберите сумму или введите свою:"),
         reply_markup=amount_menu(lang),
     )
@@ -214,10 +212,7 @@ async def click_custom_start(callback: CallbackQuery, state: FSMContext, lang: s
 @router.message(CustomClickTopUp.amount, Command("bekor", "cancel"))
 async def cancel_custom_click(message: Message, state: FSMContext, lang: str) -> None:
     await state.clear()
-    await message.answer(
-        bi(lang, "❌ Bekor qilindi.", "❌ Отменено."),
-        reply_markup=wallet_menu(lang),
-    )
+    await message.answer(bi(lang, "❌ Bekor qilindi.", "❌ Отменено."), reply_markup=wallet_menu(lang))
 
 
 @router.message(CustomClickTopUp.amount)
@@ -234,7 +229,7 @@ async def custom_click_amount(message: Message, state: FSMContext, lang: str) ->
         )
         return
     await state.clear()
-    await _create_click_payment(message, message.from_user.id, amount, lang)
+    await _send_click_payment(message, message.from_user.id, amount, lang)
 
 
 @router.callback_query(F.data.startswith("wallet:click:"))
@@ -248,4 +243,4 @@ async def click_topup_create(callback: CallbackQuery, lang: str) -> None:
         return
     if amount not in AMOUNTS:
         return
-    await _create_click_payment(callback.message, callback.from_user.id, amount, lang)
+    await _send_click_payment(callback, callback.from_user.id, amount, lang)
