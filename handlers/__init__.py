@@ -2,7 +2,7 @@ from aiogram import Router
 
 import locales_patch  # noqa: F401
 
-from . import admin, admin_premium, admin_users, iq, payment, shop, user, wallet, wallet_admin
+from . import admin, admin_premium, admin_users, iq, iq_ui_patch, payment, shop, user, wallet, wallet_admin
 from .middleware import UserContext
 
 
