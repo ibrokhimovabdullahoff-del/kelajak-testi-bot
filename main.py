@@ -20,6 +20,7 @@ COMMANDS = {
         ("start", "Testlar menyusi"),
         ("natijalar", "Mening natijalarim"),
         ("balans", "Mening balansim"),
+        ("shop", "Balansdan test sotib olish"),
         ("iq", "IQ-style mantiq testi"),
         ("til", "Tilni o‘zgartirish"),
         ("haqida", "Bot va manbalar haqida"),
@@ -27,8 +28,9 @@ COMMANDS = {
     ],
     "ru": [
         ("start", "Меню тестов"),
-        ("natijalar", "Мой баланс"),
+        ("natijalar", "Мои результаты"),
         ("balans", "Мой баланс"),
+        ("shop", "Покупка тестов с баланса"),
         ("iq", "IQ-style тест рассуждений"),
         ("til", "Сменить язык"),
         ("haqida", "О боте и источниках"),
@@ -43,24 +45,17 @@ def _commands(lang: str) -> list[BotCommand]:
 
 async def set_commands(bot: Bot) -> None:
     await bot.set_my_commands(_commands("uz"), scope=BotCommandScopeDefault())
-    await bot.set_my_commands(
-        _commands("ru"), scope=BotCommandScopeDefault(), language_code="ru"
-    )
+    await bot.set_my_commands(_commands("ru"), scope=BotCommandScopeDefault(), language_code="ru")
 
 
 async def main() -> None:
-    logging.basicConfig(
-        level=LOG_LEVEL,
-        format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
-    )
-
+    logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)-8s %(name)s: %(message)s")
     await db.init()
     await wallet.init()
 
     bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dispatcher = Dispatcher(storage=MemoryStorage())
     dispatcher.include_router(build_router())
-
     set_bot(bot)
 
     me = await bot.get_me()
@@ -68,14 +63,10 @@ async def main() -> None:
 
     runner = await payments.run_server(on_paid=notify_paid)
     if CLICK_ENABLED:
-        logging.info("Click prepare:  %s/click/prepare", PUBLIC_URL)
+        logging.info("Click prepare: %s/click/prepare", PUBLIC_URL)
         logging.info("Click complete: %s/click/complete", PUBLIC_URL)
     else:
-        logging.warning(
-            "Click SOZLANMAGAN — testlar hech kimga ochilmaydi. "
-            "CLICK_SERVICE_ID, CLICK_MERCHANT_ID, CLICK_SECRET_KEY va "
-            "PUBLIC_URL ni to'ldiring."
-        )
+        logging.warning("Click SOZLANMAGAN — CLICK_* kalitlari va PUBLIC_URL ni to‘ldiring.")
 
     await set_commands(bot)
     await bot.delete_webhook(drop_pending_updates=True)
