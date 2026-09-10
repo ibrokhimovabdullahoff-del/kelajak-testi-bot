@@ -10,11 +10,13 @@ def build_router() -> Router:
     router = Router()
     router.message.middleware(UserContext())
     router.callback_query.middleware(UserContext())
+    # Wallet admin states must run before the general admin message handlers,
+    # otherwise an admin's numeric replies can be consumed by the admin panel.
+    router.include_router(wallet_admin.router)
     router.include_router(admin.router)
     router.include_router(admin_premium.router)
     router.include_router(admin_users.router)
     router.include_router(wallet.admin_router)
-    router.include_router(wallet_admin.router)
     # Put the method chooser before wallet.py so wallet:topup can offer
     # both Click and the existing manual UZCARD/HUMO flow.
     router.include_router(wallet_click.router)
