@@ -67,13 +67,9 @@ def progress(index: int) -> str:
     return "🟩" * filled + "⬜" * (10 - filled)
 
 def intro(lang: str) -> str:
-    price = ""
-    try:
-        if lang == "uz":
-            return "🧠 <b>Premium IQ testi</b>\n\n30 ta mantiqiy topshiriq. Ketma-ketlik, mantiq, sonlar, fazoviy va amaliy fikrlash bo‘yicha natija olasiz.\n\n⏱ Taxminan 7–10 daqiqa\n📊 Yakunda umumiy ball va kuchli yo‘nalishlaringiz ko‘rsatiladi."
-        return "🧠 <b>Премиум IQ-тест</b>\n\n30 заданий на последовательности, логику, числа, пространственное и прикладное мышление.\n\n⏱ Примерно 7–10 минут\n📊 В конце — общий результат и сильные направления."
-    finally:
-        _ = price
+    if lang == "uz":
+        return "🧠 <b>Premium IQ testi</b>\n\n30 ta mantiqiy topshiriq. Ketma-ketlik, mantiq, sonlar, fazoviy va amaliy fikrlash bo‘yicha natija olasiz.\n\n⏱ Taxminan 7–10 daqiqa\n📊 Yakunda IQ natijangiz va kuchli yo‘nalishlaringiz ko‘rsatiladi."
+    return "🧠 <b>Премиум IQ-тест</b>\n\n30 заданий на последовательности, логику, числа, пространственное и прикладное мышление.\n\n⏱ Примерно 7–10 минут\n📊 В конце вы увидите свой IQ-результат и сильные направления."
 
 def menu(lang: str):
     b = InlineKeyboardBuilder()
@@ -158,41 +154,65 @@ async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> No
         ok = answer == expected
         correct += int(ok)
         categories.setdefault(category, []).append(ok)
+
     score = round(correct / len(QUESTIONS) * 100)
+    iq_score = max(70, min(130, 70 + round(score * 0.6)))
     category_scores = {k: round(sum(v) / len(v) * 100) for k, v in categories.items()}
     ranked = sorted(category_scores.items(), key=lambda x: (-x[1], x[0]))
     strong = ranked[:2]
     weak = ranked[-2:][::-1]
-    await db.save_result(callback.from_user.id, IQ_KEY, lang, None, float(score), {"reasoning": float(score), "accuracy": float(score), "categories": category_scores, "correct": correct, "total_questions": len(QUESTIONS)})
+
+    await db.save_result(
+        callback.from_user.id,
+        IQ_KEY,
+        lang,
+        None,
+        float(iq_score),
+        {
+            "iq_score": iq_score,
+            "percent_score": score,
+            "reasoning": float(score),
+            "accuracy": float(score),
+            "categories": category_scores,
+            "correct": correct,
+            "total_questions": len(QUESTIONS),
+        },
+    )
     await state.clear()
 
-    if score >= 90:
-        band = bi(lang, "🏆 Juda kuchli", "🏆 Очень сильный")
-    elif score >= 75:
-        band = bi(lang, "🌟 Kuchli", "🌟 Сильный")
-    elif score >= 60:
-        band = bi(lang, "💪 Yaxshi", "💪 Хороший")
-    elif score >= 45:
-        band = bi(lang, "📈 O‘rtacha", "📈 Средний")
+    if iq_score >= 125:
+        level = bi(lang, "🏆 Juda yuqori", "🏆 Очень высокий")
+    elif iq_score >= 115:
+        level = bi(lang, "🌟 Yuqori", "🌟 Высокий")
+    elif iq_score >= 100:
+        level = bi(lang, "💪 Yaxshi", "💪 Хороший")
+    elif iq_score >= 85:
+        level = bi(lang, "📈 O‘rtacha", "📈 Средний")
     else:
-        band = bi(lang, "🌱 Rivojlantirish mumkin", "🌱 Есть над чем работать")
+        level = bi(lang, "🌱 Rivojlantirish mumkin", "🌱 Есть над чем работать")
 
     text = [
-        bi(lang, "🧠 <b>PREMIUM IQ HISOBOTI</b>", "🧠 <b>ОТЧЁТ ПРЕМИУМ IQ</b>"),
-        "", f"<b>{score}/100</b> · {band}",
-        bi(lang, f"To‘g‘ri javoblar: <b>{correct}/{len(QUESTIONS)}</b>", f"Правильных ответов: <b>{correct}/{len(QUESTIONS)}</b>"),
-        "", bi(lang, "<b>Kuchli yo‘nalishlar</b>", "<b>Сильные направления</b>"),
+        bi(lang, "🧠 <b>PREMIUM IQ NATIJASI</b>", "🧠 <b>РЕЗУЛЬТАТ ПРЕМИУМ IQ</b>"),
+        "",
+        bi(lang, f"🎯 <b>Sizning IQ natijangiz: {iq_score}</b>", f"🎯 <b>Ваш IQ-результат: {iq_score}</b>"),
+        bi(lang, f"📊 To‘g‘ri javoblar: <b>{correct}/{len(QUESTIONS)}</b>", f"📊 Правильных ответов: <b>{correct}/{len(QUESTIONS)}</b>"),
+        bi(lang, f"⭐ Daraja: <b>{level}</b>", f"⭐ Уровень: <b>{level}</b>"),
+        "",
+        bi(lang, "<b>Kuchli yo‘nalishlar</b>", "<b>Сильные направления</b>"),
     ]
     for key, val in strong:
         text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
     text += ["", bi(lang, "<b>Ko‘proq mashq foydali bo‘lishi mumkin</b>", "<b>Что можно потренировать</b>")]
     for key, val in weak:
         text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
-    text += ["", bi(lang, "💡 Natija sizning ushbu testdagi aniqligingizni ko‘rsatadi; uni rasmiy IQ koeffitsienti deb qabul qilmang.", "💡 Результат отражает вашу точность в этом тесте; не воспринимайте его как официальный коэффициент IQ.")]
+    text += [
+        "",
+        bi(lang, "💡 Bu ko‘rsatkich ushbu 30 savollik testdagi natijadan hisoblangan. U rasmiy klinik yoki standartlashtirilgan IQ testi o‘rnini bosmaydi.", "💡 Этот показатель рассчитан по результатам данного теста из 30 заданий. Он не заменяет официальный клинический или стандартизированный IQ-тест."),
+    ]
 
     b = InlineKeyboardBuilder()
     b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:start")
     b.button(text=bi(lang, "💰 Balans", "💰 Баланс"), callback_data="wallet:open")
-    b.button(text=bi(lang, "🧠 Boshqa testlar", "🧠 Другие тестlar"), callback_data="nav:menu")
+    b.button(text=bi(lang, "🧠 Boshqa testlar", "🧠 Другие тесты"), callback_data="nav:menu")
     b.adjust(1)
     await callback.message.edit_text("\n".join(text), reply_markup=b.as_markup())
