@@ -23,10 +23,10 @@ async def shop_markup(lang: str):
     b = InlineKeyboardBuilder()
     for key in ORDER:
         price = await price_for(key)
-        b.button(text=f"{REGISTRY[key].emoji} {price:,} so‘m · {REGISTRY[key].title.get(lang, REGISTRY[key].title['uz'])}", callback_data=f"wallet:buy:{key}")
+        b.button(text=f"{REGISTRY[key].emoji} {price:,} so‘m · {REGISTRY[key].title.get(lang, REGISTRY[key].title['uz'])}", callback_data=f"shop:buy:{key}")
     price_all = await price_for(db.ALL_PRODUCTS)
     if price_all:
-        b.button(text=f"🎁 {price_all:,} so‘m · {bi(lang, 'Barcha testlar', 'Все тесты')}", callback_data="wallet:buy:all")
+        b.button(text=f"🎁 {price_all:,} so‘m · {bi(lang, 'Barcha testlar', 'Все тесты')}", callback_data="shop:buy:all")
     b.button(text=bi(lang, "⬅️ Balans", "⬅️ Баланс"), callback_data="wallet:open")
     b.adjust(1)
     return b.as_markup()
@@ -50,3 +50,29 @@ async def shop_callback(callback: CallbackQuery, lang: str) -> None:
         reply_markup=await shop_markup(lang),
     )
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("shop:buy:"))
+async def buy(callback: CallbackQuery, lang: str) -> None:
+    product = callback.data.split(":", 2)[2]
+    if product != db.ALL_PRODUCTS and product not in REGISTRY:
+        await callback.answer()
+        return
+    if product == db.ALL_PRODUCTS:
+        owned = await db.paid_products(callback.from_user.id)
+        if db.ALL_PRODUCTS in owned:
+            await callback.answer(bi(lang, "Sizda bu paket allaqachon ochiq.", "Этот пакет уже открыт."), show_alert=True)
+            return
+    elif await db.has_access(callback.from_user.id, product):
+        await callback.answer(bi(lang, "Bu test allaqachon ochiq.", "Этот тест уже открыт."), show_alert=True)
+        return
+    amount = await price_for(product)
+    if await wallet.purchase(callback.from_user.id, product, amount):
+        await callback.message.answer(
+            bi(lang,
+               f"✅ Xarid muvaffaqiyatli. {product_title(product, lang)} ochildi.",
+               f"✅ Покупка успешна. {product_title(product, lang)} открыто."),
+        )
+        await callback.answer()
+    else:
+        await callback.answer(bi(lang, "❌ Balans yetarli emas.", "❌ Недостаточно средств."), show_alert=True)
