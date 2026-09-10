@@ -1,4 +1,4 @@
-"""Admin paneli: statistika, to'lovlar va ommaviy xabar."""
+"""Admin paneli: statistics, payments, broadcasts and product controls."""
 from __future__ import annotations
 
 import asyncio
@@ -15,47 +15,41 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
 import database as db
 import keyboards as kb
-from config import CLICK_ENABLED, DEFAULT_PRICE, DEFAULT_PRICE_ALL, IQ_EMOJI, IQ_KEY, IQ_PRICE_DEFAULT, is_admin
+from config import CLICK_ENABLED, DEFAULT_PRICE, IQ_EMOJI, IQ_KEY, IQ_PRICE_DEFAULT, is_admin
 from locales import money, t, tr
 from psytests import ORDER, REGISTRY
 
-from . import payment
-
 log = logging.getLogger(__name__)
 TARGET_LABELS = {"all": "hamma", "uz": "o‘zbekcha", "ru": "ruscha"}
+
 
 class IsAdmin(BaseFilter):
     async def __call__(self, event: Message | CallbackQuery) -> bool:
         return bool(event.from_user) and is_admin(event.from_user.id)
 
+
 router = Router()
 router.message.filter(IsAdmin())
 router.callback_query.filter(IsAdmin())
+
 
 class Broadcast(StatesGroup):
     waiting_target = State()
     waiting_message = State()
     waiting_confirm = State()
 
+
 @router.message(Command("admin"))
 async def cmd_admin(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer("🛠 <b>Admin panel</b>", reply_markup=kb.admin_menu())
 
+
 @router.callback_query(F.data == "adm:stats")
 async def show_stats(callback: CallbackQuery) -> None:
     await callback.answer()
     data = await db.stats()
-    lines = [
-        "📊 <b>Statistika</b>", "",
-        f"👥 Foydalanuvchilar: <b>{data['users']:.0f}</b>",
-        f"🆕 Bugun qo‘shilgan: <b>{data['new_today']:.0f}</b>",
-        f"🚫 Bloklaganlar: <b>{data['blocked']:.0f}</b>",
-        f"🌐 Til: 🇺🇿 <b>{data['uz']:.0f}</b> · 🇷🇺 <b>{data['ru']:.0f}</b>", "",
-        f"📝 Jami testlar: <b>{data['tests']:.0f}</b>",
-        f"📅 Bugun: <b>{data['tests_today']:.0f}</b>",
-        f"🟢 Hozir test yechayotganlar: <b>{await db.active_now():.0f}</b>",
-    ]
+    lines = ["📊 <b>Statistika</b>", "", f"👥 Foydalanuvchilar: <b>{data['users']:.0f}</b>", f"🆕 Bugun qo‘shilgan: <b>{data['new_today']:.0f}</b>", f"🚫 Bloklaganlar: <b>{data['blocked']:.0f}</b>", f"🌐 Til: 🇺🇿 <b>{data['uz']:.0f}</b> · 🇷🇺 <b>{data['ru']:.0f}</b>", "", f"📝 Jami testlar: <b>{data['tests']:.0f}</b>", f"📅 Bugun: <b>{data['tests_today']:.0f}</b>", f"🟢 Hozir test yechayotganlar: <b>{await db.active_now():.0f}</b>"]
     if data["per_test"]:
         lines += ["", "<b>Testlar bo‘yicha:</b>"]
         for row in data["per_test"]:
@@ -63,21 +57,17 @@ async def show_stats(callback: CallbackQuery) -> None:
             title = tr(test.title, "uz") if test else row["key"]
             emoji = test.emoji if test else "•"
             line = f"{emoji} {title}: <b>{row['count']}</b> ta"
-            if row["avg"] is not None:
-                line += f" · o‘rtacha <b>{row['avg']:.1f}</b>"
+            if row["avg"] is not None: line += f" · o‘rtacha <b>{row['avg']:.1f}</b>"
             lines.append(line)
-    daily = await db.daily(7)
-    if daily:
-        lines += ["", "<b>Oxirgi kunlar</b> (yangi / test):"]
-        for day, users, results in daily:
-            lines.append(f"<code>{day}</code>  {users} / {results}")
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_menu())
+
 
 @router.callback_query(F.data == "adm:broadcast")
 async def ask_target(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await state.set_state(Broadcast.waiting_target)
     await callback.message.edit_text("📣 Kimga yuboramiz?", reply_markup=kb.broadcast_targets())
+
 
 @router.callback_query(Broadcast.waiting_target, F.data.startswith("admto:"))
 async def ask_message(callback: CallbackQuery, state: FSMContext) -> None:
@@ -87,48 +77,41 @@ async def ask_message(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Broadcast.waiting_message)
     await callback.message.edit_text(f"📣 Yuboriladi: <b>{TARGET_LABELS.get(target, target)}</b>\n\nEndi xabaringizni yuboring — matn, rasm yoki video.\nBekor qilish: /bekor")
 
+
 @router.message(Broadcast.waiting_message, Command("bekor"))
 async def abort_waiting(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_menu())
+    await state.clear(); await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_menu())
+
 
 @router.message(Broadcast.waiting_message)
 async def got_message(message: Message, state: FSMContext) -> None:
-    data = await state.get_data()
-    target = data.get("target", "all")
+    data = await state.get_data(); target = data.get("target", "all")
     targets = await db.all_user_ids(lang=None if target == "all" else target)
     await state.update_data(from_chat_id=message.chat.id, message_id=message.message_id)
     await state.set_state(Broadcast.waiting_confirm)
     await message.answer(f"Yuqoridagi xabar <b>{len(targets)}</b> ta foydalanuvchiga ({TARGET_LABELS.get(target, target)}) yuboriladi.\n\nTasdiqlaysizmi?", reply_markup=kb.broadcast_confirm())
 
+
 @router.callback_query(Broadcast.waiting_confirm, F.data == "adm:cancel")
 async def cancel_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer()
-    await state.clear()
-    await callback.message.edit_text("❌ Bekor qilindi.", reply_markup=kb.admin_menu())
+    await callback.answer(); await state.clear(); await callback.message.edit_text("❌ Bekor qilindi.", reply_markup=kb.admin_menu())
+
 
 @router.callback_query(Broadcast.waiting_confirm, F.data == "adm:send")
 async def do_broadcast(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    await callback.answer()
-    data = await state.get_data()
-    await state.clear()
+    await callback.answer(); data = await state.get_data(); await state.clear()
     from_chat_id, message_id, target = data.get("from_chat_id"), data.get("message_id"), data.get("target", "all")
     if not from_chat_id or not message_id:
-        await callback.message.edit_text("Xabar topilmadi.", reply_markup=kb.admin_menu())
-        return
+        await callback.message.edit_text("Xabar topilmadi.", reply_markup=kb.admin_menu()); return
     await callback.message.edit_text("📤 Yuborilmoqda…")
     sent = failed = blocked = 0
     for user_id in await db.all_user_ids(lang=None if target == "all" else target):
         try:
-            await bot.copy_message(user_id, from_chat_id, message_id)
-            sent += 1
+            await bot.copy_message(user_id, from_chat_id, message_id); sent += 1
         except TelegramRetryAfter as exc:
             await asyncio.sleep(exc.retry_after)
-            try:
-                await bot.copy_message(user_id, from_chat_id, message_id)
-                sent += 1
-            except Exception:
-                failed += 1
+            try: await bot.copy_message(user_id, from_chat_id, message_id); sent += 1
+            except Exception: failed += 1
         except TelegramForbiddenError:
             await db.mark_blocked(user_id); blocked += 1
         except Exception as exc:
@@ -136,175 +119,163 @@ async def do_broadcast(callback: CallbackQuery, state: FSMContext, bot: Bot) -> 
         await asyncio.sleep(0.05)
     await callback.message.answer("✅ <b>Yuborish tugadi</b>\n\n" f"Yuborildi: <b>{sent}</b>\n" f"Bloklagan: <b>{blocked}</b>\n" f"Xatolik: <b>{failed}</b>", reply_markup=kb.admin_menu())
 
+
 @router.callback_query(F.data == "adm:home")
 async def admin_home(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer()
-    await state.clear()
-    await callback.message.edit_text("🛠 <b>Admin panel</b>", reply_markup=kb.admin_menu())
+    await callback.answer(); await state.clear(); await callback.message.edit_text("🛠 <b>Admin panel</b>", reply_markup=kb.admin_menu())
+
 
 @router.callback_query(F.data == "adm:funnel")
 async def show_funnel(callback: CallbackQuery) -> None:
-    await callback.answer()
-    rows = await db.funnel()
-    lines = ["📈 <b>Tugatish darajasi</b>", "", "<i>Boshlagan → tugatgan. Past foiz = test uzun yoki zerikarli.</i>", ""]
-    if not rows:
-        lines.append("Hali ma’lumot yo‘q.")
+    await callback.answer(); rows = await db.funnel()
+    lines = ["📈 <b>Tugatish darajasi</b>", "", "<i>Boshlagan → tugatgan.</i>", ""]
+    if not rows: lines.append("Hali ma’lumot yo‘q.")
     for row in rows:
-        test = REGISTRY.get(row["key"])
-        title = tr(test.title, "uz") if test else row["key"]
-        emoji = test.emoji if test else "•"
-        rate = f"{row['rate']:.0f}%" if row["rate"] is not None else "—"
-        line = f"{emoji} <b>{title}</b>\n   {row['starts']} boshladi → {row['done']} tugatdi · <b>{rate}</b>"
-        if row["avg"] is not None: line += f" · o‘rtacha ball {row['avg']:.1f}"
-        lines.append(line)
+        test = REGISTRY.get(row["key"]); title = tr(test.title, "uz") if test else row["key"]; emoji = test.emoji if test else "•"; rate = f"{row['rate']:.0f}%" if row["rate"] is not None else "—"
+        lines.append(f"{emoji} <b>{title}</b>\n   {row['starts']} boshladi → {row['done']} tugatdi · <b>{rate}</b>")
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_back())
+
 
 @router.callback_query(F.data == "adm:users")
 async def show_users(callback: CallbackQuery) -> None:
-    await callback.answer()
-    rows = await db.recent_users()
-    lines = ["👥 <b>Oxirgi qo‘shilganlar</b>", ""]
+    await callback.answer(); rows = await db.recent_users(); lines = ["👥 <b>Oxirgi qo‘shilganlar</b>", ""]
     if not rows: lines.append("Hali foydalanuvchi yo‘q.")
     for row in rows:
-        name = (row["full_name"] or "?")[:24]
-        uname = f"@{row['username']}" if row["username"] else f"id{row['user_id']}"
-        flag = {"uz": "🇺🇿", "ru": "🇷🇺"}.get(row["lang"] or "", "❔")
+        name = (row["full_name"] or "?")[:24]; uname = f"@{row['username']}" if row["username"] else f"id{row['user_id']}"; flag = {"uz":"🇺🇿","ru":"🇷🇺"}.get(row["lang"] or "","❔")
         lines.append(f"{flag} <b>{name}</b> · {uname} · {row['tests']} test · <i>{(row['created_at'] or '')[:10]}</i>")
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_back())
 
+
 @router.callback_query(F.data == "adm:tests")
 async def list_tests(callback: CallbackQuery) -> None:
-    await callback.answer()
-    off = await db.disabled_tests()
-    text = "🧩 <b>Testlarni boshqarish</b>\n\n🟢 — foydalanuvchilarga ko‘rinadi\n🔴 — menyudan yashirilgan\n\nTestni tanlab, savollarini ko‘rishingiz yoki vaqtincha o‘chirib qo‘yishingiz mumkin."
-    await callback.message.edit_text(text, reply_markup=kb.admin_tests(off))
+    await callback.answer(); off = await db.disabled_tests()
+    await callback.message.edit_text("🧩 <b>Testlarni boshqarish</b>\n\n🟢 — foydalanuvchilarga ko‘rinadi\n🔴 — menyudan yashirilgan", reply_markup=kb.admin_tests(off))
+
 
 @router.callback_query(F.data.startswith("admtest:"))
 async def show_test(callback: CallbackQuery) -> None:
-    await callback.answer()
-    key = callback.data.split(":", 1)[1]
-    test = REGISTRY.get(key)
+    await callback.answer(); key = callback.data.split(":", 1)[1]; test = REGISTRY.get(key)
     if not test: return
     off = await db.disabled_tests(); rows = await db.funnel(); stat = next((r for r in rows if r["key"] == key), None)
-    lines = [f"{test.emoji} <b>{tr(test.title, 'uz')}</b>", "🔴 Hozir o‘chirilgan" if key in off else "🟢 Hozir yoqilgan", "", f"Savollar: <b>{test.size}</b> · yo‘nalishlar: <b>{len(test.scales)}</b>", f"Teskari savollar: <b>{sum(1 for i in test.items if i.reverse)}</b>"]
+    lines = [f"{test.emoji} <b>{tr(test.title, 'uz')}</b>", "🔴 Hozir o‘chirilgan" if key in off else "🟢 Hozir yoqilgan", "", f"Savollar: <b>{test.size}</b> · yo‘nalishlar: <b>{len(test.scales)}</b>"]
     if stat:
-        rate = f"{stat['rate']:.0f}%" if stat["rate"] is not None else "—"
-        lines.append(f"Boshlagan: <b>{stat['starts']}</b> · tugatgan: <b>{stat['done']}</b> ({rate})")
+        rate = f"{stat['rate']:.0f}%" if stat["rate"] is not None else "—"; lines.append(f"Boshlagan: <b>{stat['starts']}</b> · tugatgan: <b>{stat['done']}</b> ({rate})")
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_test_one(key, key in off))
+
 
 @router.callback_query(F.data.startswith("admtoggle:"))
 async def toggle(callback: CallbackQuery) -> None:
-    await callback.answer()
-    key = callback.data.split(":", 1)[1]
+    await callback.answer(); key = callback.data.split(":", 1)[1]
     if key not in REGISTRY: return
     enabled = await db.toggle_test(key)
     await callback.message.edit_text("🛠 <b>Test holati yangilandi</b>", reply_markup=kb.admin_test_one(key, not enabled))
+
 
 PER_PAGE = 8
 
 @router.callback_query(F.data.startswith("admq:"))
 async def show_questions(callback: CallbackQuery) -> None:
-    await callback.answer()
-    _, key, raw_page = callback.data.split(":")
-    test = REGISTRY.get(key)
+    await callback.answer(); _, key, raw_page = callback.data.split(":"); test = REGISTRY.get(key)
     if not test: return
     page = int(raw_page); pages = (test.size + PER_PAGE - 1) // PER_PAGE; chunk = test.items[page * PER_PAGE:(page + 1) * PER_PAGE]
     lines = [f"{test.emoji} <b>{tr(test.title, 'uz')}</b> — savollar {page * PER_PAGE + 1}–{page * PER_PAGE + len(chunk)} / {test.size}", ""]
-    for i, item in enumerate(chunk, start=page * PER_PAGE + 1):
-        mark = " <i>(teskari)</i>" if item.reverse else ""
-        lines += [f"<b>{i}. {tr(item.text, 'uz')}</b>{mark}", "   " + " · ".join(a.split(" ", 1)[1] for a in item.answers("uz")), ""]
+    for i, item in enumerate(chunk, start=page * PER_PAGE + 1): lines += [f"<b>{i}. {tr(item.text, 'uz')}</b>{' <i>(teskari)</i>' if item.reverse else ''}", "   " + " · ".join(a.split(" ", 1)[1] for a in item.answers("uz")), ""]
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_questions(key, page, pages))
+
 
 @router.callback_query(F.data == "adm:export")
 async def export(callback: CallbackQuery) -> None:
-    await callback.answer("Tayyorlanmoqda…")
-    rows = await db.export_results(); buf = io.StringIO(); writer = csv.writer(buf)
-    writer.writerow(["sana", "user_id", "username", "til", "test", "yosh_guruhi", "umumiy_ball", "shkalalar"])
+    await callback.answer("Tayyorlanmoqda…"); rows = await db.export_results(); buf = io.StringIO(); writer = csv.writer(buf); writer.writerow(["sana","user_id","username","til","test","yosh_guruhi","umumiy_ball","shkalalar"])
     for row in rows: writer.writerow(row)
-    data = buf.getvalue().encode("utf-8-sig")
-    await callback.message.answer_document(BufferedInputFile(data, filename="natijalar.csv"), caption=f"📥 {len(rows)} ta natija", reply_markup=kb.admin_back())
+    await callback.message.answer_document(BufferedInputFile(buf.getvalue().encode("utf-8-sig"), filename="natijalar.csv"), caption=f"📥 {len(rows)} ta natija", reply_markup=kb.admin_back())
+
 
 class Prices(StatesGroup):
     waiting_amount = State()
+
+
 class Grant(StatesGroup):
     waiting_user = State()
 
+
 def _product_title(key: str) -> str:
-    if key == db.ALL_PRODUCTS: return "Mahsulot"
     if key == IQ_KEY: return "🧠 Premium IQ testi"
     test = REGISTRY.get(key); return f"{test.emoji} {tr(test.title, 'uz')}" if test else key
 
+
 @router.callback_query(F.data == "adm:pay")
 async def payments_home(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer()
-    await state.clear(); await draw_payments(callback)
+    await callback.answer(); await state.clear(); await draw_payments(callback)
+
 
 async def draw_payments(callback: CallbackQuery) -> None:
     data = await db.payment_stats(); free = await db.free_tests()
-    lines = ["💳 <b>To‘lovlar</b>", "", f"✅ To‘langan: <b>{data['count']:.0f}</b> ta · <b>{money(int(data['sum']))}</b> so‘m", f"📅 Bugun: <b>{data['today']:.0f}</b> ta · <b>{money(int(data['today_sum']))}</b> so‘m", f"🧾 Boshlangan urinishlar: <b>{data['started']:.0f}</b>", f"🔓 Qo‘lda ochilgan: <b>{data['manual']:.0f}</b>", "", f"Click ulanishi: {'🟢 sozlangan' if CLICK_ENABLED else '🔴 sozlanmagan'}"]
-    if await db.admin_pays(): lines.append("🧪 <b>Sinov rejimi yoqiq</b>")
-    if not CLICK_ENABLED: lines.append("<i>CLICK_* kalitlari va PUBLIC_URL to‘ldirilmagan — to‘lov ishlamaydi.</i>")
-    lines += ["", "<b>Testlar:</b> 💳 pullik · 🎁 bepul", " ".join(("🎁" if key in free else "💳") + REGISTRY[key].emoji for key in ORDER)]
+    lines = ["💳 <b>To‘lovlar</b>", "", f"✅ To‘langan: <b>{data['count']:.0f}</b> ta · <b>{money(int(data['sum']))}</b> so‘m", f"📅 Bugun: <b>{data['today']:.0f}</b> ta · <b>{money(int(data['today_sum']))}</b> so‘m", f"🧾 Boshlangan urinishlar: <b>{data['started']:.0f}</b>", f"🔓 Qo‘lda ochilgan: <b>{data['manual']:.0f}</b>", "", f"Click ulanishi: {'🟢 sozlangan' if CLICK_ENABLED else '🔴 sozlanmagan'}", "", "<b>Testlar:</b> 💳 pullik · 🎁 bepul"]
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays()))
+
 
 @router.callback_query(F.data == "adm:paylist")
 async def payment_list(callback: CallbackQuery) -> None:
-    await callback.answer()
-    rows = await db.recent_payments(); marks = {"paid": "✅", "pending": "⏳", "prepared": "🔄", "cancelled": "❌", "revoked": "🚫"}; lines = ["🧾 <b>Oxirgi to‘lovlar</b>", ""]
-    if not rows: lines.append("Hali to‘lov yo‘q.")
+    await callback.answer(); rows = await db.recent_payments(); lines = ["🧾 <b>Oxirgi to‘lovlar</b>", ""]
+    marks = {"paid":"✅","pending":"⏳","prepared":"🔄","cancelled":"❌","revoked":"🚫"}
     for row in rows:
         who = f"@{row['username']}" if row["username"] else f"id{row['user_id']}"; mark = marks.get(row["status"], "•")
         lines.append(f"{mark} <code>#{row['id']}</code> {who} · {_product_title(row['product'])} · <b>{money(row['amount'])}</b> so‘m")
-        lines.append(f"   <i>{(row['paid_at'] or row['created_at'] or '')[:16]} · {row['method']}</i>")
+    if not rows: lines.append("Hali to‘lov yo‘q.")
     await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays()))
 
+
 async def _price_rows() -> list[tuple[str, str, int]]:
-    rows = []
-    for key in ORDER:
-        rows.append((key, f"{REGISTRY[key].emoji} {tr(REGISTRY[key].title, 'uz')}", await db.price_of(key, DEFAULT_PRICE)))
+    rows = [(key, f"{REGISTRY[key].emoji} {tr(REGISTRY[key].title, 'uz')}", await db.price_of(key, DEFAULT_PRICE)) for key in ORDER]
     rows.append((IQ_KEY, "🧠 Premium IQ testi", await db.price_of(IQ_KEY, IQ_PRICE_DEFAULT)))
     return rows
 
+
 @router.callback_query(F.data == "adm:prices")
 async def show_prices(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer(); await state.clear()
-    await callback.message.edit_text("💰 <b>Narxlar</b>\n\nO‘zgartirish uchun testni tanlang.", reply_markup=kb.admin_prices(await _price_rows()))
+    await callback.answer(); await state.clear(); await callback.message.edit_text("💰 <b>Narxlar</b>\n\nO‘zgartirish uchun testni tanlang.", reply_markup=kb.admin_prices(await _price_rows()))
+
 
 @router.callback_query(F.data.startswith("admprice:"))
 async def ask_price(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer()
-    key = callback.data.split(":", 1)[1]
+    await callback.answer(); key = callback.data.split(":",1)[1]
     if key not in ORDER and key != IQ_KEY: return
-    await state.set_state(Prices.waiting_amount); await state.update_data(product=key)
-    await callback.message.edit_text(f"💰 <b>{_product_title(key)}</b>\n\nYangi narxni so‘mda yuboring — faqat raqam, masalan <code>12000</code>.\nBekor qilish: /bekor")
+    await state.set_state(Prices.waiting_amount); await state.update_data(product=key); await callback.message.edit_text(f"💰 <b>{_product_title(key)}</b>\n\nYangi narxni so‘mda yuboring — faqat raqam.")
+
 
 @router.message(Prices.waiting_amount, Command("bekor"))
 async def abort_price(message: Message, state: FSMContext) -> None:
     await state.clear(); await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_menu())
 
+
 @router.message(Prices.waiting_amount)
 async def save_price(message: Message, state: FSMContext) -> None:
     raw = "".join(c for c in (message.text or "") if c.isdigit())
-    if not raw: await message.answer("Faqat raqam yuboring, masalan <code>12000</code>."); return
-    data = await state.get_data(); await state.clear(); product = data.get("product", ""); await db.set_price(product, int(raw))
-    await message.answer(f"✅ <b>{_product_title(product)}</b> narxi endi <b>{money(int(raw))}</b> so‘m.", reply_markup=kb.admin_menu())
+    if not raw: await message.answer("Faqat raqam yuboring."); return
+    data = await state.get_data(); await state.clear(); product = data.get("product", ""); await db.set_price(product, int(raw)); await message.answer(f"✅ <b>{_product_title(product)}</b> narxi endi <b>{money(int(raw))}</b> so‘m.", reply_markup=kb.admin_menu())
+
 
 @router.callback_query(F.data.startswith("admfree:"))
 async def toggle_free(callback: CallbackQuery) -> None:
     await callback.answer()
     key = callback.data.split(":", 1)[1]
-    if key not in REGISTRY: return
+    allowed = set(REGISTRY) | {IQ_KEY}
+    if key not in allowed:
+        return
     now_free = await db.toggle_free_test(key)
-    await callback.message.edit_text("🎁 <b>Pullik / bepul testlar</b>\n\nHolat yangilandi.", reply_markup=kb.admin_paid_tests(await db.free_tests()))
+    free = await db.free_tests()
+    await callback.message.edit_text(f"🎁 <b>Pullik / bepul testlar</b>\n\n{'🎁 Bepul' if now_free else '💳 Pullik'}: <b>{_product_title(key)}</b>\n\nHolatni boshqa test uchun ham o‘zgartirishingiz mumkin.", reply_markup=kb.admin_paid_tests(free))
+
 
 @router.callback_query(F.data == "adm:grant")
 async def ask_grant(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer(); await state.set_state(Grant.waiting_user)
-    await callback.message.edit_text("🔓 <b>Qo‘lda ochish</b>\n\nFoydalanuvchi ID va mahsulot kalitini yuboring.\n<code>123456789 bigfive</code>\nBekor qilish: /bekor")
+    await callback.answer(); await state.set_state(Grant.waiting_user); await callback.message.edit_text("🔓 <b>Qo‘lda ochish</b>\n\nFoydalanuvchi ID va test kalitini yuboring.\n<code>123456789 bigfive</code>\nBekor qilish: /bekor")
+
 
 @router.message(Grant.waiting_user, Command("bekor"))
 async def abort_grant(message: Message, state: FSMContext) -> None:
     await state.clear(); await message.answer("❌ Bekor qilindi.", reply_markup=kb.admin_menu())
+
 
 @router.message(Grant.waiting_user)
 async def do_grant(message: Message, state: FSMContext, bot: Bot) -> None:
@@ -312,20 +283,18 @@ async def do_grant(message: Message, state: FSMContext, bot: Bot) -> None:
     if len(parts) != 2 or not parts[0].isdigit(): await message.answer("Format: <code>123456789 bigfive</code>"); return
     user_id, product = int(parts[0]), parts[1]
     if product not in REGISTRY and product != IQ_KEY: await message.answer("Bunday test yo‘q."); return
-    await state.clear(); await db.grant_access(user_id, product, message.from_user.id)
-    await message.answer(f"✅ <code>{user_id}</code> uchun <b>{_product_title(product)}</b> ochildi.", reply_markup=kb.admin_menu())
+    await state.clear(); await db.grant_access(user_id, product, message.from_user.id); await message.answer(f"✅ <code>{user_id}</code> uchun <b>{_product_title(product)}</b> ochildi.", reply_markup=kb.admin_menu())
     try:
-        lang = await db.get_lang(user_id) or "uz"
-        await bot.send_message(user_id, t("pay_success", lang, product=_product_title(product)))
+        lang = await db.get_lang(user_id) or "uz"; await bot.send_message(user_id, t("pay_success", lang, product=_product_title(product)))
     except Exception: pass
+
 
 @router.callback_query(F.data == "adm:testmode")
 async def toggle_test_mode(callback: CallbackQuery) -> None:
-    await callback.answer()
-    now_on = await db.toggle_admin_pays()
-    await callback.message.edit_reply_markup(reply_markup=kb.admin_payments(now_on))
+    await callback.answer(); now_on = await db.toggle_admin_pays(); await callback.message.edit_reply_markup(reply_markup=kb.admin_payments(now_on))
+
 
 @router.callback_query(F.data == "adm:freetests")
 async def free_tests_screen(callback: CallbackQuery) -> None:
     await callback.answer()
-    await callback.message.edit_text("🎁 <b>Pullik / bepul testlar</b>\n\n💳 — test pullik\n🎁 — test bepul\n\nHolatini almashtirish uchun testni bosing.", reply_markup=kb.admin_paid_tests(await db.free_tests()))
+    await callback.message.edit_text("🎁 <b>Pullik / bepul testlar</b>\n\n💳 — test pullik\n🎁 — test bepul\n\nBosing va holatini darhol almashtiring.", reply_markup=kb.admin_paid_tests(await db.free_tests()))
