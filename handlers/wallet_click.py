@@ -19,7 +19,7 @@ from payments import click
 from .wallet import TopUp, wallet_menu
 
 router = Router()
-AMOUNTS = (10_000, 25_000, 50_000, 100_000, 200_000)
+AMOUNTS = (5_000, 10_000, 15_000, 30_000)
 PRODUCT = "wallet_topup_click"
 MIN_CUSTOM_AMOUNT = 1_000
 MAX_CUSTOM_AMOUNT = 50_000_000
@@ -204,7 +204,7 @@ async def click_custom_start(callback: CallbackQuery, state: FSMContext, lang: s
         bi(
             lang,
             "✍️ <b>Summani kiriting</b>\n\nMasalan: <code>75000</code>\nMinimal: <b>1 000 so‘m</b>\nMaksimal: <b>50 000 000 so‘m</b>\n\nBekor qilish: /bekor",
-            "✍️ <b>Введите сумму</b>\n\nНапример: <code>75000</code>\nМинимум: <b>1 000 сум</b>\nМаксимум: <b>50 000 000 сум</b>\n\nОтмена: /bekor",
+            "✍️ <b>Введите сумму</b>\n\nНапример: <code>75000</code>\nМинимум: <b>1 000 сум</b>\nМаксимум: <b>50 000 000 сум</b>\n\nОтмена: /cancel",
         )
     )
 
