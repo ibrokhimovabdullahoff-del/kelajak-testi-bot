@@ -1,111 +1,194 @@
-"""Original IQ-style reasoning assessment.
+"""Premium IQ-style reasoning assessment.
 
-This is an original reasoning benchmark, not a clinical or normed IQ test.
-It uses multiple-choice items and a transparent 0-100 reasoning score.
+Original 30-item reasoning assessment. It is intentionally presented as an
+IQ-style score, not a clinical/normed IQ measurement. Access is controlled by
+the same free/paid + Click + wallet system as other premium products.
 """
 from __future__ import annotations
 
 import html
-import random
 
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
+from config import IQ_EMOJI, IQ_KEY
+from handlers import payment as pay
 from locales import money
 from psytests.base import L
 
 router = Router()
 
+# category, bilingual prompt, options uz, options ru, correct index, difficulty
 QUESTIONS = [
-    ("🔢", L("Ketma-ketlikni davom ettiring: 2, 6, 12, 20, 30, ?", "Продолжите ряд: 2, 6, 12, 20, 30, ?"), ["36", "40", "42", "44", "48"], 2),
-    ("🔷", L("Qaysi son boshqalardan farq qiladi: 16, 25, 36, 49, 63?", "Какое число отличается: 16, 25, 36, 49, 63?"), ["16", "25", "36", "49", "63"], 4),
-    ("🧩", L("Agar barcha NARlar ZEL bo‘lsa va ayrim ZELlar TOR bo‘lsa, qaysi xulosa aniq?", "Если все NAR являются ZEL, а некоторые ZEL являются TOR, какой вывод точен?"), ["Barcha NARlar TOR", "Hech bir NAR TOR emas", "Ba'zi NARlar TOR bo‘lishi mumkin", "Barcha TORlar NAR", "NAR va TOR bir xil"], 2),
-    ("⚖️", L("3 ta bir xil quti 18 kg. 5 ta shunday quti necha kg?", "3 одинаковые коробки весят 18 кг. Сколько весят 5 таких коробок?"), ["24", "27", "30", "33", "36"], 2),
-    ("🔤", L("A, C, F, J, O, ? harflarida keyingi harf qaysi?", "Какой следующей буквой будет ряд A, C, F, J, O, ?"), ["S", "T", "U", "V", "W"], 2),
-    ("🕒", L("Soat 3:15 da minut strelkasi 3 ni ko‘rsatadi. Soat strelkasi qayerda bo‘ladi?", "В 3:15 минутная стрелка на 3. Где будет часовая стрелка?"), ["3 da", "3 va 4 oralig‘ida", "4 da", "2 va 3 oralig‘ida", "12 da"], 1),
-    ("🧠", L("Bir sonning yarmi 18 ga teng. Shu sonning 25% i nechaga teng?", "Половина числа равна 18. Чему равны 25% этого числа?"), ["6", "8", "9", "12", "18"], 2),
-    ("📐", L("Kvadratning tomoni 6. Perimetri 24 bo‘lsa, yuzi nechaga teng?", "Сторона квадрата 6. Если периметр 24, чему равна площадь?"), ["18", "24", "30", "36", "48"], 3),
-    ("🔁", L("5 → 11, 7 → 15, 10 → 21 bo‘lsa, 13 → ?", "Если 5 → 11, 7 → 15, 10 → 21, то 13 → ?"), ["24", "25", "26", "27", "28"], 3),
-    ("🧭", L("Shimolga qarab turib 90° o‘ngga, keyin 180° chapga burildingiz. Qaysi tomonga qaraysiz?", "Вы смотрите на север, поворачиваете на 90° направо, затем на 180° налево. Куда смотрите?"), ["Shimol", "Janub", "Sharq", "G‘arb", "Janubi-sharq"], 3),
-    ("🧮", L("Bir xil qoida: 4, 9, 19, 39, ?", "По одному правилу: 4, 9, 19, 39, ?"), ["59", "69", "79", "89", "99"], 2),
-    ("🧱", L("5 ishchi ishni 12 kunda tugatsa, bir xil tezlikda 10 ishchi necha kunda tugatadi?", "Если 5 работников выполняют работу за 12 дней, сколько дней нужно 10 работникам при той же скорости?"), ["3", "5", "6", "8", "10"], 2),
-    ("🔍", L("Qaysi juftlik munosabati bir xil: Qush : uya = Ari : ?", "Какая связь такая же: Птица : гнездо = Пчела : ?"), ["Asal", "Gul", "Uya", "Katak", "Qanot"], 3),
-    ("📊", L("Ketma-ketlik: 81, 27, 9, 3, ?", "Ряд: 81, 27, 9, 3, ?"), ["0", "1", "2", "1.5", "-1"], 1),
-    ("🧩", L("Agar kecha dushanba bo‘lgan bo‘lsa, ertadan ikki kun keyin qaysi kun?", "Если вчера был понедельник, какой день будет послезавтра?"), ["Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"], 2),
-    ("🔢", L("2, 3, 5, 8, 12, ? ketma-ketlikda keyingi son?", "Следующее число: 2, 3, 5, 8, 12, ?"), ["15", "16", "17", "18", "20"], 2),
-    ("🧠", L("Barcha K lar L. Hech bir L M emas. Demak K lar M bo‘lishi mumkinmi?", "Все K являются L. Ни один L не является M. Могут ли K быть M?"), ["Ha, albatta", "Yo‘q, mumkin emas", "Faqat ayrimlari", "Ma'lumot yetarli emas", "Faqat M bo‘lsa"], 1),
-    ("⚡", L("Bir mashina 60 km/soat tezlikda 30 daqiqada qancha yo‘l bosadi?", "Сколько проедет машина со скоростью 60 км/ч за 30 минут?"), ["20 km", "25 km", "30 km", "40 km", "60 km"], 2),
-    ("🧮", L("Agar 7 + 3 = 410 va 5 + 2 = 37 ko‘rinishida yozilsa, 8 + 4 = ?", "Если 7 + 3 записано как 410, а 5 + 2 как 37, то 8 + 4 = ?"), ["412", "212", "432", "4120", "84"], 0),
-    ("🎯", L("Bir xil naqsh: 1, 4, 10, 22, 46, ?", "Один шаблон: 1, 4, 10, 22, 46, ?"), ["70", "82", "90", "94", "96"], 3),
+    ("sequence", L("Ketma-ketlikni davom ettiring: 2, 6, 12, 20, 30, ?", "Продолжите ряд: 2, 6, 12, 20, 30, ?"), ["36", "40", "42", "44", "48"], ["36", "40", "42", "44", "48"], 2, 1),
+    ("logic", L("Qaysi son boshqalardan farq qiladi: 16, 25, 36, 49, 63?", "Какое число отличается: 16, 25, 36, 49, 63?"), ["16", "25", "36", "49", "63"], ["16", "25", "36", "49", "63"], 4, 1),
+    ("sequence", L("A, C, F, J, O, ? qatorida keyingi harf qaysi?", "Какая следующая буква в ряду A, C, F, J, O, ?"), ["S", "T", "U", "V", "W"], ["S", "T", "U", "V", "W"], 2, 2),
+    ("numeric", L("3 ta bir xil quti 18 kg. 5 ta shunday quti necha kg?", "3 одинаковые коробки весят 18 кг. Сколько весят 5 таких коробок?"), ["24", "27", "30", "33", "36"], ["24", "27", "30", "33", "36"], 2, 1),
+    ("sequence", L("Bir xil qoida: 4, 9, 19, 39, ?", "По одному правилу: 4, 9, 19, 39, ?"), ["59", "69", "79", "89", "99"], ["59", "69", "79", "89", "99"], 2, 1),
+    ("sequence", L("Ketma-ketlik: 81, 27, 9, 3, ?", "Ряд: 81, 27, 9, 3, ?"), ["0", "1", "2", "1.5", "-1"], ["0", "1", "2", "1.5", "-1"], 1, 1),
+    ("sequence", L("2, 3, 5, 8, 12, ? ketma-ketlikda keyingi son?", "Следующее число: 2, 3, 5, 8, 12, ?"), ["15", "16", "17", "18", "20"], ["15", "16", "17", "18", "20"], 2, 1),
+    ("logic", L("Barcha NARlar ZEL. Ayrim ZELlar TOR. Qaysi xulosa aniq?", "Все NAR являются ZEL. Некоторые ZEL являются TOR. Какой вывод точен?"), ["Barcha NARlar TOR", "Hech bir NAR TOR emas", "Ba'zi NARlar TOR bo‘lishi mumkin", "Barcha TORlar NAR", "NAR va TOR bir xil"], ["Все NAR — TOR", "Ни один NAR не TOR", "Некоторые NAR могут быть TOR", "Все TOR — NAR", "NAR и TOR — одно и то же"], 2, 2),
+    ("logic", L("Barcha K lar L. Hech bir L M emas. Demak K lar M bo‘lishi mumkinmi?", "Все K являются L. Ни один L не является M. Могут ли K быть M?"), ["Ha, albatta", "Yo‘q, mumkin emas", "Faqat ayrimlari", "Ma'lumot yetarli emas", "Faqat M bo‘lsa"], ["Да, обязательно", "Нет, невозможно", "Только некоторые", "Данных недостаточно", "Только если есть M"], 1, 2),
+    ("applied", L("Mashina 60 km/soat tezlikda 45 daqiqada qancha yo‘l bosadi?", "Сколько проедет машина со скоростью 60 км/ч за 45 минут?"), ["30 km", "40 km", "45 km", "50 km", "60 km"], ["30 км", "40 км", "45 км", "50 км", "60 км"], 2, 1),
+    ("spatial", L("Soat 3:15 da soat strelkasi qayerda bo‘ladi?", "Где будет часовая стрелка в 3:15?"), ["3 da", "3 va 4 oralig‘ida", "4 da", "2 va 3 oralig‘ida", "12 da"], ["На 3", "Между 3 и 4", "На 4", "Между 2 и 3", "На 12"], 1, 2),
+    ("spatial", L("Shimolga qarab turib 90° o‘ngga, keyin 180° chapga burildingiz. Qaysi tomonga qaraysiz?", "Вы смотрите на север, поворачиваете на 90° направо, затем на 180° налево. Куда смотрите?"), ["Shimol", "Janub", "Sharq", "G‘arb", "Janubi-sharq"], ["Север", "Юг", "Восток", "Запад", "Юго-восток"], 3, 2),
+    ("verbal", L("Qush : uya = Ari : ?", "Птица : гнездо = Пчела : ?"), ["Asal", "Gul", "Uya", "Katak", "Qanot"], ["Мёд", "Цветок", "Гнездо", "Соты", "Крыло"], 3, 1),
+    ("applied", L("5 ishchi ishni 12 kunda tugatsa, bir xil tezlikda 10 ishchi necha kunda tugatadi?", "Если 5 работников выполняют работу за 12 дней, сколько нужно 10 работникам при той же скорости?"), ["3", "5", "6", "8", "10"], ["3", "5", "6", "8", "10"], 2, 1),
+    ("numeric", L("Bir sonning yarmi 18 ga teng. Shu sonning 25% i nechaga teng?", "Половина числа равна 18. Чему равны 25% этого числа?"), ["6", "8", "9", "12", "18"], ["6", "8", "9", "12", "18"], 2, 1),
+    ("numeric", L("2 : 3 = 8 : x bo‘lsa, x nechaga teng?", "Если 2 : 3 = 8 : x, чему равен x?"), ["10", "12", "14", "16", "18"], ["10", "12", "14", "16", "18"], 1, 1),
+    ("probability", L("Oddiy 6 qirrali kubik tashlanganda juft son tushish ehtimoli qancha?", "Какова вероятность получить чётное число на обычном кубике с 6 гранями?"), ["1/6", "1/3", "1/2", "2/3", "5/6"], ["1/6", "1/3", "1/2", "2/3", "5/6"], 2, 1),
+    ("verbal", L("CAT har bir harfni keyingi harfga almashtirib DBU bo‘lsa, DOG qanday yoziladi?", "Если каждую букву CAT заменить следующей, получится DBU. Как будет записано DOG?"), ["EPH", "EOG", "DPH", "FQI", "EOH"], ["EPH", "EOG", "DPH", "FQI", "EOH"], 0, 2),
+    ("logic", L("Qaysi biri boshqalardan farq qiladi: uchburchak, kvadrat, beshburchak, doira, oltiburchak?", "Что отличается: треугольник, квадрат, пятиугольник, круг, шестиугольник?"), ["Uchburchak", "Kvadrat", "Beshburchak", "Doira", "Oltiburchak"], ["Треугольник", "Квадрат", "Пятиугольник", "Круг", "Шестиугольник"], 3, 1),
+    ("sequence", L("1, 1, 2, 3, 5, 8, ? qatorida keyingi son?", "Какое число следующее: 1, 1, 2, 3, 5, 8, ?"), ["11", "12", "13", "14", "15"], ["11", "12", "13", "14", "15"], 2, 1),
+    ("logic", L("Barcha atirgullar gullardir. Ayrim gullar qizil. Qaysi xulosa aniq?", "Все розы — цветы. Некоторые цветы красные. Какой вывод гарантирован?"), ["Barcha atirgullar qizil", "Ayrim atirgullar qizil", "Hech bir atirgul qizil emas", "Aniq xulosa chiqarib bo‘lmaydi", "Barcha qizillar atirgul"], ["Все розы красные", "Некоторые розы красные", "Ни одна роза не красная", "Нельзя сделать точный вывод", "Все красные — розы"], 3, 2),
+    ("applied", L("3 ta mashina 6 soatda jami 90 dona detal ishlab chiqarsa, shu tezlikda 5 ta mashina 6 soatda nechta detal qiladi?", "Если 3 станка за 6 часов делают 90 деталей, сколько сделают 5 станков за 6 часов при той же скорости?"), ["120", "135", "150", "165", "180"], ["120", "135", "150", "165", "180"], 2, 2),
+    ("sequence", L("100, 90, 81, 73, ? ketma-ketlikda keyingi son qaysi?", "Какое число следующее: 100, 90, 81, 73, ?"), ["64", "65", "66", "67", "68"], ["64", "65", "66", "67", "68"], 2, 2),
+    ("numeric", L("2 → 4, 3 → 9, 4 → 16 bo‘lsa, 7 → ?", "Если 2 → 4, 3 → 9, 4 → 16, то 7 → ?"), ["28", "35", "42", "49", "56"], ["28", "35", "42", "49", "56"], 3, 1),
+    ("sequence", L("AZ, BY, CX, DW, ? qatorida keyingi juftlik?", "Какая следующая пара в ряду AZ, BY, CX, DW, ?"), ["EV", "FU", "EX", "EW", "DV"], ["EV", "FU", "EX", "EW", "DV"], 0, 2),
+    ("applied", L("Bugun payshanba bo‘lsa, 100 kundan keyin qaysi kun bo‘ladi?", "Если сегодня четверг, какой день будет через 100 дней?"), ["Juma", "Shanba", "Yakshanba", "Dushanba", "Seshanba"], ["Пятница", "Суббота", "Воскресенье", "Понедельник", "Вторник"], 1, 2),
+    ("logic", L("Ikki sonning yig‘indisi 30, farqi 6. Katta son nechaga teng?", "Сумма двух чисел 30, разность 6. Чему равно большее число?"), ["12", "15", "16", "18", "21"], ["12", "15", "16", "18", "21"], 3, 1),
+    ("numeric", L("121, 144, 169, 196, 225, 250 sonlaridan qaysi biri naqshga mos emas?", "Какое число лишнее: 121, 144, 169, 196, 225, 250?"), ["121", "144", "169", "196", "225"], ["121", "144", "169", "196", "225"], 4, 2),
+    ("logic", L("Barcha GLIPlar GLOP. Hech bir GLOP yashil emas. GLIP yashil bo‘lishi mumkinmi?", "Все GLIP являются GLOP. Ни один GLOP не зелёный. Может ли GLIP быть зелёным?"), ["Ha", "Yo‘q", "Faqat ba'zilari", "Ma'lumot yetarli emas", "Faqat kechasi"], ["Да", "Нет", "Только некоторые", "Данных недостаточно", "Только ночью"], 1, 2),
 ]
 
 class IQState(StatesGroup):
     answering = State()
 
 
-def _text(lang: str, uz: str, ru: str) -> str:
+CATEGORY_NAMES = {
+    "uz": {
+        "sequence": "Ketma-ketlik",
+        "logic": "Mantiq",
+        "numeric": "Sonli fikrlash",
+        "verbal": "Verbal fikrlash",
+        "spatial": "Fazoviy fikrlash",
+        "applied": "Amaliy fikrlash",
+        "probability": "Ehtimollik",
+    },
+    "ru": {
+        "sequence": "Последовательности",
+        "logic": "Логика",
+        "numeric": "Числовое мышление",
+        "verbal": "Вербальное мышление",
+        "spatial": "Пространственное мышление",
+        "applied": "Прикладное мышление",
+        "probability": "Вероятность",
+    },
+}
+
+
+def bi(lang: str, uz: str, ru: str) -> str:
     return uz if lang == "uz" else ru
 
 
+def progress(index: int) -> str:
+    done = index
+    full = done // 5
+    partial = done % 5
+    return "🟩" * full + ("🟨" if partial else "") + "⬜" * (6 - full - (1 if partial else 0))
+
+
+def intro(lang: str) -> str:
+    return bi(
+        lang,
+        "🧠 <b>PREMIUM IQ-STYLE TEST</b>\n\n"
+        "30 ta original topshiriq • taxminan 8–10 daqiqa\n"
+        "Ketma-ketlik · mantiq · sonlar · so‘zlar · fazoviy va amaliy fikrlash\n\n"
+        "✨ Yakunda umumiy 0–100 ball va qaysi fikrlash yo‘nalishlaringiz kuchliroq ekanini ko‘rsatadigan mini-hisobot olasiz.\n\n"
+        "⚠️ Bu klinik yoki standartlashtirilgan IQ testi emas. Natija shu original topshiriqlardagi fikrlash aniqligini baholaydi.",
+        "🧠 <b>PREMIUM IQ-STYLE ТЕСТ</b>\n\n"
+        "30 оригинальных заданий • примерно 8–10 минут\n"
+        "Последовательности · логика · числа · слова · пространственное и прикладное мышление\n\n"
+        "✨ В конце вы получите итоговый балл 0–100 и мини-отчёт о сильнейших направлениях мышления.\n\n"
+        "⚠️ Это не клинический и не нормированный IQ-тест. Результат отражает точность рассуждений в этих оригинальных заданиях.",
+    )
+
+
 def menu(lang: str):
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
     b = InlineKeyboardBuilder()
-    b.button(text=_text(lang, "🧠 IQ-style testni boshlash", "🧠 Начать IQ-style тест"), callback_data="iq:start")
-    b.button(text=_text(lang, "⬅️ Orqaga", "⬅️ Назад"), callback_data="nav:menu")
+    b.button(text=bi(lang, "🚀 Testni boshlash", "🚀 Начать тест"), callback_data="iq:start")
+    b.button(text=bi(lang, "💰 Balans / to‘lov", "💰 Баланс / оплата"), callback_data="wallet:open")
+    b.button(text=bi(lang, "⬅️ Boshqa testlar", "⬅️ Другие тесты"), callback_data="nav:menu")
     b.adjust(1)
     return b.as_markup()
 
 
 def question_markup(index: int, lang: str):
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
     b = InlineKeyboardBuilder()
-    for i, option in enumerate(QUESTIONS[index][2]):
+    options = QUESTIONS[index][2] if lang == "uz" else QUESTIONS[index][3]
+    for i, option in enumerate(options):
         b.button(text=f"{i+1}️⃣ {option}", callback_data=f"iq:ans:{index}:{i}")
+    b.button(text=bi(lang, "⛔ Testni to‘xtatish", "⛔ Остановить тест"), callback_data="nav:cancel")
     b.adjust(1)
     return b.as_markup()
 
 
 def question_text(index: int, lang: str) -> str:
-    q = QUESTIONS[index]
+    category = QUESTIONS[index][0]
+    diff = QUESTIONS[index][5]
+    diff_text = {1: bi(lang, "Oson", "Лёгкое"), 2: bi(lang, "O‘rta", "Среднее")}.get(diff, bi(lang, "Qiyin", "Сложное"))
     return (
-        f"🧠 <b>{_text(lang, 'IQ-style reasoning testi', 'IQ-style тест рассуждений')}</b>\n\n"
-        f"{index+1} / {len(QUESTIONS)}\n\n"
-        f"<b>{html.escape(q[1].get(lang, q[1]['uz']))}</b>"
+        f"{IQ_EMOJI} <b>{bi(lang, 'Premium IQ-style test', 'Премиум IQ-style тест')}</b>\n\n"
+        f"{progress(index)}\n"
+        f"<b>{index + 1} / {len(QUESTIONS)}</b> · {CATEGORY_NAMES[lang][category]} · {diff_text}\n\n"
+        f"<b>{html.escape(QUESTIONS[index][1].get(lang, QUESTIONS[index][1]['uz']))}</b>"
     )
+
+
+async def _start_test(callback_or_message, state: FSMContext, lang: str, user_id: int) -> None:
+    if await pay.is_locked(user_id, IQ_KEY):
+        await pay.show_paywall(callback_or_message, user_id, IQ_KEY, lang)
+        return
+    await state.clear()
+    await state.update_data(iq_answers=[])
+    await state.set_state(IQState.answering)
+    await db.log_start(user_id, IQ_KEY)
+    text = question_text(0, lang)
+    markup = question_markup(0, lang)
+    if isinstance(callback_or_message, CallbackQuery):
+        await callback_or_message.message.edit_text(text, reply_markup=markup)
+        await callback_or_message.answer()
+    else:
+        await callback_or_message.answer(text, reply_markup=markup)
 
 
 @router.message(Command("iq"))
 async def iq_command(message: Message, state: FSMContext, lang: str) -> None:
-    await state.clear()
-    await message.answer(
-        _text(lang,
-              "Bu original mantiqiy fikrlash baholashi. U klinik yoki standartlashtirilgan IQ testi emas.\n\nBoshlaymizmi?",
-              "Это оригинальная оценка логического мышления. Это не клинический и не нормированный IQ-тест.\n\nНачнём?"),
-        reply_markup=menu(lang),
-    )
+    if await pay.is_locked(message.from_user.id, IQ_KEY):
+        price = await pay.price_for(IQ_KEY)
+        await message.answer(
+            intro(lang) + "\n\n" + bi(lang, f"🔒 Narxi: <b>{money(price)} so‘m</b>", f"🔒 Цена: <b>{money(price)} сум</b>"),
+            reply_markup=menu(lang),
+        )
+        return
+    await message.answer(intro(lang), reply_markup=menu(lang))
 
 
 @router.callback_query(F.data == "iq:start")
 async def iq_start(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    await state.clear()
-    await state.update_data(iq_answers=[], iq_started=True)
-    await state.set_state(IQState.answering)
-    await callback.message.edit_text(question_text(0, lang), reply_markup=question_markup(0, lang))
-    await callback.answer()
+    await _start_test(callback, state, lang, callback.from_user.id)
 
 
 @router.callback_query(IQState.answering, F.data.startswith("iq:ans:"))
 async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    _, _, raw_index, raw_value = callback.data.split(":")
-    index, value = int(raw_index), int(raw_value)
+    try:
+        _, _, raw_index, raw_value = callback.data.split(":")
+        index, value = int(raw_index), int(raw_value)
+    except (ValueError, AttributeError):
+        await callback.answer()
+        return
+    if index < 0 or index >= len(QUESTIONS) or value < 0 or value >= 5:
+        await callback.answer()
+        return
     data = await state.get_data()
     answers = list(data.get("iq_answers", []))
-    if index != len(answers) or value not in range(5):
-        await callback.answer(_text(lang, "Bu savol allaqachon javoblangan.", "На этот вопрос уже отвечено."), show_alert=True)
+    if index != len(answers):
+        await callback.answer(bi(lang, "Bu savol allaqachon javoblangan.", "Этот вопрос уже отвечен."), show_alert=True)
         return
     answers.append(value)
     await state.update_data(iq_answers=answers)
@@ -114,28 +197,62 @@ async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> No
         await callback.message.edit_text(question_text(len(answers), lang), reply_markup=question_markup(len(answers), lang))
         return
 
-    correct = sum(1 for i, answer in enumerate(answers) if answer == QUESTIONS[i][3])
+    categories: dict[str, list[bool]] = {}
+    correct = 0
+    for i, answer in enumerate(answers):
+        category, _, _, _, expected, _ = QUESTIONS[i]
+        ok = answer == expected
+        correct += int(ok)
+        categories.setdefault(category, []).append(ok)
+
     score = round(correct / len(QUESTIONS) * 100)
-    await db.save_result(callback.from_user.id, "iq", lang, None, float(score),
-                         {"reasoning": float(score), "accuracy": float(score)})
+    category_scores = {k: round(sum(v) / len(v) * 100) for k, v in categories.items()}
+    ranked = sorted(category_scores.items(), key=lambda x: (-x[1], x[0]))
+    strong = ranked[:2]
+    weak = ranked[-2:][::-1]
+    await db.save_result(callback.from_user.id, IQ_KEY, lang, None, float(score), {
+        "reasoning": float(score),
+        "accuracy": float(score),
+        "categories": category_scores,
+        "correct": correct,
+        "total_questions": len(QUESTIONS),
+    })
     await state.clear()
-    if score >= 85:
-        band = _text(lang, "🏆 Juda kuchli mantiqiy natija", "🏆 Очень сильный результат рассуждений")
-    elif score >= 70:
-        band = _text(lang, "🌟 Kuchli mantiqiy natija", "🌟 Сильный результат рассуждений")
-    elif score >= 50:
-        band = _text(lang, "💪 Yaxshi natija", "💪 Хороший результат")
+
+    if score >= 90:
+        band = bi(lang, "🏆 Juda kuchli", "🏆 Очень сильный")
+    elif score >= 75:
+        band = bi(lang, "🌟 Kuchli", "🌟 Сильный")
+    elif score >= 60:
+        band = bi(lang, "💪 Yaxshi", "💪 Хороший")
+    elif score >= 45:
+        band = bi(lang, "📈 O‘rtacha", "📈 Средний")
     else:
-        band = _text(lang, "🌱 Rivojlantirish uchun yaxshi nuqta", "🌱 Хорошая точка для развития")
-    text = (
-        f"🧠 <b>{_text(lang, 'IQ-style test natijasi', 'Результат IQ-style теста')}</b>\n\n"
-        f"<b>{score}/100</b> — {band}\n\n"
-        f"{_text(lang, f'To‘g‘ri javoblar: {correct}/{len(QUESTIONS)}', f'Правильных ответов: {correct}/{len(QUESTIONS)}')}\n\n"
-        f"⚠️ {_text(lang, 'Bu natija standart IQ koeffitsienti emas. U ushbu original topshiriqlardagi mantiqiy aniqlikni ko‘rsatadi.', 'Это не стандартизированный коэффициент IQ. Результат отражает точность рассуждений в этих оригинальных заданиях.')}"
-    )
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
+        band = bi(lang, "🌱 Rivojlantirish mumkin", "🌱 Есть над чем работать")
+
+    text = [
+        bi(lang, "🧠 <b>PREMIUM IQ-STYLE HISOBOT</b>", "🧠 <b>ОТЧЁТ PREMIUM IQ-STYLE</b>"),
+        "",
+        f"<b>{score}/100</b> · {band}",
+        bi(lang, f"To‘g‘ri javoblar: <b>{correct}/{len(QUESTIONS)}</b>", f"Правильных ответов: <b>{correct}/{len(QUESTIONS)}</b>"),
+        "",
+        bi(lang, "<b>Kuchli yo‘nalishlar</b>", "<b>Сильные направления</b>"),
+    ]
+    for key, val in strong:
+        text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
+    text += ["", bi(lang, "<b>Ko‘proq mashq foydali bo‘lishi mumkin</b>", "<b>Что можно потренировать</b>")]
+    for key, val in weak:
+        text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
+    text += [
+        "",
+        bi(lang,
+           "💡 Natija sizning ushbu testdagi aniqligingizni ko‘rsatadi; uni rasmiy IQ koeffitsienti deb qabul qilmang.",
+           "💡 Результат отражает вашу точность в этом тесте; не воспринимайте его как официальный коэффициент IQ."),
+    ]
+
     b = InlineKeyboardBuilder()
-    b.button(text=_text(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:start")
-    b.button(text=_text(lang, "🧠 Boshqa testlar", "🧠 Другие тесты"), callback_data="nav:menu")
+    b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:start")
+    b.button(text=bi(lang, "💰 Balans", "💰 Баланс"), callback_data="wallet:open")
+    b.button(text=bi(lang, "🧠 Boshqa testlar", "🧠 Другие тесты"), callback_data="nav:menu")
     b.adjust(1)
-    await callback.message.edit_text(text, reply_markup=b.as_markup())
+    await callback.message.edit_text("\n".join(text), reply_markup=b.as_markup())
