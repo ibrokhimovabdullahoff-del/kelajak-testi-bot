@@ -52,7 +52,7 @@ QUESTIONS = [
     ("sequence", L("AZ, BY, CX, DW, ? qatorida keyingi juftlik?", "Какая следующая пара в ряду AZ, BY, CX, DW, ?"), ["EV", "FU", "EX", "EW", "DV"], ["EV", "FU", "EX", "EW", "DV"], 0, 2),
     ("applied", L("Bugun payshanba bo‘lsa, 100 kundan keyin qaysi kun bo‘ladi?", "Если сегодня четверг, какой день будет через 100 дней?"), ["Juma", "Shanba", "Yakshanba", "Dushanba", "Seshanba"], ["Пятница", "Суббота", "Воскресенье", "Понедельник", "Вторник"], 1, 2),
     ("logic", L("Ikki sonning yig‘indisi 30, farqi 6. Katta son nechaga teng?", "Сумма двух чисел 30, разность 6. Чему равно большее число?"), ["12", "15", "16", "18", "21"], ["12", "15", "16", "18", "21"], 3, 1),
-    ("numeric", L("121, 144, 169, 196, 225, 250 sonlaridan qaysi biri naqshga mos emas?", "Какое число лишнее: 121, 144, 169, 196, 225, 250?"), ["121", "144", "169", "196", "225"], ["121", "144", "169", "196", "225"], 4, 2),
+    ("numeric", L("121, 144, 169, 196, 225, 250 sonlaridan qaysi biri naqshga mos emas?", "Какое число лишнее: 121, 144, 169, 196, 225, 250?"), ["121", "144", "169", "196", "250"], ["121", "144", "169", "196", "250"], 4, 2),
     ("logic", L("Barcha GLIPlar GLOP. Hech bir GLOP yashil emas. GLIP yashil bo‘lishi mumkinmi?", "Все GLIP являются GLOP. Ни один GLOP не зелёный. Может ли GLIP быть зелёным?"), ["Ha", "Yo‘q", "Faqat ba'zilari", "Ma'lumot yetarli emas", "Faqat kechasi"], ["Да", "Нет", "Только некоторые", "Данных недостаточно", "Только ночью"], 1, 2),
 ]
 
@@ -61,24 +61,8 @@ class IQState(StatesGroup):
 
 
 CATEGORY_NAMES = {
-    "uz": {
-        "sequence": "Ketma-ketlik",
-        "logic": "Mantiq",
-        "numeric": "Sonli fikrlash",
-        "verbal": "Verbal fikrlash",
-        "spatial": "Fazoviy fikrlash",
-        "applied": "Amaliy fikrlash",
-        "probability": "Ehtimollik",
-    },
-    "ru": {
-        "sequence": "Последовательности",
-        "logic": "Логика",
-        "numeric": "Числовое мышление",
-        "verbal": "Вербальное мышление",
-        "spatial": "Пространственное мышление",
-        "applied": "Прикладное мышление",
-        "probability": "Вероятность",
-    },
+    "uz": {"sequence": "Ketma-ketlik", "logic": "Mantiq", "numeric": "Sonli fikrlash", "verbal": "Verbal fikrlash", "spatial": "Fazoviy fikrlash", "applied": "Amaliy fikrlash", "probability": "Ehtimollik"},
+    "ru": {"sequence": "Последовательности", "logic": "Логика", "numeric": "Числовое мышление", "verbal": "Вербальное мышление", "spatial": "Пространственное мышление", "applied": "Прикладное мышление", "probability": "Вероятность"},
 }
 
 
@@ -94,19 +78,9 @@ def progress(index: int) -> str:
 
 
 def intro(lang: str) -> str:
-    return bi(
-        lang,
-        "🧠 <b>PREMIUM IQ-STYLE TEST</b>\n\n"
-        "30 ta original topshiriq • taxminan 8–10 daqiqa\n"
-        "Ketma-ketlik · mantiq · sonlar · so‘zlar · fazoviy va amaliy fikrlash\n\n"
-        "✨ Yakunda umumiy 0–100 ball va qaysi fikrlash yo‘nalishlaringiz kuchliroq ekanini ko‘rsatadigan mini-hisobot olasiz.\n\n"
-        "⚠️ Bu klinik yoki standartlashtirilgan IQ testi emas. Natija shu original topshiriqlardagi fikrlash aniqligini baholaydi.",
-        "🧠 <b>PREMIUM IQ-STYLE ТЕСТ</b>\n\n"
-        "30 оригинальных заданий • примерно 8–10 минут\n"
-        "Последовательности · логика · числа · слова · пространственное и прикладное мышление\n\n"
-        "✨ В конце вы получите итоговый балл 0–100 и мини-отчёт о сильнейших направлениях мышления.\n\n"
-        "⚠️ Это не клинический и не нормированный IQ-тест. Результат отражает точность рассуждений в этих оригинальных заданиях.",
-    )
+    return bi(lang,
+        "🧠 <b>PREMIUM IQ-STYLE TEST</b>\n\n30 ta original topshiriq • taxminan 8–10 daqiqa\nKetma-ketlik · mantiq · sonlar · so‘zlar · fazoviy va amaliy fikrlash\n\n✨ Yakunda umumiy 0–100 ball va qaysi fikrlash yo‘nalishlaringiz kuchliroq ekanini ko‘rsatadigan mini-hisobot olasiz.\n\n⚠️ Bu klinik yoki standartlashtirilgan IQ testi emas. Natija shu original topshiriqlardagi fikrlash aniqligini baholaydi.",
+        "🧠 <b>PREMIUM IQ-STYLE ТЕСТ</b>\n\n30 оригинальных заданий • примерно 8–10 минут\nПоследовательности · логика · числа · слова · пространственное и прикладное мышление\n\n✨ В конце вы получите итоговый балл 0–100 и мини-отчёт о сильнейших направлениях мышления.\n\n⚠️ Это не клинический и не нормированный IQ-тест. Результат отражает точность рассуждений в этих оригинальных заданиях.")
 
 
 def menu(lang: str):
@@ -132,17 +106,12 @@ def question_text(index: int, lang: str) -> str:
     category = QUESTIONS[index][0]
     diff = QUESTIONS[index][5]
     diff_text = {1: bi(lang, "Oson", "Лёгкое"), 2: bi(lang, "O‘rta", "Среднее")}.get(diff, bi(lang, "Qiyin", "Сложное"))
-    return (
-        f"{IQ_EMOJI} <b>{bi(lang, 'Premium IQ-style test', 'Премиум IQ-style тест')}</b>\n\n"
-        f"{progress(index)}\n"
-        f"<b>{index + 1} / {len(QUESTIONS)}</b> · {CATEGORY_NAMES[lang][category]} · {diff_text}\n\n"
-        f"<b>{html.escape(QUESTIONS[index][1].get(lang, QUESTIONS[index][1]['uz']))}</b>"
-    )
+    return (f"{IQ_EMOJI} <b>{bi(lang, 'Premium IQ-style test', 'Премиум IQ-style тест')}</b>\n\n{progress(index)}\n<b>{index + 1} / {len(QUESTIONS)}</b> · {CATEGORY_NAMES[lang][category]} · {diff_text}\n\n<b>{html.escape(QUESTIONS[index][1].get(lang, QUESTIONS[index][1]['uz']))}</b>")
 
 
-async def _start_test(callback_or_message, state: FSMContext, lang: str, user_id: int) -> None:
+async def _start_test(target, state: FSMContext, lang: str, user_id: int) -> None:
     if await pay.is_locked(user_id, IQ_KEY):
-        await pay.show_paywall(callback_or_message, user_id, IQ_KEY, lang)
+        await pay.show_paywall(target, user_id, IQ_KEY, lang)
         return
     await state.clear()
     await state.update_data(iq_answers=[])
@@ -150,21 +119,18 @@ async def _start_test(callback_or_message, state: FSMContext, lang: str, user_id
     await db.log_start(user_id, IQ_KEY)
     text = question_text(0, lang)
     markup = question_markup(0, lang)
-    if isinstance(callback_or_message, CallbackQuery):
-        await callback_or_message.message.edit_text(text, reply_markup=markup)
-        await callback_or_message.answer()
+    if isinstance(target, CallbackQuery):
+        await target.message.edit_text(text, reply_markup=markup)
+        await target.answer()
     else:
-        await callback_or_message.answer(text, reply_markup=markup)
+        await target.answer(text, reply_markup=markup)
 
 
 @router.message(Command("iq"))
 async def iq_command(message: Message, state: FSMContext, lang: str) -> None:
+    price = await pay.price_for(IQ_KEY)
     if await pay.is_locked(message.from_user.id, IQ_KEY):
-        price = await pay.price_for(IQ_KEY)
-        await message.answer(
-            intro(lang) + "\n\n" + bi(lang, f"🔒 Narxi: <b>{money(price)} so‘m</b>", f"🔒 Цена: <b>{money(price)} сум</b>"),
-            reply_markup=menu(lang),
-        )
+        await message.answer(intro(lang) + "\n\n" + bi(lang, f"🔒 Narxi: <b>{money(price)} so‘m</b> — to‘lovdan keyin darhol ochiladi.", f"🔒 Цена: <b>{money(price)} сум</b> — тест откроется сразу после оплаты."), reply_markup=menu(lang))
         return
     await message.answer(intro(lang), reply_markup=menu(lang))
 
@@ -204,19 +170,12 @@ async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> No
         ok = answer == expected
         correct += int(ok)
         categories.setdefault(category, []).append(ok)
-
     score = round(correct / len(QUESTIONS) * 100)
     category_scores = {k: round(sum(v) / len(v) * 100) for k, v in categories.items()}
     ranked = sorted(category_scores.items(), key=lambda x: (-x[1], x[0]))
     strong = ranked[:2]
     weak = ranked[-2:][::-1]
-    await db.save_result(callback.from_user.id, IQ_KEY, lang, None, float(score), {
-        "reasoning": float(score),
-        "accuracy": float(score),
-        "categories": category_scores,
-        "correct": correct,
-        "total_questions": len(QUESTIONS),
-    })
+    await db.save_result(callback.from_user.id, IQ_KEY, lang, None, float(score), {"reasoning": float(score), "accuracy": float(score), "categories": category_scores, "correct": correct, "total_questions": len(QUESTIONS)})
     await state.clear()
 
     if score >= 90:
@@ -232,23 +191,16 @@ async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> No
 
     text = [
         bi(lang, "🧠 <b>PREMIUM IQ-STYLE HISOBOT</b>", "🧠 <b>ОТЧЁТ PREMIUM IQ-STYLE</b>"),
-        "",
-        f"<b>{score}/100</b> · {band}",
+        "", f"<b>{score}/100</b> · {band}",
         bi(lang, f"To‘g‘ri javoblar: <b>{correct}/{len(QUESTIONS)}</b>", f"Правильных ответов: <b>{correct}/{len(QUESTIONS)}</b>"),
-        "",
-        bi(lang, "<b>Kuchli yo‘nalishlar</b>", "<b>Сильные направления</b>"),
+        "", bi(lang, "<b>Kuchli yo‘nalishlar</b>", "<b>Сильные направления</b>"),
     ]
     for key, val in strong:
         text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
     text += ["", bi(lang, "<b>Ko‘proq mashq foydali bo‘lishi mumkin</b>", "<b>Что можно потренировать</b>")]
     for key, val in weak:
         text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
-    text += [
-        "",
-        bi(lang,
-           "💡 Natija sizning ushbu testdagi aniqligingizni ko‘rsatadi; uni rasmiy IQ koeffitsienti deb qabul qilmang.",
-           "💡 Результат отражает вашу точность в этом тесте; не воспринимайте его как официальный коэффициент IQ."),
-    ]
+    text += ["", bi(lang, "💡 Natija sizning ushbu testdagi aniqligingizni ko‘rsatadi; uni rasmiy IQ koeffitsienti deb qabul qilmang.", "💡 Результат отражает вашу точность в этом тесте; не воспринимайте его как официальный коэффициент IQ.")]
 
     b = InlineKeyboardBuilder()
     b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:start")
