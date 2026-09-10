@@ -1,9 +1,4 @@
-"""To'lov oqimi: premium paywall, Click checkout va tasdiqlash.
-
-To'lov tasdiqlanmaguncha test ochilmaydi. Click checkout foydalanuvchini
-Click'ning rasmiy to'lov sahifasiga olib boradi; Click orqali Uzcard/Humo
-kartalari ham ishlatilishi mumkin, sharoit merchant/Click ulanishiga bog'liq.
-"""
+"""To'lov oqimi: paywall, Click havolasi, invoice va tasdiqlash."""
 from __future__ import annotations
 
 import logging
@@ -17,23 +12,13 @@ from aiogram.types import CallbackQuery, Message
 
 import database as db
 import keyboards as kb
-from config import (
-    CLICK_ENABLED,
-    CLICK_INVOICE,
-    DEFAULT_PRICE,
-    DEFAULT_PRICE_ALL,
-    IQ_EMOJI,
-    IQ_KEY,
-    IQ_PRICE_DEFAULT,
-    is_admin,
-)
+from config import CLICK_ENABLED, CLICK_INVOICE, DEFAULT_PRICE, DEFAULT_PRICE_ALL, IQ_EMOJI, IQ_KEY, is_admin
 from locales import money, t, tr
 from payments import click
 from psytests import ORDER, REGISTRY
 
 log = logging.getLogger(__name__)
 router = Router()
-
 _bot: Bot | None = None
 
 
@@ -49,22 +34,19 @@ class Invoice(StatesGroup):
 async def _edit(message: Message, text: str, markup) -> None:
     try:
         await message.edit_text(text, reply_markup=markup)
-    except TelegramBadRequest:
+    except TelegramBadRequest as exc:
+        if "message is not modified" in str(exc):
+            return
         await message.answer(text, reply_markup=markup)
 
 
-def is_product(product: str) -> bool:
-    return product == IQ_KEY or product == db.ALL_PRODUCTS or product in REGISTRY
-
-
 async def price_for(product: str) -> int:
-    if product == db.ALL_PRODUCTS:
-        default = DEFAULT_PRICE_ALL
-    elif product == IQ_KEY:
-        default = IQ_PRICE_DEFAULT
-    else:
-        default = DEFAULT_PRICE
+    default = DEFAULT_PRICE_ALL if product == db.ALL_PRODUCTS else (int(__import__('config').IQ_PRICE_DEFAULT) if product == IQ_KEY else DEFAULT_PRICE)
     return await db.price_of(product, default)
+
+
+def is_product(product: str) -> bool:
+    return product == db.ALL_PRODUCTS or product == IQ_KEY or product in REGISTRY
 
 
 async def is_locked(user_id: int, test_key: str) -> bool:
@@ -80,16 +62,17 @@ async def locked_tests(user_id: int) -> set[str]:
         return set()
     free = await db.free_tests()
     owned = await db.paid_products(user_id)
-    if db.ALL_PRODUCTS in owned:
-        return set()
-    return {k for k in [*ORDER, IQ_KEY] if k not in free and k not in owned}
+    locked = {k for k in ORDER if k not in free and k not in owned}
+    if IQ_KEY not in free and IQ_KEY not in owned:
+        locked.add(IQ_KEY)
+    return locked
 
 
 def product_title(product: str, lang: str) -> str:
     if product == db.ALL_PRODUCTS:
         return f"🎁 {t('pay_title_all', lang)}"
     if product == IQ_KEY:
-        return f"{IQ_EMOJI} {('Premium IQ-style mantiq testi' if lang == 'uz' else 'Премиум IQ-style тест рассуждений')}"
+        return "🧠 Premium IQ testi" if lang == "uz" else "🧠 Премиум IQ-тест"
     test = REGISTRY.get(product)
     return f"{test.emoji} {tr(test.title, lang)}" if test else product
 
@@ -98,7 +81,8 @@ async def paywall_text(user_id: int, test_key: str, lang: str) -> tuple[str, int
     price = await price_for(test_key)
     text = t("paywall", lang, title=product_title(test_key, lang), price=money(price))
     price_all = await price_for(db.ALL_PRODUCTS)
-    if price_all > 0 and len(await locked_tests(user_id)) > 1:
+    locked = await locked_tests(user_id)
+    if price_all > 0 and len(locked) > 1:
         text += t("paywall_all", lang, price=money(price_all))
         return text, price_all
     return text, None
@@ -121,11 +105,7 @@ async def start_payment(callback: CallbackQuery, state: FSMContext, lang: str) -
         return
 
     owned = await db.paid_products(callback.from_user.id)
-    already = (
-        db.ALL_PRODUCTS in owned
-        or product in owned
-        or (product != db.ALL_PRODUCTS and not await is_locked(callback.from_user.id, product))
-    )
+    already = db.ALL_PRODUCTS in owned or product in owned or (product != db.ALL_PRODUCTS and not await is_locked(callback.from_user.id, product))
     if already:
         await callback.answer(t("pay_already", lang), show_alert=True)
         return
@@ -133,21 +113,19 @@ async def start_payment(callback: CallbackQuery, state: FSMContext, lang: str) -
     await state.clear()
     price = await price_for(product)
     existing = await db.open_payment(callback.from_user.id, product, price)
-    payment_id = existing["id"] if existing else await db.create_payment(
-        callback.from_user.id, product, price, "click"
-    )
+    payment_id = existing["id"] if existing else await db.create_payment(callback.from_user.id, product, price, "click")
     url = click.payment_url(payment_id, price)
-    await _edit(
-        callback.message,
-        t("pay_created", lang, product=product_title(product, lang), price=money(price), payment_id=payment_id),
-        kb.pay_links(payment_id, url, lang, invoice=CLICK_INVOICE),
-    )
+    await _edit(callback.message, t("pay_created", lang, product=product_title(product, lang), price=money(price), payment_id=payment_id), kb.pay_links(payment_id, url, lang, invoice=CLICK_INVOICE))
     await callback.answer()
 
 
 @router.callback_query(F.data.startswith("paychk:"))
 async def check_payment(callback: CallbackQuery, lang: str) -> None:
-    payment_id = int(callback.data.split(":", 1)[1])
+    try:
+        payment_id = int(callback.data.split(":", 1)[1])
+    except (ValueError, IndexError):
+        await callback.answer()
+        return
     payment = await db.get_payment(payment_id)
     if payment is None or payment["user_id"] != callback.from_user.id:
         await callback.answer()
@@ -161,12 +139,18 @@ async def check_payment(callback: CallbackQuery, lang: str) -> None:
         return
     if await db.mark_paid(payment_id):
         log.info("To'lov Click API orqali tasdiqlandi: #%s", payment_id)
-    await _announce(callback.message, await db.get_payment(payment_id), lang)
+    updated = await db.get_payment(payment_id)
+    if updated:
+        await _announce(callback.message, updated, lang)
 
 
 @router.callback_query(F.data.startswith("payinv:"))
 async def ask_phone(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    payment_id = int(callback.data.split(":", 1)[1])
+    try:
+        payment_id = int(callback.data.split(":", 1)[1])
+    except (ValueError, IndexError):
+        await callback.answer()
+        return
     payment = await db.get_payment(payment_id)
     if payment is None or payment["user_id"] != callback.from_user.id:
         await callback.answer()
@@ -206,10 +190,7 @@ async def send_invoice(message: Message, state: FSMContext, lang: str) -> None:
 async def _announce(message: Message, payment: dict, lang: str) -> None:
     product = payment["product"]
     test_key = "" if product == db.ALL_PRODUCTS else product
-    await message.answer(
-        t("pay_success", lang, product=product_title(product, lang)),
-        reply_markup=kb.unlocked(test_key, lang),
-    )
+    await message.answer(t("pay_success", lang, product=product_title(product, lang)), reply_markup=kb.unlocked(test_key, lang))
 
 
 async def notify_paid(payment_id: int) -> None:
@@ -223,10 +204,6 @@ async def notify_paid(payment_id: int) -> None:
     product = payment["product"]
     test_key = "" if product == db.ALL_PRODUCTS else product
     try:
-        await _bot.send_message(
-            payment["user_id"],
-            t("pay_success", lang, product=product_title(product, lang)),
-            reply_markup=kb.unlocked(test_key, lang),
-        )
+        await _bot.send_message(payment["user_id"], t("pay_success", lang, product=product_title(product, lang)), reply_markup=kb.unlocked(test_key, lang))
     except Exception as exc:
         log.warning("To'lov xabari yetkazilmadi (%s): %s", payment["user_id"], exc)
