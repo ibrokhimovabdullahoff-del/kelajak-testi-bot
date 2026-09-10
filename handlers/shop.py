@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 import wallet
-from config import IQ_EMOJI, IQ_KEY, IQ_PRICE_DEFAULT
+from config import IQ_EMOJI, IQ_KEY
 from handlers.payment import price_for, product_title
 from locales import money
 from psytests import ORDER, REGISTRY
@@ -24,7 +24,7 @@ def product_rows(lang: str):
     rows = []
     for key in ORDER:
         rows.append((key, REGISTRY[key].emoji, REGISTRY[key].title.get(lang, REGISTRY[key].title["uz"])))
-    rows.append((IQ_KEY, IQ_EMOJI, "Premium IQ-style test" if lang == "uz" else "Премиум IQ-style тест"))
+    rows.append((IQ_KEY, IQ_EMOJI, "Premium IQ testi" if lang == "uz" else "Премиум IQ-тест"))
     return rows
 
 
