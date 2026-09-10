@@ -2,7 +2,7 @@ from aiogram import Router
 
 import locales_patch  # noqa: F401
 
-from . import admin, admin_premium, iq, payment, shop, user, wallet, wallet_admin
+from . import admin, admin_premium, admin_users, iq, payment, shop, user, wallet, wallet_admin
 from .middleware import UserContext
 
 
@@ -12,6 +12,7 @@ def build_router() -> Router:
     router.callback_query.middleware(UserContext())
     router.include_router(admin.router)
     router.include_router(admin_premium.router)
+    router.include_router(admin_users.router)
     router.include_router(wallet.admin_router)
     router.include_router(wallet_admin.router)
     router.include_router(payment.router)
