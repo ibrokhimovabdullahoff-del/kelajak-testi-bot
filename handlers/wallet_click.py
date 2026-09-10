@@ -11,7 +11,7 @@ import wallet
 from config import CLICK_ENABLED
 from locales import money
 from payments import click
-from .wallet import TopUp
+from .wallet import TopUp, wallet_menu
 
 router = Router()
 AMOUNTS = (10_000, 25_000, 50_000, 100_000, 200_000)
@@ -59,9 +59,10 @@ async def _announce_wallet_aware(message, payment: dict, lang: str, original_ann
         credited = await _credit_click_topup(payment)
         amount = money(int(payment["amount"]))
         if credited or payment.get("status") == "paid":
+            user_id = int(payment["user_id"])
             await message.answer(
-                bi(lang, f"✅ Balans to‘ldirildi: <b>+{amount} so‘m</b>.\n\n💰 Yangi balans: <b>{money(await wallet.balance(int(payment['user_id'])))} so‘m</b>",
-                   f"✅ Баланс пополнен на <b>+{amount} сум</b>.\n\n💰 Новый баланс: <b>{money(await wallet.balance(int(payment['user_id'])))} сум</b>"),
+                bi(lang, f"✅ Balans to‘ldirildi: <b>+{amount} so‘m</b>.\n\n💰 Yangi balans: <b>{money(await wallet.balance(user_id))} so‘m</b>",
+                   f"✅ Баланс пополнен на <b>+{amount} сум</b>.\n\n💰 Новый баланс: <b>{money(await wallet.balance(user_id))} сум</b>"),
                 reply_markup=wallet_menu(lang),
             )
         return
@@ -86,7 +87,7 @@ async def notify_paid(payment_id: int) -> None:
     if payment and payment.get("product") == PRODUCT and payment.get("status") == "paid":
         user_id = int(payment["user_id"])
         lang = await db.get_lang(user_id) or "uz"
-        credited = await _credit_click_topup(payment)
+        await _credit_click_topup(payment)
         if _payment_module._bot is not None:
             try:
                 await _payment_module._bot.send_message(
