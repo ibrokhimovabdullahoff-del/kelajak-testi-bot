@@ -28,6 +28,9 @@ def is_admin(user_id: int) -> bool:
 
 DEFAULT_PRICE = int(os.getenv("PRICE_UZS", "9900"))
 DEFAULT_PRICE_ALL = int(os.getenv("PRICE_ALL_UZS", "24900"))
+IQ_KEY = "iq"
+IQ_PRICE_DEFAULT = int(os.getenv("IQ_PRICE_UZS", "5000"))
+IQ_EMOJI = "🧠"
 CURRENCY = "so'm"
 
 CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "").strip()
