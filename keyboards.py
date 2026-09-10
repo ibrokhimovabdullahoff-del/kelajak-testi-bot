@@ -1,4 +1,4 @@
-"""Inline klaviaturalar. Hamma matn tilga bog'liq."""
+"""Inline keyboards for the bot."""
 from __future__ import annotations
 
 from urllib.parse import quote
@@ -44,12 +44,14 @@ def main_menu(lang: str, disabled: set[str] | None = None, locked: set[str] | No
 def test_card(test_key: str, lang: str, locked: bool = False) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     if locked:
-        builder.button(text=t("btn_pay", lang), callback_data=f"pay:{test_key}")
+        builder.button(text="💳 Click orqali to‘lash" if lang == "uz" else "💳 Оплатить через Click", callback_data=f"pay:{test_key}")
+        builder.button(text="💰 Balansdan to‘lash" if lang == "uz" else "💰 Оплатить с баланса", callback_data=f"shop:buy:{test_key}")
+        builder.button(text="➕ Balansni to‘ldirish" if lang == "uz" else "➕ Пополнить баланс", callback_data="wallet:topup")
     else:
         builder.button(text=t("btn_start_test", lang), callback_data=f"go:{test_key}")
     builder.button(text=t("btn_source", lang), callback_data=f"src:{test_key}")
     builder.button(text=t("btn_back", lang), callback_data="nav:menu")
-    builder.adjust(1, 2)
+    builder.adjust(1)
     return builder.as_markup()
 
 
@@ -177,11 +179,10 @@ def paywall(test_key: str, lang: str, price_all: int | None = None, price: int |
     builder = InlineKeyboardBuilder()
     click_label = "💳 Click orqali to‘lash" if lang == "uz" else "💳 Оплатить через Click"
     wallet_label = "💰 Balansdan to‘lash" if lang == "uz" else "💰 Оплатить с баланса"
+    topup_label = "➕ Balansni to‘ldirish" if lang == "uz" else "➕ Пополнить баланс"
     builder.button(text=click_label, callback_data=f"pay:{test_key}")
     builder.button(text=wallet_label, callback_data=f"shop:buy:{test_key}")
-    builder.button(text="➕ Balansni to‘ldirish" if lang == "uz" else "➕ Пополнить баланс", callback_data="wallet:topup")
-    if price_all:
-        builder.button(text=t("btn_pay_all", lang, price=money(price_all)), callback_data="pay:all")
+    builder.button(text=topup_label, callback_data="wallet:topup")
     builder.button(text=t("btn_back", lang), callback_data="nav:menu")
     builder.adjust(1)
     return builder.as_markup()
