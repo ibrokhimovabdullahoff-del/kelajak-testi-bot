@@ -1,8 +1,4 @@
-"""Har bir yangilanish uchun foydalanuvchini yozib qo'yadi va tilni aniqlaydi.
-
-Natijada handlerlar `lang` ni tayyor holda oladi va hech biri bazaga
-alohida murojaat qilmaydi.
-"""
+"""Fast per-update user context for Telegram handlers."""
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
@@ -26,8 +22,15 @@ class UserContext(BaseMiddleware):
         if user is None:
             return await handler(event, data)
 
+        # Acknowledge callback queries immediately so Telegram does not leave
+        # the pressed button spinning while the handler does DB/API work.
+        if isinstance(event, CallbackQuery):
+            try:
+                await event.answer()
+            except Exception:
+                pass
+
         if isinstance(event, (Message, CallbackQuery)):
-            # /start da majburan yozamiz, qolganda kesh hal qiladi.
             force = isinstance(event, Message) and (event.text or "").startswith("/start")
             await db.upsert_user(user.id, user.username, user.full_name, force=force)
 
