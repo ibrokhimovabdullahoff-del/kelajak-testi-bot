@@ -1,6 +1,7 @@
 from aiogram import Router
 
 import locales_patch  # noqa: F401
+import database_attempts_patch  # noqa: F401  # one paid purchase = one completed attempt
 
 from . import admin, admin_premium, admin_users, iq, iq_ui_patch, payment, shop, user, wallet, wallet_admin, wallet_click
 from .middleware import UserContext
