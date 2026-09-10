@@ -1,4 +1,4 @@
-"""Premium shop: spend the internal wallet balance on bot products."""
+"""Premium shop: spend the internal wallet balance on individual products."""
 from __future__ import annotations
 
 from aiogram import F, Router
@@ -33,9 +33,6 @@ async def shop_markup(lang: str):
     for key, emoji, title in product_rows(lang):
         price = await price_for(key)
         b.button(text=f"{emoji} {price:,} so‘m · {title}", callback_data=f"shop:buy:{key}")
-    price_all = await price_for(db.ALL_PRODUCTS)
-    if price_all:
-        b.button(text=f"🎁 {price_all:,} so‘m · {bi(lang, 'Barcha testlar', 'Все тесты')}", callback_data="shop:buy:all")
     b.button(text=bi(lang, "⬅️ Balans", "⬅️ Баланс"), callback_data="wallet:open")
     b.adjust(1)
     return b.as_markup()
@@ -44,15 +41,11 @@ async def shop_markup(lang: str):
 async def _buy(callback: CallbackQuery, product: str, lang: str) -> None:
     from handlers.payment import is_product
 
-    if not is_product(product):
+    if not is_product(product) or product == db.ALL_PRODUCTS:
         await callback.answer()
         return
     owned = await db.paid_products(callback.from_user.id)
-    if product == db.ALL_PRODUCTS:
-        if db.ALL_PRODUCTS in owned:
-            await callback.answer(bi(lang, "Sizda bu paket allaqachon ochiq.", "Этот пакет уже открыт."), show_alert=True)
-            return
-    elif product in owned or product in await db.free_tests():
+    if product in owned or product in await db.free_tests():
         await callback.answer(bi(lang, "Bu mahsulot allaqachon ochiq.", "Этот продукт уже открыт."), show_alert=True)
         return
     amount = await price_for(product)
@@ -72,7 +65,7 @@ async def shop(message: Message, lang: str) -> None:
     await message.answer(
         f"🛒 <b>{bi(lang, 'Premium do‘kon', 'Премиум-магазин')}</b>\n\n"
         f"{bi(lang, 'Balansingiz', 'Ваш баланс')}: <b>{money(bal)} so‘m</b>\n\n"
-        f"{bi(lang, 'Testni to‘g‘ridan-to‘g‘ri balansdan oching.', 'Открывайте тесты напрямую с внутреннего баланса.')}",
+        f"{bi(lang, 'Testlarni alohida balansdan oching.', 'Открывайте тесты по отдельности с внутреннего баланса.')}",
         reply_markup=await shop_markup(lang),
     )
 
