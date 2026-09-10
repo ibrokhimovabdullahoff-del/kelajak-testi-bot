@@ -30,7 +30,7 @@ def main_menu(lang: str, disabled: set[str] | None = None, locked: set[str] | No
         builder.button(text=f"{mark}{test.emoji} {tr(test.title, lang)}", callback_data=f"test:{key}")
     iq_mark = "🔒 " if IQ_KEY in locked else ""
     builder.button(
-        text=f"{iq_mark}{IQ_EMOJI} {('Premium IQ-style test' if lang == 'uz' else 'Премиум IQ-style тест')}",
+        text=f"{iq_mark}{IQ_EMOJI} {('Premium IQ testi' if lang == 'uz' else 'Премиум IQ-тест')}",
         callback_data="iq:start",
     )
     builder.button(text="💰 Balans / Wallet" if lang == "uz" else "💰 Баланс / Wallet", callback_data="wallet:open")
@@ -216,30 +216,6 @@ def admin_payments(admin_pays: bool = False) -> InlineKeyboardMarkup:
     builder.button(text="💰 Narxlarni o‘zgartirish", callback_data="adm:prices")
     builder.button(text="🎁 Pullik / bepul testlar", callback_data="adm:freetests")
     builder.button(text="🔓 Qo‘lda ochish", callback_data="adm:grant")
-    builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
-    builder.adjust(1)
-    return builder.as_markup()
-
-
-def admin_prices(products: list[tuple[str, str, int]]) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    for key, title, price in products:
-        builder.button(text=f"{title} — {money(price)} so‘m", callback_data=f"admprice:{key}")
-    builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
-    builder.adjust(1)
-    return builder.as_markup()
-
-
-def admin_paid_tests(free: set[str]) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    for key in [*ORDER, IQ_KEY]:
-        if key == IQ_KEY:
-            mark = "🎁" if key in free else "💳"
-            builder.button(text=f"{mark} {IQ_EMOJI} Premium IQ-style test", callback_data=f"admfree:{key}")
-            continue
-        test = REGISTRY[key]
-        mark = "🎁" if key in free else "💳"
-        builder.button(text=f"{mark} {test.emoji} {tr(test.title, 'uz')}", callback_data=f"admfree:{key}")
     builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
     builder.adjust(1)
     return builder.as_markup()
