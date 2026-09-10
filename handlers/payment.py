@@ -1,4 +1,4 @@
-"""To'lov oqimi: paywall, Click havolasi, invoice va tasdiqlash."""
+"""Payment flow for individual paid tests."""
 from __future__ import annotations
 
 import logging
@@ -12,7 +12,7 @@ from aiogram.types import CallbackQuery, Message
 
 import database as db
 import keyboards as kb
-from config import CLICK_ENABLED, CLICK_INVOICE, DEFAULT_PRICE, DEFAULT_PRICE_ALL, IQ_EMOJI, IQ_KEY, is_admin
+from config import CLICK_ENABLED, CLICK_INVOICE, DEFAULT_PRICE, IQ_PRICE_DEFAULT, IQ_EMOJI, IQ_KEY, is_admin
 from locales import money, t, tr
 from payments import click
 from psytests import ORDER, REGISTRY
@@ -41,12 +41,16 @@ async def _edit(message: Message, text: str, markup) -> None:
 
 
 async def price_for(product: str) -> int:
-    default = DEFAULT_PRICE_ALL if product == db.ALL_PRODUCTS else (int(__import__('config').IQ_PRICE_DEFAULT) if product == IQ_KEY else DEFAULT_PRICE)
+    if product == db.ALL_PRODUCTS:
+        # Legacy compatibility: the package is no longer offered in the UI.
+        return 0
+    default = IQ_PRICE_DEFAULT if product == IQ_KEY else DEFAULT_PRICE
     return await db.price_of(product, default)
 
 
 def is_product(product: str) -> bool:
-    return product == db.ALL_PRODUCTS or product == IQ_KEY or product in REGISTRY
+    # "all" is retained only for old database records; it cannot be bought anymore.
+    return product == IQ_KEY or product in REGISTRY
 
 
 async def is_locked(user_id: int, test_key: str) -> bool:
@@ -69,68 +73,60 @@ async def locked_tests(user_id: int) -> set[str]:
 
 
 def product_title(product: str, lang: str) -> str:
-    if product == db.ALL_PRODUCTS:
-        return f"🎁 {t('pay_title_all', lang)}"
     if product == IQ_KEY:
         return "🧠 Premium IQ testi" if lang == "uz" else "🧠 Премиум IQ-тест"
     test = REGISTRY.get(product)
     return f"{test.emoji} {tr(test.title, lang)}" if test else product
 
 
-async def paywall_text(user_id: int, test_key: str, lang: str) -> tuple[str, int | None]:
+async def show_paywall(message: Message, user_id: int, test_key: str, lang: str) -> None:
     price = await price_for(test_key)
     text = t("paywall", lang, title=product_title(test_key, lang), price=money(price))
-    price_all = await price_for(db.ALL_PRODUCTS)
-    locked = await locked_tests(user_id)
-    if price_all > 0 and len(locked) > 1:
-        text += t("paywall_all", lang, price=money(price_all))
-        return text, price_all
-    return text, None
-
-
-async def show_paywall(message: Message, user_id: int, test_key: str, lang: str) -> None:
-    text, price_all = await paywall_text(user_id, test_key, lang)
-    await _edit(message, text, kb.paywall(test_key, lang, price_all, await price_for(test_key)))
+    await _edit(message, text, kb.paywall(test_key, lang, price=price))
 
 
 @router.callback_query(F.data.startswith("pay:"))
 async def start_payment(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    # Acknowledge immediately so Telegram never leaves the button spinning
+    # while the database/Click request is being prepared.
+    await callback.answer()
     product = callback.data.split(":", 1)[1]
     if not is_product(product):
-        await callback.answer()
         return
     if not CLICK_ENABLED:
-        await callback.answer(t("pay_unavailable", lang), show_alert=True)
+        await callback.message.answer(t("pay_unavailable", lang), reply_markup=kb.back_to_menu(lang))
         log.error("To'lov so'raldi, lekin Click sozlanmagan (PUBLIC_URL/CREDENTIALS)")
         return
 
     owned = await db.paid_products(callback.from_user.id)
-    already = db.ALL_PRODUCTS in owned or product in owned or (product != db.ALL_PRODUCTS and not await is_locked(callback.from_user.id, product))
-    if already:
-        await callback.answer(t("pay_already", lang), show_alert=True)
+    if product in owned or not await is_locked(callback.from_user.id, product):
+        await callback.message.answer(t("pay_already", lang), reply_markup=kb.back_to_menu(lang))
         return
 
     await state.clear()
     price = await price_for(product)
     existing = await db.open_payment(callback.from_user.id, product, price)
-    payment_id = existing["id"] if existing else await db.create_payment(callback.from_user.id, product, price, "click")
+    payment_id = existing["id"] if existing else await db.create_payment(
+        callback.from_user.id, product, price, "click"
+    )
     url = click.payment_url(payment_id, price)
-    await _edit(callback.message, t("pay_created", lang, product=product_title(product, lang), price=money(price), payment_id=payment_id), kb.pay_links(payment_id, url, lang, invoice=CLICK_INVOICE))
-    await callback.answer()
+    await _edit(
+        callback.message,
+        t("pay_created", lang, product=product_title(product, lang), price=money(price), payment_id=payment_id),
+        kb.pay_links(payment_id, url, lang, invoice=CLICK_INVOICE),
+    )
 
 
 @router.callback_query(F.data.startswith("paychk:"))
 async def check_payment(callback: CallbackQuery, lang: str) -> None:
+    await callback.answer()
     try:
         payment_id = int(callback.data.split(":", 1)[1])
     except (ValueError, IndexError):
-        await callback.answer()
         return
     payment = await db.get_payment(payment_id)
     if payment is None or payment["user_id"] != callback.from_user.id:
-        await callback.answer()
         return
-    await callback.answer()
     if payment["status"] == "paid":
         await _announce(callback.message, payment, lang)
         return
@@ -146,19 +142,17 @@ async def check_payment(callback: CallbackQuery, lang: str) -> None:
 
 @router.callback_query(F.data.startswith("payinv:"))
 async def ask_phone(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    await callback.answer()
     try:
         payment_id = int(callback.data.split(":", 1)[1])
     except (ValueError, IndexError):
-        await callback.answer()
         return
     payment = await db.get_payment(payment_id)
     if payment is None or payment["user_id"] != callback.from_user.id:
-        await callback.answer()
         return
     await state.set_state(Invoice.waiting_phone)
     await state.update_data(payment_id=payment_id)
     await callback.message.answer(t("pay_ask_phone", lang))
-    await callback.answer()
 
 
 @router.message(Invoice.waiting_phone, Command("bekor", "cancel"))
