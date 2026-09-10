@@ -62,21 +62,8 @@ async def _unconsumed_payment_id(user_id: int, test_key: str) -> int | None:
     return int(row[0]) if row else None
 
 
-async def _consume(payment_id: int, user_id: int, product: str) -> None:
-    conn = await db.connect()
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    await conn.execute(
-        """
-        INSERT OR IGNORE INTO payment_attempts_used
-            (payment_id, user_id, product, consumed_at)
-        VALUES (?, ?, ?, ?)
-        """,
-        (payment_id, user_id, product, now),
-    )
-    await conn.commit()
-
-
 async def paid_products(user_id: int) -> set[str]:
+    """Products with at least one unused paid attempt."""
     await _ensure_schema()
     conn = await db.connect()
     cur = await conn.execute(
@@ -142,17 +129,6 @@ async def save_result(
         await conn.commit()
 
 
-_original = db.paid_products
-_original_save_result = db.save_result
-
-
-async def install() -> None:
-    """Install the one-attempt DB behavior and initialize its table."""
-    await _ensure_schema()
-    db.paid_products = paid_products
-    db.save_result = save_result
-
-
-# Keep references available for debugging/backward compatibility.
-original_paid_products = _original
-original_save_result = _original_save_result
+# Install immediately when imported. The table is still created lazily.
+db.paid_products = paid_products
+db.save_result = save_result
