@@ -1,9 +1,4 @@
-"""Premium IQ-style reasoning assessment.
-
-Original 30-item reasoning assessment. It is intentionally presented as an
-IQ-style score, not a clinical/normed IQ measurement. Access is controlled by
-the same free/paid + Click + wallet system as other premium products.
-"""
+"""Premium IQ assessment with paid/free access control."""
 from __future__ import annotations
 
 import html
@@ -23,7 +18,6 @@ from psytests.base import L
 
 router = Router()
 
-# category, bilingual prompt, options uz, options ru, correct index, difficulty
 QUESTIONS = [
     ("sequence", L("Ketma-ketlikni davom ettiring: 2, 6, 12, 20, 30, ?", "Продолжите ряд: 2, 6, 12, 20, 30, ?"), ["36", "40", "42", "44", "48"], ["36", "40", "42", "44", "48"], 2, 1),
     ("logic", L("Qaysi son boshqalardan farq qiladi: 16, 25, 36, 49, 63?", "Какое число отличается: 16, 25, 36, 49, 63?"), ["16", "25", "36", "49", "63"], ["16", "25", "36", "49", "63"], 4, 1),
@@ -59,59 +53,56 @@ QUESTIONS = [
 class IQState(StatesGroup):
     answering = State()
 
-
 CATEGORY_NAMES = {
     "uz": {"sequence": "Ketma-ketlik", "logic": "Mantiq", "numeric": "Sonli fikrlash", "verbal": "Verbal fikrlash", "spatial": "Fazoviy fikrlash", "applied": "Amaliy fikrlash", "probability": "Ehtimollik"},
     "ru": {"sequence": "Последовательности", "logic": "Логика", "numeric": "Числовое мышление", "verbal": "Вербальное мышление", "spatial": "Пространственное мышление", "applied": "Прикладное мышление", "probability": "Вероятность"},
 }
 
-
 def bi(lang: str, uz: str, ru: str) -> str:
     return uz if lang == "uz" else ru
 
-
 def progress(index: int) -> str:
-    done = index
-    full = done // 5
-    partial = done % 5
-    return "🟩" * full + ("🟨" if partial else "") + "⬜" * (6 - full - (1 if partial else 0))
-
+    total = len(QUESTIONS)
+    filled = int(round((index / total) * 10))
+    return "🟩" * filled + "⬜" * (10 - filled)
 
 def intro(lang: str) -> str:
-    return bi(lang,
-        "🧠 <b>PREMIUM IQ-STYLE TEST</b>\n\n30 ta original topshiriq • taxminan 8–10 daqiqa\nKetma-ketlik · mantiq · sonlar · so‘zlar · fazoviy va amaliy fikrlash\n\n✨ Yakunda umumiy 0–100 ball va qaysi fikrlash yo‘nalishlaringiz kuchliroq ekanini ko‘rsatadigan mini-hisobot olasiz.\n\n⚠️ Bu klinik yoki standartlashtirilgan IQ testi emas. Natija shu original topshiriqlardagi fikrlash aniqligini baholaydi.",
-        "🧠 <b>PREMIUM IQ-STYLE ТЕСТ</b>\n\n30 оригинальных заданий • примерно 8–10 минут\nПоследовательности · логика · числа · слова · пространственное и прикладное мышление\n\n✨ В конце вы получите итоговый балл 0–100 и мини-отчёт о сильнейших направлениях мышления.\n\n⚠️ Это не клинический и не нормированный IQ-тест. Результат отражает точность рассуждений в этих оригинальных заданиях.")
-
+    price = ""
+    try:
+        if lang == "uz":
+            return "🧠 <b>Premium IQ testi</b>\n\n30 ta mantiqiy topshiriq. Ketma-ketlik, mantiq, sonlar, fazoviy va amaliy fikrlash bo‘yicha natija olasiz.\n\n⏱ Taxminan 7–10 daqiqa\n📊 Yakunda umumiy ball va kuchli yo‘nalishlaringiz ko‘rsatiladi."
+        return "🧠 <b>Премиум IQ-тест</b>\n\n30 заданий на последовательности, логику, числа, пространственное и прикладное мышление.\n\n⏱ Примерно 7–10 минут\n📊 В конце — общий результат и сильные направления."
+    finally:
+        _ = price
 
 def menu(lang: str):
     b = InlineKeyboardBuilder()
-    b.button(text=bi(lang, "🚀 Testni boshlash", "🚀 Начать тест"), callback_data="iq:start")
-    b.button(text=bi(lang, "💰 Balans / to‘lov", "💰 Баланс / оплата"), callback_data="wallet:open")
-    b.button(text=bi(lang, "⬅️ Boshqa testlar", "⬅️ Другие тесты"), callback_data="nav:menu")
+    b.button(text=bi(lang, "🧠 Boshlash", "🧠 Начать тест"), callback_data="iq:start")
+    b.button(text=bi(lang, "⬅️ Orqaga", "⬅️ Назад"), callback_data="nav:menu")
     b.adjust(1)
     return b.as_markup()
 
-
 def question_markup(index: int, lang: str):
     b = InlineKeyboardBuilder()
-    options = QUESTIONS[index][2] if lang == "uz" else QUESTIONS[index][3]
-    for i, option in enumerate(options):
+    for i, option in enumerate(QUESTIONS[index][2 if lang == "uz" else 3]):
         b.button(text=f"{i+1}️⃣ {option}", callback_data=f"iq:ans:{index}:{i}")
     b.button(text=bi(lang, "⛔ Testni to‘xtatish", "⛔ Остановить тест"), callback_data="nav:cancel")
     b.adjust(1)
     return b.as_markup()
 
-
 def question_text(index: int, lang: str) -> str:
     category = QUESTIONS[index][0]
     diff = QUESTIONS[index][5]
     diff_text = {1: bi(lang, "Oson", "Лёгкое"), 2: bi(lang, "O‘rta", "Среднее")}.get(diff, bi(lang, "Qiyin", "Сложное"))
-    return (f"{IQ_EMOJI} <b>{bi(lang, 'Premium IQ-style test', 'Премиум IQ-style тест')}</b>\n\n{progress(index)}\n<b>{index + 1} / {len(QUESTIONS)}</b> · {CATEGORY_NAMES[lang][category]} · {diff_text}\n\n<b>{html.escape(QUESTIONS[index][1].get(lang, QUESTIONS[index][1]['uz']))}</b>")
-
+    title = bi(lang, "Premium IQ testi", "Премиум IQ-тест")
+    q = QUESTIONS[index][1].get(lang, QUESTIONS[index][1]["uz"])
+    return f"{IQ_EMOJI} <b>{title}</b>\n\n{progress(index)}\n<b>{index + 1} / {len(QUESTIONS)}</b> · {CATEGORY_NAMES[lang][category]} · {diff_text}\n\n<b>{html.escape(q)}</b>"
 
 async def _start_test(target, state: FSMContext, lang: str, user_id: int) -> None:
     if await pay.is_locked(user_id, IQ_KEY):
-        await pay.show_paywall(target, user_id, IQ_KEY, lang)
+        await pay.show_paywall(target.message if isinstance(target, CallbackQuery) else target, user_id, IQ_KEY, lang)
+        if isinstance(target, CallbackQuery):
+            await target.answer()
         return
     await state.clear()
     await state.update_data(iq_answers=[])
@@ -125,7 +116,6 @@ async def _start_test(target, state: FSMContext, lang: str, user_id: int) -> Non
     else:
         await target.answer(text, reply_markup=markup)
 
-
 @router.message(Command("iq"))
 async def iq_command(message: Message, state: FSMContext, lang: str) -> None:
     price = await pay.price_for(IQ_KEY)
@@ -134,11 +124,9 @@ async def iq_command(message: Message, state: FSMContext, lang: str) -> None:
         return
     await message.answer(intro(lang), reply_markup=menu(lang))
 
-
 @router.callback_query(F.data == "iq:start")
 async def iq_start(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     await _start_test(callback, state, lang, callback.from_user.id)
-
 
 @router.callback_query(IQState.answering, F.data.startswith("iq:ans:"))
 async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
@@ -190,7 +178,7 @@ async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> No
         band = bi(lang, "🌱 Rivojlantirish mumkin", "🌱 Есть над чем работать")
 
     text = [
-        bi(lang, "🧠 <b>PREMIUM IQ-STYLE HISOBOT</b>", "🧠 <b>ОТЧЁТ PREMIUM IQ-STYLE</b>"),
+        bi(lang, "🧠 <b>PREMIUM IQ HISOBOTI</b>", "🧠 <b>ОТЧЁТ ПРЕМИУМ IQ</b>"),
         "", f"<b>{score}/100</b> · {band}",
         bi(lang, f"To‘g‘ri javoblar: <b>{correct}/{len(QUESTIONS)}</b>", f"Правильных ответов: <b>{correct}/{len(QUESTIONS)}</b>"),
         "", bi(lang, "<b>Kuchli yo‘nalishlar</b>", "<b>Сильные направления</b>"),
@@ -205,6 +193,6 @@ async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> No
     b = InlineKeyboardBuilder()
     b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:start")
     b.button(text=bi(lang, "💰 Balans", "💰 Баланс"), callback_data="wallet:open")
-    b.button(text=bi(lang, "🧠 Boshqa testlar", "🧠 Другие тесты"), callback_data="nav:menu")
+    b.button(text=bi(lang, "🧠 Boshqa testlar", "🧠 Другие тестlar"), callback_data="nav:menu")
     b.adjust(1)
     await callback.message.edit_text("\n".join(text), reply_markup=b.as_markup())
