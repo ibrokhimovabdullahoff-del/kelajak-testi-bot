@@ -87,12 +87,9 @@ def question_markup(index: int, lang: str):
     return b.as_markup()
 
 def question_text(index: int, lang: str) -> str:
-    category = QUESTIONS[index][0]
-    diff = QUESTIONS[index][5]
-    diff_text = {1: bi(lang, "Oson", "Лёгкое"), 2: bi(lang, "O‘rta", "Среднее")}.get(diff, bi(lang, "Qiyin", "Сложное"))
     title = bi(lang, "Premium IQ testi", "Премиум IQ-тест")
     q = QUESTIONS[index][1].get(lang, QUESTIONS[index][1]["uz"])
-    return f"{IQ_EMOJI} <b>{title}</b>\n\n{progress(index)}\n<b>{index + 1} / {len(QUESTIONS)}</b> · {CATEGORY_NAMES[lang][category]} · {diff_text}\n\n<b>{html.escape(q)}</b>"
+    return f"{IQ_EMOJI} <b>{title}</b>\n\n{progress(index)}\n<b>{index + 1} / {len(QUESTIONS)}</b>\n\n<b>{html.escape(q)}</b>"
 
 async def _start_test(target, state: FSMContext, lang: str, user_id: int) -> None:
     if await pay.is_locked(user_id, IQ_KEY):
@@ -205,10 +202,6 @@ async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> No
     text += ["", bi(lang, "<b>Ko‘proq mashq foydali bo‘lishi mumkin</b>", "<b>Что можно потренировать</b>")]
     for key, val in weak:
         text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
-    text += [
-        "",
-        bi(lang, "💡 Bu ko‘rsatkich ushbu 30 savollik testdagi natijadan hisoblangan. U rasmiy klinik yoki standartlashtirilgan IQ testi o‘rnini bosmaydi.", "💡 Этот показатель рассчитан по результатам данного теста из 30 заданий. Он не заменяет официальный клинический или стандартизированный IQ-тест."),
-    ]
 
     b = InlineKeyboardBuilder()
     b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:start")
