@@ -29,10 +29,7 @@ def main_menu(lang: str, disabled: set[str] | None = None, locked: set[str] | No
         mark = "🔒 " if key in locked else ""
         builder.button(text=f"{mark}{test.emoji} {tr(test.title, lang)}", callback_data=f"test:{key}")
     iq_mark = "🔒 " if IQ_KEY in locked else ""
-    builder.button(
-        text=f"{iq_mark}{IQ_EMOJI} {('Premium IQ testi' if lang == 'uz' else 'Премиум IQ-тест')}",
-        callback_data="iq:start",
-    )
+    builder.button(text=f"{iq_mark}{IQ_EMOJI} {('Premium IQ testi' if lang == 'uz' else 'Премиум IQ-тест')}", callback_data="iq:start")
     builder.button(text="💰 Balans / Wallet" if lang == "uz" else "💰 Баланс / Wallet", callback_data="wallet:open")
     builder.button(text=t("btn_results", lang), callback_data="nav:history")
     builder.button(text=t("btn_about", lang), callback_data="nav:about")
@@ -105,16 +102,19 @@ def back_to_menu(lang: str) -> InlineKeyboardMarkup:
 
 def admin_menu() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="📊 Statistika", callback_data="adm:stats")
-    builder.button(text="📈 Tugatish darajasi", callback_data="adm:funnel")
-    builder.button(text="👥 Oxirgi foydalanuvchilar", callback_data="adm:users")
-    builder.button(text="🧩 Testlarni boshqarish", callback_data="adm:tests")
-    builder.button(text="📥 Natijalarni yuklab olish", callback_data="adm:export")
-    builder.button(text="📣 Xabar yuborish", callback_data="adm:broadcast")
-    builder.button(text="💳 To‘lovlar", callback_data="adm:pay")
-    builder.button(text="💰 Wallet / manual to‘lovlar", callback_data="adm:wallet")
-    builder.button(text="👤 User / wallet boshqaruvi", callback_data="admuser:home")
-    builder.button(text="🧠 IQ / premium sozlamalari", callback_data="admiq:home")
+    for text, data in [
+        ("📊 Statistika", "adm:stats"),
+        ("📈 Tugatish darajasi", "adm:funnel"),
+        ("👥 Oxirgi foydalanuvchilar", "adm:users"),
+        ("🧩 Testlarni boshqarish", "adm:tests"),
+        ("📥 Natijalarni yuklab olish", "adm:export"),
+        ("📣 Xabar yuborish", "adm:broadcast"),
+        ("💳 To‘lovlar", "adm:pay"),
+        ("💰 Wallet / manual to‘lovlar", "adm:wallet"),
+        ("👤 User / wallet boshqaruvi", "admuser:home"),
+        ("🧠 IQ / premium sozlamalari", "admiq:home"),
+    ]:
+        builder.button(text=text, callback_data=data)
     builder.adjust(2, 2, 1, 1, 1, 1, 1, 1)
     return builder.as_markup()
 
@@ -160,9 +160,8 @@ def admin_questions(test_key: str, page: int, pages: int) -> InlineKeyboardMarku
 
 def broadcast_targets() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="🌍 Hammaga", callback_data="admto:all")
-    builder.button(text="🇺🇿 Faqat o‘zbekcha", callback_data="admto:uz")
-    builder.button(text="🇷🇺 Faqat ruscha", callback_data="admto:ru")
+    for text, data in [("🌍 Hammaga", "admto:all"), ("🇺🇿 Faqat o‘zbekcha", "admto:uz"), ("🇷🇺 Faqat ruscha", "admto:ru")]:
+        builder.button(text=text, callback_data=data)
     builder.adjust(1)
     return builder.as_markup()
 
@@ -177,12 +176,9 @@ def broadcast_confirm() -> InlineKeyboardMarkup:
 
 def paywall(test_key: str, lang: str, price_all: int | None = None, price: int | None = None) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    click_label = "💳 Click orqali to‘lash" if lang == "uz" else "💳 Оплатить через Click"
-    wallet_label = "💰 Balansdan to‘lash" if lang == "uz" else "💰 Оплатить с баланса"
-    topup_label = "➕ Balansni to‘ldirish" if lang == "uz" else "➕ Пополнить баланс"
-    builder.button(text=click_label, callback_data=f"pay:{test_key}")
-    builder.button(text=wallet_label, callback_data=f"shop:buy:{test_key}")
-    builder.button(text=topup_label, callback_data="wallet:topup")
+    builder.button(text="💳 Click orqali to‘lash" if lang == "uz" else "💳 Оплатить через Click", callback_data=f"pay:{test_key}")
+    builder.button(text="💰 Balansdan to‘lash" if lang == "uz" else "💰 Оплатить с баланса", callback_data=f"shop:buy:{test_key}")
+    builder.button(text="➕ Balansni to‘ldirish" if lang == "uz" else "➕ Пополнить баланс", callback_data="wallet:topup")
     builder.button(text=t("btn_back", lang), callback_data="nav:menu")
     builder.adjust(1)
     return builder.as_markup()
@@ -217,6 +213,28 @@ def admin_payments(admin_pays: bool = False) -> InlineKeyboardMarkup:
     builder.button(text="💰 Narxlarni o‘zgartirish", callback_data="adm:prices")
     builder.button(text="🎁 Pullik / bepul testlar", callback_data="adm:freetests")
     builder.button(text="🔓 Qo‘lda ochish", callback_data="adm:grant")
+    builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_prices(products: list[tuple[str, str, int]]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for key, title, price in products:
+        builder.button(text=f"{title} — {money(price)} so‘m", callback_data=f"admprice:{key}")
+    builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_paid_tests(free: set[str]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for key in ORDER:
+        test = REGISTRY[key]
+        mark = "🎁" if key in free else "💳"
+        builder.button(text=f"{mark} {test.emoji} {tr(test.title, 'uz')}", callback_data=f"admfree:{key}")
+    mark = "🎁" if IQ_KEY in free else "💳"
+    builder.button(text=f"{mark} {IQ_EMOJI} Premium IQ testi", callback_data=f"admfree:{IQ_KEY}")
     builder.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
     builder.adjust(1)
     return builder.as_markup()
