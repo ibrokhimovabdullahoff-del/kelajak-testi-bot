@@ -111,8 +111,9 @@ def admin_menu() -> InlineKeyboardMarkup:
     builder.button(text="📣 Xabar yuborish", callback_data="adm:broadcast")
     builder.button(text="💳 To‘lovlar", callback_data="adm:pay")
     builder.button(text="💰 Wallet / manual to‘lovlar", callback_data="adm:wallet")
+    builder.button(text="👤 User / wallet boshqaruvi", callback_data="admuser:home")
     builder.button(text="🧠 IQ / premium sozlamalari", callback_data="admiq:home")
-    builder.adjust(2, 2, 1, 1, 1, 1, 1)
+    builder.adjust(2, 2, 1, 1, 1, 1, 1, 1)
     return builder.as_markup()
 
 
@@ -234,8 +235,7 @@ def admin_paid_tests(free: set[str]) -> InlineKeyboardMarkup:
     for key in [*ORDER, IQ_KEY]:
         if key == IQ_KEY:
             mark = "🎁" if key in free else "💳"
-            title = "Premium IQ-style test"
-            builder.button(text=f"{mark} {IQ_EMOJI} {title}", callback_data=f"admfree:{key}")
+            builder.button(text=f"{mark} {IQ_EMOJI} Premium IQ-style test", callback_data=f"admfree:{key}")
             continue
         test = REGISTRY[key]
         mark = "🎁" if key in free else "💳"
