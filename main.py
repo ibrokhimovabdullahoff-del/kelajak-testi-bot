@@ -14,7 +14,8 @@ import payments
 import wallet
 from config import BOT_TOKEN, CLICK_ENABLED, LOG_LEVEL, PUBLIC_URL
 from handlers import build_router
-from handlers.payment import notify_paid, set_bot
+from handlers.autostart_runtime import notify_paid, set_runtime
+from handlers.payment import set_bot
 
 COMMANDS = {
     "uz": [
@@ -42,16 +43,20 @@ async def main() -> None:
     logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)-8s %(name)s: %(message)s")
     await db.init()
     await wallet.init()
-    # Seed and apply editable question content before polling starts.
     await cms.init()
     await cms.apply_all()
 
     bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    dispatcher = Dispatcher(storage=MemoryStorage())
+    storage = MemoryStorage()
+    dispatcher = Dispatcher(storage=storage)
     dispatcher.include_router(build_router())
     set_bot(bot)
 
     me = await bot.get_me()
+    # Payment webhooks run in the same process, so give the autostart bridge
+    # access to the exact FSM storage used by Dispatcher.
+    set_runtime(me.id, storage)
+
     logging.info("Ishga tushdi: @%s (id=%s)", me.username, me.id)
 
     runner = await payments.run_server(on_paid=notify_paid)
