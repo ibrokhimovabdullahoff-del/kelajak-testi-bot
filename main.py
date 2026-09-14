@@ -8,6 +8,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
+import content_cms as cms
 import database as db
 import payments
 import wallet
@@ -17,41 +18,33 @@ from handlers.payment import notify_paid, set_bot
 
 COMMANDS = {
     "uz": [
-        ("start", "Testlar menyusi"),
-        ("natijalar", "Mening natijalarim"),
-        ("balans", "Mening balansim"),
-        ("shop", "Balansdan test sotib olish"),
-        ("iq", "Premium IQ testi — 5 000 so‘m"),
-        ("til", "Tilni o‘zgartirish"),
-        ("haqida", "Bot va manbalar haqida"),
-        ("bekor", "Testni bekor qilish"),
+        ("start", "Testlar menyusi"), ("natijalar", "Mening natijalarim"),
+        ("balans", "Mening balansim"), ("shop", "Balansdan test sotib olish"),
+        ("iq", "Premium IQ testi — 5 000 so‘m"), ("til", "Tilni o‘zgartirish"),
+        ("haqida", "Bot va manbalar haqida"), ("bekor", "Testni bekor qilish"),
     ],
     "ru": [
-        ("start", "Меню тестов"),
-        ("natijalar", "Мои результаты"),
-        ("balans", "Мой баланс"),
-        ("shop", "Покупка тестов с баланса"),
-        ("iq", "Премиум IQ-тест — 5 000 сум"),
-        ("til", "Сменить язык"),
-        ("haqida", "О боте и источниках"),
-        ("bekor", "Отменить тест"),
+        ("start", "Меню тестов"), ("natijalar", "Мои результаты"),
+        ("balans", "Мой баланс"), ("shop", "Покупка тестов с баланса"),
+        ("iq", "Премиум IQ-тест — 5 000 сум"), ("til", "Сменить язык"),
+        ("haqida", "О боте и источниках"), ("bekor", "Отменить тест"),
     ],
 }
 
-
 def _commands(lang: str) -> list[BotCommand]:
     return [BotCommand(command=c, description=d) for c, d in COMMANDS[lang]]
-
 
 async def set_commands(bot: Bot) -> None:
     await bot.set_my_commands(_commands("uz"), scope=BotCommandScopeDefault())
     await bot.set_my_commands(_commands("ru"), scope=BotCommandScopeDefault(), language_code="ru")
 
-
 async def main() -> None:
     logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)-8s %(name)s: %(message)s")
     await db.init()
     await wallet.init()
+    # Seed and apply editable question content before polling starts.
+    await cms.init()
+    await cms.apply_all()
 
     bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dispatcher = Dispatcher(storage=MemoryStorage())
@@ -76,7 +69,6 @@ async def main() -> None:
         await runner.cleanup()
         await bot.session.close()
         await db.close()
-
 
 if __name__ == "__main__":
     try:
