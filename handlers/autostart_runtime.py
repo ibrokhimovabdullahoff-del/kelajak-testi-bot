@@ -1,18 +1,13 @@
-"""Runtime glue that starts a paid test immediately after successful payment.
-
-The payment/shop handlers historically announced that a product was unlocked and
-left the user on a confirmation screen.  This module bridges payment completion
-to the same FSM-backed quiz starters used by the normal test menu.
-"""
+"""Runtime glue for paid-test autostart and localized wallet notifications."""
 from __future__ import annotations
 
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import StorageKey, BaseStorage
 from aiogram.types import CallbackQuery, Message
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 import keyboards as kb
+import wallet
 from config import IQ_KEY
 from locales import t
 from psytests import REGISTRY
@@ -39,7 +34,7 @@ def _context(user_id: int) -> FSMContext:
 
 
 async def start_paid_message(message: Message, user_id: int, product: str, lang: str) -> None:
-    """Start the purchased product using the real dispatcher FSM storage."""
+    """Start the purchased product using the exact Dispatcher FSM storage."""
     state = _context(user_id)
     if product == IQ_KEY:
         await iq._start_test(message, state, lang, user_id)
@@ -73,33 +68,30 @@ async def _wallet_buy(callback: CallbackQuery, product: str, lang: str) -> None:
         )
         return
     amount = await payment.price_for(product)
-    if not await _purchase_and_start(callback, product, amount, lang):
+    if not await wallet.purchase(callback.from_user.id, product, amount):
         await callback.answer(
             "❌ Balans yetarli emas. Balansni to‘ldiring."
             if lang == "uz" else "❌ Недостаточно средств. Пополните баланс.",
             show_alert=True,
         )
-
-
-async def _purchase_and_start(callback: CallbackQuery, product: str, amount: int, lang: str) -> bool:
-    import wallet
-    if not await wallet.purchase(callback.from_user.id, product, amount):
-        return False
+        return
     await start_paid_message(callback.message, callback.from_user.id, product, lang)
     await callback.answer()
-    return True
 
 
-async def _click_announce(message: Message, payment_row: dict, lang: str, state: FSMContext | None = None) -> None:
+async def _click_announce(message: Message, payment_row: dict, lang: str) -> None:
     product = payment_row["product"]
     if product == db.ALL_PRODUCTS:
-        await message.answer("✅ Xarid muvaffaqiyatli." if lang == "uz" else "✅ Покупка успешна.", reply_markup=kb.back_to_menu(lang))
+        await message.answer(
+            "✅ Xarid muvaffaqiyatli." if lang == "uz" else "✅ Покупка успешна.",
+            reply_markup=kb.back_to_menu(lang),
+        )
         return
     await start_paid_message(message, payment_row["user_id"], product, lang)
 
 
 async def notify_paid(payment_id: int) -> None:
-    """Webhook callback: payment is already verified, so start the FSM immediately."""
+    """Click webhook callback: payment is verified, so start the FSM immediately."""
     if payment._bot is None:
         payment.log.warning("notify_paid chaqirildi, lekin bot o'rnatilmagan")
         return
@@ -108,19 +100,65 @@ async def notify_paid(payment_id: int) -> None:
         return
     lang = await db.get_lang(row["user_id"]) or "uz"
     try:
-        await start_paid_message(
-            await payment._bot.send_message(row["user_id"], "⏳"),
-            row["user_id"], row["product"], lang,
-        )
+        temporary = await payment._bot.send_message(row["user_id"], "⏳")
+        await start_paid_message(temporary, row["user_id"], row["product"], lang)
     except Exception as exc:
         payment.log.warning("To‘lovdan keyingi testni boshlashda xato (%s): %s", row["user_id"], exc)
 
 
-# Preserve the normal module API while redirecting successful wallet purchases
-# and Click confirmations into the real FSM.
-_original_wallet_buy = shop._buy
-_original_announce = payment._announce
+async def _send_wallet_notice(user_id: int, amount: int, lang: str) -> None:
+    if payment._bot is None:
+        return
+    current = await wallet.balance(user_id)
+    if amount > 0:
+        text = (
+            f"💰 <b>Balansingiz to‘ldirildi!</b>\n\n"
+            f"➕ Qo‘shildi: <b>+{amount:,} so‘m</b>\n"
+            f"💳 Joriy balans: <b>{current:,} so‘m</b>"
+            if lang == "uz" else
+            f"💰 <b>Ваш баланс пополнен!</b>\n\n"
+            f"➕ Зачислено: <b>+{amount:,} сум</b>\n"
+            f"💳 Текущий баланс: <b>{current:,} сум</b>"
+        )
+    else:
+        spent = abs(amount)
+        text = (
+            f"💳 <b>Balansingiz o‘zgartirildi.</b>\n\n"
+            f"➖ Yechildi: <b>-{spent:,} so‘m</b>\n"
+            f"💳 Joriy balans: <b>{current:,} so‘m</b>"
+            if lang == "uz" else
+            f"💳 <b>Ваш баланс изменён.</b>\n\n"
+            f"➖ Списано: <b>-{spent:,} сум</b>\n"
+            f"💳 Текущий баланс: <b>{current:,} сум</b>"
+        )
+    try:
+        await payment._bot.send_message(user_id, text)
+    except Exception as exc:
+        payment.log.warning("Wallet xabari yuborilmadi (%s): %s", user_id, exc)
 
+
+_original_wallet_adjust = wallet.adjust
+_original_manual_review = wallet.manual_review
+
+
+async def _localized_adjust(user_id: int, amount: int, admin_id: int, note: str = "") -> bool:
+    ok = await _original_wallet_adjust(user_id, amount, admin_id, note)
+    if ok:
+        lang = await db.get_lang(user_id) or "uz"
+        await _send_wallet_notice(user_id, amount, lang)
+    return ok
+
+
+async def _localized_manual_review(payment_id: int, admin_id: int, approve: bool) -> bool:
+    row = await db.get_payment(payment_id)
+    ok = await _original_manual_review(payment_id, admin_id, approve)
+    if ok and approve and row:
+        lang = await db.get_lang(row["user_id"]) or "uz"
+        await _send_wallet_notice(int(row["user_id"]), int(row["amount"]), lang)
+    return ok
+
+
+# Redirect successful wallet purchases and Click confirmations into the real FSM.
 async def _patched_wallet_buy(callback: CallbackQuery, product: str, lang: str) -> None:
     await _wallet_buy(callback, product, lang)
 
@@ -129,3 +167,5 @@ async def _patched_announce(message: Message, payment_row: dict, lang: str) -> N
 
 shop._buy = _patched_wallet_buy
 payment._announce = _patched_announce
+wallet.adjust = _localized_adjust
+wallet.manual_review = _localized_manual_review
