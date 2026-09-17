@@ -29,7 +29,7 @@ def main_menu(lang: str, disabled: set[str] | None = None, locked: set[str] | No
         mark = "🔒 " if key in locked else ""
         builder.button(text=f"{mark}{test.emoji} {tr(test.title, lang)}", callback_data=f"test:{key}")
     iq_mark = "🔒 " if IQ_KEY in locked else ""
-    builder.button(text=f"{iq_mark}{IQ_EMOJI} {('Premium IQ testi' if lang == 'uz' else 'Премиум IQ-тест')}", callback_data="iq:start")
+    builder.button(text=f"{iq_mark}{IQ_EMOJI} {('Premium IQ testi' if lang == 'uz' else 'Премиум IQ-тест')}", callback_data="iq:card")
     builder.button(text="💰 Balans / Wallet" if lang == "uz" else "💰 Баланс / Wallet", callback_data="wallet:open")
     builder.button(text=t("btn_results", lang), callback_data="nav:history")
     builder.button(text=t("btn_about", lang), callback_data="nav:about")

@@ -13,8 +13,12 @@ Tekshiriladi:
   * o'zbekcha apostroflar to'g'ri: o va g harflaridan keyin bir xil belgi,
     tutuq belgisi (ma'lumot, e'tibor) esa boshqa belgi bilan yoziladi
 """
+import os
 import re
 import sys
+
+# report -> config tokensiz ishga tushmaydi; bu skript Telegram'ga ulanmaydi.
+os.environ.setdefault("BOT_TOKEN", "0:selftest")
 
 import report
 from locales import LANGS, STRINGS

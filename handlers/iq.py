@@ -1,212 +1,507 @@
-"""Premium IQ assessment with paid/free access control."""
+"""Premium IQ testi: savol — rasm, javob — rasm ostidagi A–D tugmalari.
+
+Oqim: kartochka (/iq yoki menyu) → to'lov tekshiruvi → yosh (IQ tengdoshlarga
+nisbatan hisoblanadi) → 20 ta rasm bitta xabarning o'zida almashib turadi
+(chat to'lib ketmaydi) → taxminiy IQ bilan natija.
+
+To'g'ri javoblar foydalanuvchiga hech qayerda ko'rsatilmaydi: test pullik va
+javoblar tarqalib ketsa, natijalar ma'nosini yo'qotadi.
+
+Rasmlar Telegram'ga bir marta yuklanadi: qaytgan file_id bazada saqlanadi va
+keyingi hamma foydalanuvchiga shu id yuboriladi — server rasmni qayta-qayta
+yubormaydi, rasm esa darhol ochiladi.
+"""
 from __future__ import annotations
 
-import html
+import asyncio
+import logging
+import time
+from urllib.parse import quote
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
-from config import IQ_EMOJI, IQ_KEY
+from config import BOT_USERNAME, IQ_EMOJI, IQ_KEY, is_admin
 from handlers import payment as pay
 from locales import money
-from psytests.base import L
+from psytests.iq import (
+    AGE_CODES, AGE_GROUPS, DEFAULT_AGE, IQ_MAX, IQ_MIN, LETTERS, PUZZLES,
+    RUSHED_SECONDS_PER_PUZZLE, TOTAL, Puzzle, answer_key, estimate_iq, grade, level_for,
+    percentile,
+)
 
+log = logging.getLogger(__name__)
 router = Router()
 
-QUESTIONS = [
-    ("sequence", L("Ketma-ketlikni davom ettiring: 3, 8, 15, 24, 35, ?", "Продолжите ряд: 3, 8, 15, 24, 35, ?"), ['48', '46', '50', '52', '54'], ['48', '46', '50', '52', '54'], 0, 1),
-    ("logic", L("Barcha TARlar NOK. Hech bir NOK ko‘k emas. TAR ko‘k bo‘lishi mumkinmi?", "Все TAR являются NOK. Ни один NOK не синий. Может ли TAR быть синим?"), ['Ha, albatta', 'Faqat ayrimlari', 'Ma’lumot yetarli emas', 'Yo‘q, mumkin emas', 'Faqat kechasi'], ['Да, обязательно', 'Только некоторые', 'Данных недостаточно', 'Нет, невозможно', 'Только ночью'], 3, 2),
-    ("logic", L("Ali Bekdan balandroq. Bek Diyordan balandroq. Eng past bo‘yli kim?", "Али выше Бека. Бек выше Диёра. Кто самый низкий?"), ['Ali', 'Diyor', 'Bek', 'Aniqlab bo‘lmaydi', 'Uchovlari teng'], ['Али', 'Диёp', 'Бек', 'Нельзя определить', 'Все трое равны'], 1, 2),
-    ("sequence", L("B, E, J, Q, ? qatorida keyingi harf qaysi?", "Какая буква следующая: B, E, J, Q, ?"), ['X', 'Y', 'A', 'C', 'Z'], ['X', 'Y', 'A', 'C', 'Z'], 4, 1),
-    ("numeric", L("Qaysi son boshqalaridan farq qiladi: 27, 64, 125, 216, 250?", "Какое число отличается: 27, 64, 125, 216, 250?"), ['27', '64', '250', '216', '125'], ['27', '64', '250', '216', '125'], 2, 1),
-    ("numeric", L("3 ta bir xil quti 24 kg. Shu qutilarning bittasi necha kg?", "3 одинаковые коробки весят 24 кг. Сколько весит одна коробка?"), ['6', '10', '12', '14', '8'], ['6', '10', '12', '14', '8'], 4, 1),
-    ("sequence", L("2, 5, 10, 17, 26, ? ketma-ketlikda keyingi son?", "Какое число следующее: 2, 5, 10, 17, 26, ?"), ['36', '37', '38', '39', '40'], ['36', '37', '38', '39', '40'], 1, 1),
-    ("logic", L("Agar karta qizil bo‘lsa, unda uchburchak bor. Kartada uchburchak yo‘q. Qaysi xulosa aniq?", "Если карта красная, на ней есть треугольник. На карте нет треугольника. Какой вывод точен?"), ['Karta ko‘k', 'Karta bo‘sh', 'Buni bilib bo‘lmaydi', 'Karta albatta qizil', 'Karta qizil emas'], ['Карта синяя', 'Карта пустая', 'Нельзя определить', 'Карта обязательно красная', 'Карта не красная'], 4, 2),
-    ("logic", L("Uch kishi haqida: Ali “Bek yolg‘on gapiryapti” deydi. Bek “Diyor yolg‘on gapiryapti” deydi. Diyor “Ali va Bek ikkalasi ham yolg‘on gapiryapti” deydi. Faqat bittasi yolg‘onchi. Kim?", "Трое говорят: Али: «Бек лжёт». Бек: «Диёp лжёт». Диёp: «Али и Бек оба лгут». Лжёт только один. Кто?"), ['Ali', 'Diyor', 'Aniqlab bo‘lmaydi', 'Uchovlari', 'Bek'], ['Али', 'Диёp', 'Нельзя определить', 'Все трое', 'Бек'], 4, 2),
-    ("spatial", L("Soat 4:40 da soat strelkasi qayerda bo‘ladi?", "Где находится часовая стрелка в 4:40?"), ['Aynan 4 da', '3 va 4 oralig‘ida', 'Aynan 5 da', '5 va 6 oralig‘ida', '4 va 5 oralig‘ida, 5 ga yaqin'], ['Ровно на 4', 'Между 3 и 4', 'Ровно на 5', 'Между 5 и 6', 'Между 4 и 5, ближе к 5'], 4, 2),
-    ("verbal", L("Xarita : joylashuv = soat : ?" , "Карта : местоположение = часы : ?"), ['Vaqt', 'Sana', 'Masofa', 'Ob-havo', 'Tezlik'], ['Время', 'Дата', 'Расстояние', 'Погода', 'Скорость'], 0, 1),
-    ("applied", L("4 ta printer 6 daqiqada 24 bet chiqarsa, bir xil tezlikda 3 ta printer 8 daqiqada nechta bet chiqaradi?", "Если 4 принтера за 6 минут печатают 24 страницы, сколько напечатают 3 принтера за 8 минут при той же скорости?"), ['18', '24', '30', '32', '36'], ['18', '24', '30', '32', '36'], 1, 1),
-    ("probability", L("Ikki tanga bir marta tashlanganda kamida bittasi gerb tushish ehtimoli qancha?", "При броске двух монет какова вероятность, что выпадет хотя бы один орёл?"), ['1/2', '1/4', '3/4', '1/3', '2/3'], ['1/2', '1/4', '3/4', '1/3', '2/3'], 2, 1),
-    ("spatial", L("Sharqqa qarab turibsiz. Chapga, keyin o‘ngga burildingiz. Hozir qaysi tomonga qarayapsiz?", "Вы смотрите на восток. Поворачиваете налево, затем направо. Куда смотрите?"), ['G‘arb', 'Shimol', 'Sharq', 'Janub', 'Shimoli-sharq'], ['Запад', 'Север', 'Восток', 'Юг', 'Северо-восток'], 2, 2),
-    ("verbal", L("Bir odamning singlisining o‘g‘li unga kim bo‘ladi?", "Кем человеку приходится сын его сестры?"), ['Amaki', 'Aka-uka', 'Jiyan', 'Amakivachcha', 'Ota'], ['Дядя', 'Брат', 'Племянник', 'Двоюродный брат', 'Отец'], 2, 1),
-    ("numeric", L("4 → 18, 5 → 27, 6 → 38, 7 → ? qaysi qoida mos?", "4 → 18, 5 → 27, 6 → 38, 7 → ? Какое правило подходит?"), ['49', '50', '51', '52', '53'], ['49', '50', '51', '52', '53'], 2, 1),
-    ("logic", L("Ba’zi A lar B. Barcha B lar C. Qaysi xulosa aniq?", "Некоторые A являются B. Все B являются C. Какой вывод точен?"), ['Ba’zi A lar C', 'Barcha A lar C', 'Hech bir A C emas', 'Barcha C lar A', 'Ma’lumot yetarli emas'], ['Некоторые A являются C', 'Все A являются C', 'Ни один A не является C', 'Все C являются A', 'Данных недостаточно'], 0, 2),
-    ("verbal", L("CAT → DBU qoidasi bo‘yicha CHAIR qanday yoziladi?", "По правилу CAT → DBU как будет записано CHAIR?"), ['DJBIS', 'DIBJR', 'DIBJS', 'EJCKT', 'CHBHQ'], ['DJBIS', 'DIBJR', 'DIBJS', 'EJCKT', 'CHBHQ'], 2, 2),
-    ("spatial", L("Qog‘oz bir marta teng ikkiga buklandi. Buklangan qog‘oz teshib qo‘yildi. Ochilganda nechta teshik bo‘ladi?", "Лист бумаги сложили пополам один раз и пробили. Сколько отверстий будет после разворачивания?"), ['2 ta', '1 ta', '3 ta', '4 ta', 'Hech biri'], ['2', '1', '3', '4', 'Ни одного'], 0, 2),
-    ("sequence", L("1, 4, 10, 19, 31, ? ketma-ketlikda keyingi son?", "Какое число следующее: 1, 4, 10, 19, 31, ?"), ['45', '47', '48', '49', '46'], ['45', '47', '48', '49', '46'], 4, 1),
-    ("logic", L("A, B, C, D, E tartibida: A C dan oldin, B D dan oldin, C E dan oldin. Kim birinchi bo‘lishi mumkin?", "В порядке A, B, C, D, E: A раньше C, B раньше D, C раньше E. Кто может быть первым?"), ['A yoki B', 'Faqat A', 'Faqat B', 'C', 'E'], ['A или B', 'Только A', 'Только B', 'C', 'E'], 0, 2),
-    ("numeric", L("Otaning yoshi o‘g‘lining yoshidan 3 baravar katta. 8 yildan keyin ota o‘g‘lidan 2 baravar katta bo‘ladi. O‘g‘il hozir nechada?", "Отец втрое старше сына. Через 8 лет отец будет вдвое старше сына. Сколько лет сыну сейчас?"), ['6', '8', '10', '12', '14'], ['6', '8', '10', '12', '14'], 1, 1),
-    ("sequence", L("1, 2, 6, 24, 120, ? ketma-ketlikda keyingi son?", "Какое число следующее: 1, 2, 6, 24, 120, ?"), ['240', '480', '720', '600', '840'], ['240', '480', '720', '600', '840'], 2, 1),
-    ("logic", L("Ba’zi mushuklar qora. Hech bir qora narsa oq emas. Qaysi xulosa aniq?", "Некоторые кошки чёрные. Ни одна чёрная вещь не белая. Какой вывод точен?"), ['Ba’zi mushuklar oq emas', 'Barcha mushuklar oq emas', 'Hech bir mushuk qora emas', 'Barcha oq narsalar mushuk', 'Ma’lumot yetarli emas'], ['Некоторые кошки не белые', 'Все кошки не белые', 'Ни одна кошка не чёрная', 'Все белые вещи — кошки', 'Данных недостаточно'], 0, 2),
-    ("applied", L("Poyezd 14:35 da jo‘nab, 16:20 da yetib keldi. Yo‘l qancha davom etgan?", "Поезд отправился в 14:35 и прибыл в 16:20. Сколько длилась поездка?"), ['1 soat 35 daqiqa', '2 soat', '1 soat 55 daqiqa', '1 soat 45 daqiqa', '2 soat 15 daqiqa'], ['1 час 35 минут', '2 часа', '1 час 55 минут', '1 час 45 минут', '2 часа 15 минут'], 3, 1),
-    ("numeric", L("Ketma-ket keladigan uchta toq sonning yig‘indisi 45. O‘rtadagi son nechaga teng?", "Сумма трёх последовательных нечётных чисел равна 45. Чему равно среднее число?"), ['13', '17', '11', '19', '15'], ['13', '17', '11', '19', '15'], 4, 1),
-    ("logic", L("Faqat bittasi emas, aynan ikkita gap rost: A: “B yolg‘on”. B: “C yolg‘on”. C: “A rost”. Qaysi gap yolg‘on?", "Ровно два утверждения истинны: A: «B лжёт». B: «C лжёт». C: «A говорит правду». Какое утверждение ложно?"), ['A', 'B', 'C', 'Hammasi rost', 'Aniqlab bo‘lmaydi'], ['A', 'B', 'C', 'Все истинны', 'Нельзя определить'], 1, 2),
-    ("numeric", L("Har bir qatorda uchinchi son birinchi ikki sonning yig‘indisi: 2,3,5; 4,6,10; 7,8, ? . Noma’lum son nechaga teng?", "В каждой строке третье число равно сумме первых двух: 2,3,5; 4,6,10; 7,8, ?. Чему равно неизвестное?"), ['14', '16', '15', '17', '18'], ['14', '16', '15', '17', '18'], 2, 2),
-    ("spatial", L("3 km shimolga, 3 km sharqqa, 3 km janubga yurdingiz. Boshlang‘ich nuqtaga nisbatan qayerdasiz?", "Вы прошли 3 км на север, 3 км на восток и 3 км на юг. Где вы относительно старта?"), ['G‘arbda', 'Sharqda', 'Shimolda', 'Janubda', 'Boshlang‘ich joyda'], ['На западе', 'На востоке', 'На севере', 'На юге', 'На старте'], 1, 2),
-    ("logic", L("Qaysi biri boshqalardan farq qiladi: kvadrat, uchburchak, doira, to‘g‘ri to‘rtburchak, kub?", "Что отличается: квадрат, треугольник, круг, прямоугольник, куб?"), ['Kvadrat', 'Uchburchak', 'Doira', 'To‘g‘ri to‘rtburchak', 'Kub'], ['Квадрат', 'Треугольник', 'Круг', 'Прямоугольник', 'Куб'], 4, 2),
-]
+#: Natija yozuvidagi format. Eski matnli IQ natijalari versiyasiz saqlangan.
+RESULT_VERSION = 2
+
 
 class IQState(StatesGroup):
+    age = State()
     answering = State()
 
-CATEGORY_NAMES = {
-    "uz": {"sequence": "Ketma-ketlik", "logic": "Mantiq", "numeric": "Sonli fikrlash", "verbal": "Verbal fikrlash", "spatial": "Fazoviy fikrlash", "applied": "Amaliy fikrlash", "probability": "Ehtimollik"},
-    "ru": {"sequence": "Последовательности", "logic": "Логика", "numeric": "Числовое мышление", "verbal": "Вербальное мышление", "spatial": "Пространственное мышление", "applied": "Прикладное мышление", "probability": "Вероятность"},
-}
 
 def bi(lang: str, uz: str, ru: str) -> str:
     return uz if lang == "uz" else ru
 
-def progress(index: int) -> str:
-    total = len(QUESTIONS)
-    filled = int(round((index / total) * 10))
-    return "🟩" * filled + "⬜" * (10 - filled)
+
+def tr(value: dict[str, str], lang: str) -> str:
+    return value.get(lang) or value["uz"]
+
+
+# --- Rasm yuborish ----------------------------------------------------------
+
+_file_ids: dict[str, str] = {}
+_digests: dict[str, str] = {}
+
+
+def _cache_key(puzzle: Puzzle) -> str:
+    if puzzle.file not in _digests:
+        _digests[puzzle.file] = puzzle.digest
+    return f"iq_photo:{puzzle.file}:{_digests[puzzle.file]}"
+
+
+async def _photo(puzzle: Puzzle) -> str | FSInputFile:
+    key = _cache_key(puzzle)
+    file_id = _file_ids.get(key) or await db.get_setting(key)
+    if file_id:
+        _file_ids[key] = file_id
+        return file_id
+    return FSInputFile(puzzle.path)
+
+
+async def _remember(puzzle: Puzzle, sent) -> None:
+    if not isinstance(sent, Message) or not sent.photo:
+        return
+    key, file_id = _cache_key(puzzle), sent.photo[-1].file_id
+    if _file_ids.get(key) != file_id:
+        _file_ids[key] = file_id
+        await db.set_setting(key, file_id)
+
+
+async def _forget(puzzle: Puzzle) -> None:
+    key = _cache_key(puzzle)
+    _file_ids.pop(key, None)
+    await db.set_setting(key, "")
+
+
+def _bad_file(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return "file identifier" in text or "file_id" in text or "wrong type of the web page" in text
+
+
+async def _send_puzzle(message: Message, puzzle: Puzzle, caption: str, markup, edit: bool) -> None:
+    """Rasmni shu xabarning o'zida almashtiradi; bo'lmasa yangi xabar yuboradi."""
+    if edit and message.photo:
+        for _ in range(2):
+            try:
+                sent = await message.edit_media(
+                    media=InputMediaPhoto(media=await _photo(puzzle), caption=caption),
+                    reply_markup=markup,
+                )
+                await _remember(puzzle, sent)
+                return
+            except TelegramBadRequest as exc:
+                if "not modified" in str(exc).lower():
+                    return
+                if _bad_file(exc):
+                    await _forget(puzzle)
+                    continue
+                log.debug("IQ rasmini tahrirlab bo'lmadi, yangisi yuboriladi: %s", exc)
+                break
+    try:
+        sent = await message.answer_photo(await _photo(puzzle), caption=caption, reply_markup=markup)
+    except TelegramBadRequest as exc:
+        if not _bad_file(exc):
+            raise
+        await _forget(puzzle)
+        sent = await message.answer_photo(FSInputFile(puzzle.path), caption=caption, reply_markup=markup)
+    await _remember(puzzle, sent)
+
+
+async def _retire(message: Message, text: str | None = None) -> None:
+    """Eski xabardagi tugmalarni olib tashlaydi — ular qayta bosilmasin."""
+    try:
+        if text and not message.photo:
+            await message.edit_text(text, reply_markup=None)
+        else:
+            await message.edit_reply_markup(reply_markup=None)
+    except TelegramBadRequest:
+        pass
+
+
+# --- Kartochka ----------------------------------------------------------------
+
 
 def intro(lang: str) -> str:
-    if lang == "uz":
-        return "🧠 <b>Premium IQ testi</b>\n\n30 ta mantiqiy topshiriq. Ketma-ketlik, mantiq, sonlar, fazoviy va amaliy fikrlash bo‘yicha natija olasiz.\n\n⏱ Taxminan 7–10 daqiqa\n📊 Yakunda IQ natijangiz va kuchli yo‘nalishlaringiz ko‘rsatiladi."
-    return "🧠 <b>Премиум IQ-тест</b>\n\n30 заданий на последовательности, логику, числа, пространственное и прикладное мышление.\n\n⏱ Примерно 7–10 минут\n📊 В конце вы увидите свой IQ-результат и сильные направления."
+    return bi(
+        lang,
+        f"{IQ_EMOJI} <b>Premium IQ testi — rasmli mantiq</b>\n\n"
+        f"{TOTAL} ta rasmli topshiriq. Har birida rasmlar ma’lum qoida bo‘yicha "
+        "o‘zgaradi: qoidani toping va «?» o‘rniga to‘g‘ri variantni tanlang.\n\n"
+        "📊 <b>Natijada:</b> taxminiy IQ (yoshingizga qarab), darajangiz va "
+        "to‘g‘ri javoblar soni.\n\n"
+        "⏱ Taxminan 15–20 daqiqa. Shoshmang, lekin bitta savolda qotib qolmang.\n"
+        "💡 Test yarmida to‘xtatilsa, to‘lov kuymaydi — u faqat test oxirigacha "
+        "yechilganda hisoblanadi.",
+        f"{IQ_EMOJI} <b>Премиум IQ-тест — логика в картинках</b>\n\n"
+        f"{TOTAL} заданий с картинками. В каждом картинки меняются по определённому "
+        "правилу: найдите правило и выберите вариант вместо «?».\n\n"
+        "📊 <b>В результате:</b> примерный IQ (с учётом возраста), ваш уровень и "
+        "число правильных ответов.\n\n"
+        "⏱ Примерно 15–20 минут. Не спешите, но и не застревайте на одном вопросе.\n"
+        "💡 Если остановить тест на полпути, оплата не сгорает — она засчитывается "
+        "только когда тест пройден до конца.",
+    )
 
-def menu(lang: str):
+
+def _unavailable_text(lang: str) -> str:
+    return bi(lang, "⏳ IQ testi vaqtincha yopiq. Birozdan keyin qayta urinib ko‘ring.",
+              "⏳ IQ-тест временно недоступен. Попробуйте чуть позже.")
+
+
+async def card(message: Message, user_id: int, lang: str, edit: bool) -> None:
+    locked = await pay.is_locked(user_id, IQ_KEY)
+    text = intro(lang)
     b = InlineKeyboardBuilder()
-    b.button(text=bi(lang, "🧠 Boshlash", "🧠 Начать тест"), callback_data="iq:start")
+    if answer_key() is None:
+        # Kalitsiz natijani hisoblab bo'lmaydi — pul olib, noto'g'ri baho berishdan ko'ra yopamiz.
+        log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi yopiq")
+        text += "\n\n" + _unavailable_text(lang)
+    elif locked:
+        price = money(await pay.price_for(IQ_KEY))
+        text += "\n\n" + bi(lang, f"🔒 Narxi: <b>{price} so‘m</b>", f"🔒 Цена: <b>{price} сум</b>")
+        b.button(text=bi(lang, "💳 Click orqali to‘lash", "💳 Оплатить через Click"), callback_data=f"pay:{IQ_KEY}")
+        b.button(text=bi(lang, "💰 Balansdan to‘lash", "💰 Оплатить с баланса"), callback_data=f"shop:buy:{IQ_KEY}")
+        b.button(text=bi(lang, "➕ Balansni to‘ldirish", "➕ Пополнить баланс"), callback_data="wallet:topup")
+    else:
+        b.button(text=bi(lang, "▶️ Testni boshlash", "▶️ Начать тест"), callback_data="iq:start")
     b.button(text=bi(lang, "⬅️ Orqaga", "⬅️ Назад"), callback_data="nav:menu")
     b.adjust(1)
-    return b.as_markup()
+    if edit and not message.photo:
+        try:
+            await message.edit_text(text, reply_markup=b.as_markup())
+            return
+        except TelegramBadRequest as exc:
+            if "not modified" in str(exc).lower():
+                return
+    await message.answer(text, reply_markup=b.as_markup())
 
-def question_markup(index: int, lang: str):
-    b = InlineKeyboardBuilder()
-    for i, option in enumerate(QUESTIONS[index][2 if lang == "uz" else 3]):
-        b.button(text=f"{i+1}️⃣ {option}", callback_data=f"iq:ans:{index}:{i}")
-    b.button(text=bi(lang, "⛔ Testni to‘xtatish", "⛔ Остановить тест"), callback_data="nav:cancel")
-    b.adjust(1)
-    return b.as_markup()
-
-def question_text(index: int, lang: str) -> str:
-    title = bi(lang, "Premium IQ testi", "Премиум IQ-тест")
-    q = QUESTIONS[index][1].get(lang, QUESTIONS[index][1]["uz"])
-    return f"{IQ_EMOJI} <b>{title}</b>\n\n{progress(index)}\n<b>{index + 1} / {len(QUESTIONS)}</b>\n\n<b>{html.escape(q)}</b>"
-
-async def _start_test(target, state: FSMContext, lang: str, user_id: int) -> None:
-    if await pay.is_locked(user_id, IQ_KEY):
-        await pay.show_paywall(target.message if isinstance(target, CallbackQuery) else target, user_id, IQ_KEY, lang)
-        if isinstance(target, CallbackQuery):
-            await target.answer()
-        return
-    await state.clear()
-    await state.update_data(iq_answers=[])
-    await state.set_state(IQState.answering)
-    await db.log_start(user_id, IQ_KEY)
-    text = question_text(0, lang)
-    markup = question_markup(0, lang)
-    if isinstance(target, CallbackQuery):
-        await target.message.edit_text(text, reply_markup=markup)
-        await target.answer()
-    else:
-        await target.answer(text, reply_markup=markup)
 
 @router.message(Command("iq"))
 async def iq_command(message: Message, state: FSMContext, lang: str) -> None:
-    price = await pay.price_for(IQ_KEY)
-    if await pay.is_locked(message.from_user.id, IQ_KEY):
-        await message.answer(intro(lang) + "\n\n" + bi(lang, f"🔒 Narxi: <b>{money(price)} so‘m</b> — to‘lovdan keyin darhol ochiladi.", f"🔒 Цена: <b>{money(price)} сум</b> — тест откроется сразу после оплаты."), reply_markup=menu(lang))
+    await state.clear()
+    await card(message, message.from_user.id, lang, edit=False)
+
+
+@router.callback_query(F.data == "iq:card")
+async def iq_card(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    await callback.answer()
+    await state.clear()
+    await card(callback.message, callback.from_user.id, lang, edit=True)
+
+
+# --- Savollar -----------------------------------------------------------------
+
+
+def caption(index: int, lang: str) -> str:
+    filled = round(index / TOTAL * 10)
+    bar = "🟩" * filled + "⬜" * (10 - filled)
+    return (
+        f"{IQ_EMOJI} <b>{bi(lang, 'IQ testi', 'IQ-тест')}</b> · <b>{index + 1} / {TOTAL}</b>\n"
+        f"{bar}\n\n"
+        + bi(lang, "Qonuniyatni toping va «?» o‘rniga mos variantni tanlang.",
+             "Найдите закономерность и выберите вариант вместо «?».")
+    )
+
+
+def question_markup(index: int, lang: str):
+    b = InlineKeyboardBuilder()
+    for letter in LETTERS:
+        b.button(text=letter, callback_data=f"iq:a:{index}:{letter}")
+    if index > 0:
+        b.button(text=bi(lang, "⬅️ Oldingi", "⬅️ Назад"), callback_data="iq:back")
+    b.button(text=bi(lang, "⛔ To‘xtatish", "⛔ Остановить"), callback_data="iq:stop")
+    b.adjust(len(LETTERS), 2 if index > 0 else 1)
+    return b.as_markup()
+
+
+async def _show(message: Message, index: int, lang: str, edit: bool) -> None:
+    await _send_puzzle(message, PUZZLES[index], caption(index, lang), question_markup(index, lang), edit)
+
+
+async def _start_test(target, state: FSMContext, lang: str, user_id: int) -> None:
+    """Testni boshlaydi. Kartochka, to'lovdan keyingi avtostart va eski tugmalar shu yerga keladi."""
+    message = target.message if isinstance(target, CallbackQuery) else target
+    if isinstance(target, CallbackQuery):
+        await target.answer()
+    if answer_key() is None:
+        log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi boshlanmadi")
+        await message.answer(_unavailable_text(lang))
         return
-    await message.answer(intro(lang), reply_markup=menu(lang))
+    if await pay.is_locked(user_id, IQ_KEY):
+        await pay.show_paywall(message, user_id, IQ_KEY, lang)
+        return
+    await state.clear()
+    await state.set_state(IQState.age)
+    b = InlineKeyboardBuilder()
+    for code, label in AGE_GROUPS:
+        b.button(text=tr(label, lang), callback_data=f"iqage:{code}")
+    b.button(text=bi(lang, "⬅️ Orqaga", "⬅️ Назад"), callback_data="nav:menu")
+    b.adjust(2, 2, 1)
+    prompt = bi(
+        lang,
+        "🎂 <b>Yoshingizni tanlang</b>\n\nIQ tengdoshlaringizga nisbatan hisoblanadi: "
+        "bir xil natija 12 yoshli bola va katta odam uchun turlicha baholanadi.",
+        "🎂 <b>Выберите свой возраст</b>\n\nIQ считается относительно сверстников: "
+        "одинаковый результат по-разному оценивается у ребёнка 12 лет и у взрослого.",
+    )
+    if not message.photo:  # rasmli xabarni matnga aylantirib bo'lmaydi
+        try:
+            await message.edit_text(prompt, reply_markup=b.as_markup())
+            return
+        except TelegramBadRequest:
+            pass
+    await message.answer(prompt, reply_markup=b.as_markup())
+
+
+@router.callback_query(F.data.startswith("iqage:"))
+async def picked_age(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    age = callback.data.split(":", 1)[1]
+    if age not in AGE_CODES:
+        await callback.answer()
+        return
+    await callback.answer()
+    user_id = callback.from_user.id
+    if answer_key() is None:
+        log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi boshlanmadi")
+        await callback.message.answer(_unavailable_text(lang))
+        return
+    # Eski xabardagi yosh tugmasi ham shu yerga keladi — huquqni qayta tekshiramiz.
+    if await pay.is_locked(user_id, IQ_KEY):
+        await pay.show_paywall(callback.message, user_id, IQ_KEY, lang)
+        return
+    await state.clear()
+    await state.set_state(IQState.answering)
+    await state.update_data(iq_answers=[], iq_started=time.time(), iq_age=age)
+    await db.log_start(user_id, IQ_KEY)
+    await _retire(callback.message, bi(lang, f"{IQ_EMOJI} IQ testi boshlandi. Omad!", f"{IQ_EMOJI} IQ-тест начался. Удачи!"))
+    await _show(callback.message, 0, lang, edit=False)
+
 
 @router.callback_query(F.data == "iq:start")
 async def iq_start(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     await _start_test(callback, state, lang, callback.from_user.id)
 
-@router.callback_query(IQState.answering, F.data.startswith("iq:ans:"))
-async def iq_answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+
+#: Bitta foydalanuvchining tez-tez bosishlari ketma-ket ishlansin: aks holda
+#: oxirgi savolda ikki marta bosilsa, natija ikki marta saqlanardi.
+_locks: dict[int, asyncio.Lock] = {}
+
+
+def _lock(user_id: int) -> asyncio.Lock:
+    return _locks.setdefault(user_id, asyncio.Lock())
+
+
+@router.callback_query(IQState.answering, F.data.startswith("iq:a:"))
+async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    parts = callback.data.split(":")
+    if len(parts) != 4 or not parts[2].isdigit() or parts[3] not in LETTERS:
+        await callback.answer()
+        return
+    index, letter = int(parts[2]), parts[3]
+    async with _lock(callback.from_user.id):
+        if await state.get_state() != IQState.answering.state:
+            await callback.answer()
+            return
+        data = await state.get_data()
+        answers = list(data.get("iq_answers", []))
+        if index != len(answers):
+            await callback.answer(bi(lang, "Javob qabul qilingan ✅", "Ответ уже принят ✅"))
+            return
+        answers.append(letter)
+        await state.update_data(iq_answers=answers)
+        await callback.answer()
+        if len(answers) < TOTAL:
+            await _show(callback.message, len(answers), lang, edit=True)
+            return
+        await _finish(callback, state, lang, answers, data.get("iq_started"), data.get("iq_age"))
+
+
+@router.callback_query(IQState.answering, F.data == "iq:back")
+async def back(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    async with _lock(callback.from_user.id):
+        data = await state.get_data()
+        answers = list(data.get("iq_answers", []))
+        await callback.answer()
+        if not answers:
+            return
+        answers.pop()
+        await state.update_data(iq_answers=answers)
+        await _show(callback.message, len(answers), lang, edit=True)
+
+
+@router.callback_query(F.data == "iq:stop")
+async def stop(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    if await state.get_state() == IQState.answering.state:
+        await state.clear()
+    await callback.answer(bi(lang, "Test to‘xtatildi", "Тест остановлен"))
     try:
-        _, _, raw_index, raw_value = callback.data.split(":")
-        index, value = int(raw_index), int(raw_value)
-    except (ValueError, AttributeError):
-        await callback.answer()
-        return
-    if index < 0 or index >= len(QUESTIONS) or value < 0 or value >= 5:
-        await callback.answer()
-        return
-    data = await state.get_data()
-    answers = list(data.get("iq_answers", []))
-    if index != len(answers):
-        await callback.answer(bi(lang, "Bu savol allaqachon javoblangan.", "Этот вопрос уже отвечен."), show_alert=True)
-        return
-    answers.append(value)
-    await state.update_data(iq_answers=answers)
-    await callback.answer()
-    if len(answers) < len(QUESTIONS):
-        await callback.message.edit_text(question_text(len(answers), lang), reply_markup=question_markup(len(answers), lang))
-        return
+        await callback.message.delete()
+    except TelegramBadRequest:
+        await _retire(callback.message)
+    from handlers import user  # aylanma importdan qochish uchun shu yerda
 
-    categories: dict[str, list[bool]] = {}
-    correct = 0
-    for i, answer in enumerate(answers):
-        category, _, _, _, expected, _ = QUESTIONS[i]
-        ok = answer == expected
-        correct += int(ok)
-        categories.setdefault(category, []).append(ok)
+    await user.show_menu(callback.message, lang, callback.from_user.id, edit=False)
 
-    score = round(correct / len(QUESTIONS) * 100)
-    iq_score = max(70, min(130, 70 + round(score * 0.6)))
-    category_scores = {k: round(sum(v) / len(v) * 100) for k, v in categories.items()}
-    ranked = sorted(category_scores.items(), key=lambda x: (-x[1], x[0]))
-    strong = ranked[:2]
-    weak = ranked[-2:][::-1]
 
-    await db.save_result(
-        callback.from_user.id,
-        IQ_KEY,
-        lang,
-        None,
-        float(iq_score),
-        {
-            "iq_score": iq_score,
-            "percent_score": score,
-            "reasoning": float(score),
-            "accuracy": float(score),
-            "categories": category_scores,
-            "correct": correct,
-            "total_questions": len(QUESTIONS),
-        },
+@router.callback_query(F.data.startswith("iq:a:") | F.data.startswith("iq:ans:") | (F.data == "iq:back"))
+async def stale(callback: CallbackQuery, lang: str) -> None:
+    await callback.answer(
+        bi(lang, "Bu test tugagan yoki to‘xtatilgan. Qayta boshlash: /iq",
+           "Этот тест завершён или остановлен. Начать заново: /iq"),
+        show_alert=True,
     )
-    await state.clear()
 
-    if iq_score >= 125:
-        level = bi(lang, "🏆 Juda yuqori", "🏆 Очень высокий")
-    elif iq_score >= 115:
-        level = bi(lang, "🌟 Yuqori", "🌟 Высокий")
-    elif iq_score >= 100:
-        level = bi(lang, "💪 Yaxshi", "💪 Хороший")
-    elif iq_score >= 85:
-        level = bi(lang, "📈 O‘rtacha", "📈 Средний")
-    else:
-        level = bi(lang, "🌱 Rivojlantirish mumkin", "🌱 Есть над чем работать")
 
-    text = [
-        bi(lang, "🧠 <b>PREMIUM IQ NATIJASI</b>", "🧠 <b>РЕЗУЛЬТАТ ПРЕМИУМ IQ</b>"),
+@router.message(IQState.answering, ~F.text.startswith("/"))
+async def typed_during_test(message: Message, lang: str) -> None:
+    await message.answer(bi(
+        lang,
+        "Javob berish uchun rasm ostidagi A, B, C yoki D tugmasini bosing. To‘xtatish — ⛔ tugmasi.",
+        "Чтобы ответить, нажмите A, B, C или D под картинкой. Остановить — кнопка ⛔.",
+    ))
+
+
+# --- Natija -------------------------------------------------------------------
+
+
+async def _peer_scores(user_id: int, age_group: str) -> list[float]:
+    """Shu yoshdagi boshqa ishtirokchilarning BIRINCHI urinishdagi natijalari.
+
+    Qayta topshirishda javoblar eslab qolinadi — ular solishtirishni buzmasin.
+    Adminning sinov natijalari ham hisobga olinmaydi.
+    """
+    conn = await db.connect()
+    cursor = await conn.execute(
+        """
+        SELECT r.user_id, r.total FROM results r
+        JOIN (
+            SELECT MIN(id) AS first_id FROM results
+            WHERE test_key = ? AND json_extract(scales, '$.version') = ?
+            GROUP BY user_id
+        ) f ON f.first_id = r.id
+        WHERE r.user_id != ? AND r.age_group = ?
+        """,
+        (IQ_KEY, RESULT_VERSION, user_id, age_group),
+    )
+    return [total for uid, total in await cursor.fetchall() if not is_admin(uid)]
+
+
+def _duration(seconds: int, lang: str) -> str:
+    minutes, sec = divmod(max(0, seconds), 60)
+    if lang == "uz":
+        return f"{minutes} daqiqa {sec} soniya" if minutes else f"{sec} soniya"
+    return f"{minutes} мин {sec} сек" if minutes else f"{sec} сек"
+
+
+def iq_scale(iq: int) -> str:
+    """70 dan 145 gacha shkalada natija qayerda turgani."""
+    cells = 12
+    pos = round((iq - IQ_MIN) / (IQ_MAX - IQ_MIN) * (cells - 1))
+    return "".join("🔵" if i == pos else "▫️" for i in range(cells))
+
+
+def render(result: dict, lang: str, seconds: int | None, estimate: dict,
+           peers: list[float]) -> str:
+    correct = result["correct"]
+    iq = estimate["iq"]
+    level = level_for(iq)
+    lines = [
+        f"{IQ_EMOJI} <b>{bi(lang, 'PREMIUM IQ TESTI — NATIJA', 'ПРЕМИУМ IQ-ТЕСТ — РЕЗУЛЬТАТ')}</b>",
         "",
-        bi(lang, f"🎯 <b>Sizning IQ natijangiz: {iq_score}</b>", f"🎯 <b>Ваш IQ-результат: {iq_score}</b>"),
-        bi(lang, f"📊 To‘g‘ri javoblar: <b>{correct}/{len(QUESTIONS)}</b>", f"📊 Правильных ответов: <b>{correct}/{len(QUESTIONS)}</b>"),
-        bi(lang, f"⭐ Daraja: <b>{level}</b>", f"⭐ Уровень: <b>{level}</b>"),
+        f"🧠 {bi(lang, 'Taxminiy IQ', 'Примерный IQ')}: <b>≈ {iq}</b>",
+        bi(lang, f"<i>ehtimoliy oraliq: {estimate['low']}–{estimate['high']}</i>",
+           f"<i>вероятный диапазон: {estimate['low']}–{estimate['high']}</i>"),
+        f"{IQ_MIN} {iq_scale(iq)} {IQ_MAX}",
         "",
-        bi(lang, "<b>Kuchli yo‘nalishlar</b>", "<b>Сильные направления</b>"),
+        f"{level.emoji} {bi(lang, 'Daraja', 'Уровень')}: <b>{tr(level.name, lang)}</b>",
+        tr(level.note, lang),
+        "",
+        f"🎯 {bi(lang, 'To‘g‘ri javoblar', 'Правильных ответов')}: <b>{correct} / {TOTAL}</b>",
     ]
-    for key, val in strong:
-        text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
-    text += ["", bi(lang, "<b>Ko‘proq mashq foydali bo‘lishi mumkin</b>", "<b>Что можно потренировать</b>")]
-    for key, val in weak:
-        text.append(f"• {CATEGORY_NAMES[lang][key]} — <b>{val}%</b>")
+    pct = percentile(correct, peers)
+    if pct is not None:
+        lines.append(bi(
+            lang,
+            f"📊 Tengdoshlaringizning <b>{pct} foizi</b>dan yuqori (ishtirokchilar: {len(peers)}).",
+            f"📊 Выше, чем у <b>{pct}%</b> ваших сверстников (участников: {len(peers)}).",
+        ))
+    if seconds is not None:
+        lines.append(f"⏱ {bi(lang, 'Sarflangan vaqt', 'Затраченное время')}: {_duration(seconds, lang)}")
+        if seconds < TOTAL * RUSHED_SECONDS_PER_PUZZLE:
+            lines.append(bi(
+                lang,
+                "⚠️ Juda tez yechdingiz — ba’zi javoblar tavakkal belgilangan bo‘lishi mumkin.",
+                "⚠️ Вы ответили очень быстро — часть ответов могла быть наугад.",
+            ))
 
+    return "\n".join(lines)
+
+
+def result_markup(result: dict, iq: int, lang: str):
     b = InlineKeyboardBuilder()
-    b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:start")
-    b.button(text=bi(lang, "💰 Balans", "💰 Баланс"), callback_data="wallet:open")
+    if BOT_USERNAME:
+        share = quote(bi(
+            lang,
+            f"Mening taxminiy IQ im — {iq} ({result['correct']}/{TOTAL}). Sen ham sinab ko‘r:",
+            f"Мой примерный IQ — {iq} ({result['correct']}/{TOTAL}). Попробуй и ты:",
+        ))
+        b.button(text=bi(lang, "📤 Natijani ulashish", "📤 Поделиться результатом"),
+                 url=f"https://t.me/share/url?url=https://t.me/{BOT_USERNAME}&text={share}")
+    b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:card")
     b.button(text=bi(lang, "🧠 Boshqa testlar", "🧠 Другие тесты"), callback_data="nav:menu")
     b.adjust(1)
-    await callback.message.edit_text("\n".join(text), reply_markup=b.as_markup())
+    return b.as_markup()
+
+
+async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
+                  answers: list[str], started: float | None, age: str | None) -> None:
+    key = answer_key()
+    if key is None:
+        # Test davomida kalit yo'qolgan bo'lsa: natijani saqlamaymiz, urinish kuymaydi.
+        log.error("IQ_ANSWERS test oxirida topilmadi — natija saqlanmadi")
+        await callback.message.answer(_unavailable_text(lang))
+        return
+    await state.clear()
+    user_id = callback.from_user.id
+    age = age if age in AGE_CODES else DEFAULT_AGE
+    result = grade(answers, key)
+    seconds = int(time.time() - started) if started else None
+    peers = await _peer_scores(user_id, age)
+    estimate = estimate_iq(result["correct"], age, peers)
+    await db.save_result(user_id, IQ_KEY, lang, age, float(result["correct"]), {
+        "version": RESULT_VERSION,
+        "correct": result["correct"],
+        "total": TOTAL,
+        "iq": estimate["iq"],
+        "iq_low": estimate["low"],
+        "iq_high": estimate["high"],
+        "iq_source": estimate["source"],
+        "answers": answers,
+        "kinds": result["kinds"],
+        "seconds": seconds,
+    })
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest:
+        await _retire(callback.message)
+    await callback.message.answer(render(result, lang, seconds, estimate, peers),
+                                  reply_markup=result_markup(result, estimate["iq"], lang))

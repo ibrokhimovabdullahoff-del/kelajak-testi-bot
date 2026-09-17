@@ -2,13 +2,32 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import replace
 from datetime import datetime, timezone
+from pathlib import Path
 
 import aiosqlite
 
 from config import DB_PATH, IQ_KEY
 from psytests import REGISTRY
+
+log = logging.getLogger(__name__)
+
+#: Savollar matni kod bilan birga yangilanganda shu raqam oshiriladi.
+#: Oshirishdan OLDIN joriy savollarning nusxasini saqlang:
+#:     python content_cms.py snapshot
+#: Migratsiya bazadagi test aynan shu nusxadagidek qolganini (admin
+#: tahrirlamaganini) tekshiradi va faqat shunda yangi matnni qo'llaydi.
+CONTENT_VERSION = 2
+SNAPSHOTS = Path(__file__).parent / "psytests"
+
+
+def snapshot_path(version: int) -> Path:
+    return SNAPSHOTS / f"cms_seed_v{version}.json"
+
+
+SEED_V1 = snapshot_path(1)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS cms_questions (
@@ -31,6 +50,10 @@ CREATE TABLE IF NOT EXISTS cms_questions (
     UNIQUE(test_key, position)
 );
 CREATE INDEX IF NOT EXISTS idx_cms_questions_test ON cms_questions(test_key, enabled, position);
+CREATE TABLE IF NOT EXISTS settings (
+    key         TEXT PRIMARY KEY,
+    value       TEXT NOT NULL
+);
 """
 
 _initialized = False
@@ -62,35 +85,121 @@ async def init() -> None:
         await conn.executescript(SCHEMA)
         await conn.commit()
     await seed()
+    await migrate()
     _initialized = True
 
-def _static_rows():
+def _static_rows(test_key: str | None = None):
+    """Koddagi savollar — bazaga yoziladigan ko'rinishda.
+
+    Javob variantlari ham tayyor holda yoziladi. Avval faqat savol matni
+    yozilardi va bot javoblarni fe'l shaklisiz yig'ardi — natijada odamlar
+    "Ha," yoki "Umuman" degan chala tugmalarni ko'rardi.
+
+    IQ bu yerda yo'q: u rasmli test va savollari kodda (handlers/iq.py).
+    """
     rows = []
     for key, test in REGISTRY.items():
+        if test_key is not None and key != test_key:
+            continue
         for pos, item in enumerate(test.items):
+            options = {
+                lang: [text.split(" ", 1)[1] for text in item.answers(lang)]
+                for lang in ("uz", "ru")
+            }
             rows.append((key, pos, item.scale, 1, 1, int(item.reverse), item.kind,
-                         item.text.get("uz", ""), item.text.get("ru", ""), None, None, None, None))
-    from handlers import iq
-    for pos, q in enumerate(iq.QUESTIONS):
-        category, text, uz, ru, correct, difficulty = q
-        rows.append((IQ_KEY, pos, category, difficulty, 1, 0, "iq",
-                     text.get("uz", ""), text.get("ru", ""),
-                     json.dumps(uz, ensure_ascii=False), json.dumps(ru, ensure_ascii=False), correct, None))
+                         item.text.get("uz", ""), item.text.get("ru", ""),
+                         json.dumps(options["uz"], ensure_ascii=False),
+                         json.dumps(options["ru"], ensure_ascii=False), None, None))
     return rows
+
+async def _insert_rows(conn, rows) -> None:
+    now = _now()
+    for row in rows:
+        await conn.execute(
+            """INSERT OR IGNORE INTO cms_questions
+            (test_key,position,category,difficulty,enabled,reverse,kind,text_uz,text_ru,
+             options_uz,options_ru,correct_index,image_url,created_at,updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (*row, now, now))
 
 async def seed() -> None:
     async with aiosqlite.connect(DB_PATH) as conn:
         cur = await conn.execute("SELECT COUNT(*) FROM cms_questions")
         if (await cur.fetchone())[0]:
             return
-        now = _now()
-        for row in _static_rows():
-            await conn.execute(
-                """INSERT OR IGNORE INTO cms_questions
-                (test_key,position,category,difficulty,enabled,reverse,kind,text_uz,text_ru,
-                 options_uz,options_ru,correct_index,image_url,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (*row, now, now))
+        await _insert_rows(conn, _static_rows())
+        # Yangi baza darhol eng so'nggi matn bilan to'ladi — migratsiya kerak emas.
+        await conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('content_version', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (str(CONTENT_VERSION),))
+        await conn.commit()
+
+def _untouched(test_key: str, db_rows: list[dict], snapshot: dict) -> bool:
+    """Bazadagi test o'sha versiya seed qilgan holatida qolganmi.
+
+    v1 nusxasida javob variantlari yo'q (5 ustun), keyingilarida bor (7 ustun).
+    """
+    expected = snapshot.get(test_key)
+    if expected is None or len(expected) != len(db_rows):
+        return False
+    for row, saved in zip(db_rows, expected):
+        category, reverse, kind, text_uz, text_ru = saved[:5]
+        options_uz, options_ru = (saved[5], saved[6]) if len(saved) == 7 else (None, None)
+        if (row["category"], row["reverse"], row["kind"], row["text_uz"], row["text_ru"],
+                row["options_uz"] or None, row["options_ru"] or None) != \
+                (category, reverse, kind, text_uz, text_ru, options_uz, options_ru):
+            return False
+        if row["enabled"] != 1 or row["image_url"]:
+            return False
+    return True
+
+
+def write_snapshot(version: int = CONTENT_VERSION) -> Path:
+    """Koddagi joriy savollarni keyingi migratsiya uchun nusxa qilib saqlaydi."""
+    data: dict[str, list] = {}
+    for key, _pos, category, _d, _e, reverse, kind, tuz, tru, ouz, oru, _c, _i in _static_rows():
+        data.setdefault(key, []).append([category, reverse, kind, tuz, tru, ouz, oru])
+    path = snapshot_path(version)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    return path
+
+async def migrate() -> None:
+    """Kod bilan kelgan yangi savol matnini mavjud bazaga qo'llaydi.
+
+    Faqat admin CMS orqali tegmagan testlar yangilanadi: agar biror savol
+    qo'lda tahrirlangan bo'lsa, o'sha test butunligicha qoldiriladi — adminning
+    ishi hech qachon jimgina o'chib ketmasligi kerak.
+    """
+    async with aiosqlite.connect(DB_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        cur = await conn.execute("SELECT value FROM settings WHERE key='content_version'")
+        row = await cur.fetchone()
+        current = int(row["value"]) if row else 1
+        if current >= CONTENT_VERSION:
+            return
+        path = snapshot_path(current)
+        if not path.exists():
+            log.error("CMS: %s topilmadi — savollar yangilanmadi.", path.name)
+            return
+        snapshot = json.loads(path.read_text(encoding="utf-8"))
+        # Eski matnli IQ savollari: IQ endi rasmli va savollari bazada emas.
+        await conn.execute("DELETE FROM cms_questions WHERE test_key=?", (IQ_KEY,))
+        for key in REGISTRY:
+            cur = await conn.execute(
+                "SELECT * FROM cms_questions WHERE test_key=? ORDER BY position,id", (key,))
+            db_rows = [dict(r) for r in await cur.fetchall()]
+            if db_rows and not _untouched(key, db_rows, snapshot):
+                log.warning("CMS: «%s» testi qo‘lda tahrirlangan — yangi savollar "
+                            "qo‘llanmadi, admin tahriri saqlandi.", key)
+                continue
+            await conn.execute("DELETE FROM cms_questions WHERE test_key=?", (key,))
+            await _insert_rows(conn, _static_rows(key))
+            log.info("CMS: «%s» testi yangi savollar bilan yangilandi.", key)
+        await conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('content_version', ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (str(CONTENT_VERSION),))
         await conn.commit()
 
 async def rows(test_key: str, include_disabled: bool = True) -> list[dict]:
@@ -163,7 +272,7 @@ def _opts(row: dict, lang: str):
         return None
 
 async def apply_all() -> None:
-    """Apply enabled DB content to the in-memory registry and IQ list."""
+    """Apply enabled DB content to the in-memory test registry."""
     await init()
     from psytests import REGISTRY as registry
     for key, test in list(registry.items()):
@@ -178,11 +287,12 @@ async def apply_all() -> None:
                                  kind=row["kind"], reverse=bool(row["reverse"]),
                                  answers_override=override, image_url=row["image_url"]))
         registry[key] = replace(test, items=items)
-    from handlers import iq
-    rr = await rows(IQ_KEY, include_disabled=False)
-    if rr:
-        iq.QUESTIONS = [
-            (row["category"], {"uz": row["text_uz"], "ru": row["text_ru"]},
-             _opts(row, "uz") or [], _opts(row, "ru") or [], int(row["correct_index"] or 0),
-             int(row["difficulty"] or 1)) for row in rr
-        ]
+
+
+if __name__ == "__main__":
+    import sys
+
+    if sys.argv[1:] == ["snapshot"]:
+        print(f"Saqlandi: {write_snapshot()}")
+    else:
+        print("Ishlatish: python content_cms.py snapshot")

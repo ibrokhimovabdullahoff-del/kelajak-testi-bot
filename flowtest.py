@@ -133,6 +133,12 @@ async def main() -> int:
     from handlers import build_router  # config o'qilgandan keyin
 
     await db.init()
+    # Server qanday ishga tushsa, shunday: savollar CMS bazasidan o'qiladi.
+    # Avval bu qadam yo'q edi va bazadan kelgan chala tugmalar ("Ha,")
+    # tekshiruvdan o'tib ketgan.
+    import content_cms as cms
+    await cms.init()
+    await cms.apply_all()
     bot = Bot("0:test", session=FakeSession(),
               default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
@@ -147,7 +153,10 @@ async def main() -> int:
     check("ikkita til tugmasi", len(buttons()) == 2, str(len(buttons())))
     await press(dp, bot, "lang:uz")
     check("menyu o‘zbekcha", "Psixologik testlar" in last_text(), last_text()[:60])
-    check("menyuda 4 test + 3 tugma", len(buttons()) == 7, str(len(buttons())))
+    check("menyuda 4 test + IQ + 4 tugma", len(buttons()) == 9, str(len(buttons())))
+    check("IQ tugmasi kartochkani ochadi",
+          any(b.callback_data == "iq:card" for b in buttons()),
+          str([b.callback_data for b in buttons()]))
     check("til bazaga yozildi", await db.get_lang(TEST_USER) == "uz")
 
     # --- 2. Big Five: kartochka, manba, to'liq test ------------------------
@@ -184,6 +193,10 @@ async def main() -> int:
     await press(dp, bot, "age:a_19_25")
     check("savol boshlandi", "Savol 1 / 28" in last_text())
     check("javob tugmalari 6 ta", len(buttons()) == 6, str(len(buttons())))
+    labels = [b.text for b in buttons()]
+    check("javoblar to‘liq (chala «Ha,» yoki «Bilmayman» yo‘q)",
+          not any(x.rstrip().endswith(",") or "Bilmayman" in x for x in labels)
+          and "Ha, bor" in " ".join(labels), str(labels))
     await take_test(dp, bot, "future")
     result = all_text()
     check("umumiy ball chiqdi", "100 / 100" in result, result[-200:])
@@ -367,9 +380,9 @@ async def main() -> int:
 
     CALLS.clear()
     await press(dp, bot, "pay:bigfive")
-    alert = last("AnswerCallbackQuery")
+    # Test hali tugatilmagan — to'langan urinish ishlatilmagan, qayta pul so'ralmaydi.
     check("ikkinchi marta pul so‘ralmadi",
-          alert is not None and "allaqachon ochiq" in (alert.text or ""), str(alert))
+          "allaqachon ochiq" in last_text(), last_text()[:80])
     check("yangi buyurtma ochilmadi",
           len(await db.recent_payments(10)) == 1, str(await db.recent_payments(10)))
 

@@ -318,7 +318,7 @@ async def user_history(user_id: int, limit: int = 10) -> list[dict]:
     db = await connect()
     cursor = await db.execute(
         """
-        SELECT test_key, age_group, total, created_at
+        SELECT test_key, age_group, total, scales, created_at
         FROM results WHERE user_id = ?
         ORDER BY id DESC LIMIT ?
         """,

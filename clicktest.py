@@ -26,6 +26,7 @@ import time
 # shuning uchun sinov qiymatlarini IMPORTDAN OLDIN qo'yamiz.
 SERVICE_ID = "110965"
 SECRET = "test-secret-key"
+os.environ.setdefault("BOT_TOKEN", "0:test")
 os.environ.update(
     CLICK_SERVICE_ID=SERVICE_ID,
     CLICK_MERCHANT_ID="64192",

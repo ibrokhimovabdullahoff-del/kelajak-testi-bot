@@ -14,14 +14,14 @@ Endi har bir savol SAVOL shaklida beriladi va javoblar o'sha savolning
 fe'lini takrorlaydi:
 
     "Davra siz bilan jonlanadimi?"
-        Umuman jonlanmaydi / Kamdan-kam / Bilmayman /
-        Ko'pincha jonlanadi / Ha, doim jonlanadi
+        Hech qachon jonlanmaydi / Kamdan-kam jonlanadi / Ba'zan jonlanadi /
+        Ko'pincha jonlanadi / Doim jonlanadi
 
 Buning uchun har bir element `yes` va `no` shakllarini beradi, javoblar esa
 shablondan yig'iladi. Ikki xil shablon bor:
 
-    "freq" — xatti-harakat uchun (necha marta): Umuman / Kamdan-kam / Ko'pincha
-    "deg"  — holat yoki xususiyat uchun (qanchalik): Umuman / Unchalik / Juda
+    "freq" — xatti-harakat uchun (necha marta): Hech qachon / Ba'zan / Doim
+    "deg"  — holat yoki xususiyat uchun (qanchalik): Umuman / O'rtacha / Juda
 
 Ball hisobi o'zgarmadi: baribir 0..4, shuning uchun eski natijalar bilan
 solishtirsa bo'ladi.
@@ -35,30 +35,46 @@ LANGS = ("uz", "ru")
 #: Javob shablonlari. {yes} va {no} har bir savolning o'z shakli bilan
 #: almashtiriladi. Bo'sh joy qolmasligi uchun ortiqcha probel tozalanadi.
 TEMPLATES = {
+    # O'rtadagi variant "Bilmayman" emas: odam savolga "bilmayman" deb emas,
+    # "ba'zan" yoki "o'rtacha" deb javob beradi. "Bilmayman" 2 ball olardi,
+    # lekin odam aslida boshqa narsani nazarda tutgan bo'lardi.
     "freq": {
-        "uz": ["Umuman {no}", "Kamdan-kam", "Bilmayman", "Ko‘pincha {yes}",
-               "Ha, doim {yes}"],
-        "ru": ["Совсем нет", "Редко", "Не знаю", "Часто", "Да, всегда"],
+        "uz": ["Hech qachon {no}", "Kamdan-kam {yes}", "Ba’zan {yes}",
+               "Ko‘pincha {yes}", "Doim {yes}"],
+        "ru": ["Никогда", "Редко", "Иногда", "Часто", "Всегда"],
     },
     "deg": {
-        "uz": ["Umuman {no}", "Unchalik emas", "Bilmayman", "Ha, {yes}",
+        "uz": ["Umuman {no}", "Unchalik {no}", "O‘rtacha", "Ha, {yes}",
                "Ha, juda {yes}"],
-        "ru": ["Совсем нет", "Не очень", "Не знаю", "Да", "Да, очень"],
+        "ru": ["Совсем нет", "Скорее нет", "Отчасти", "Да", "Да, очень"],
     },
-    # "Bormi?" turidagi savollar uchun — bu yerda fe'lni takrorlash
-    # ("Ha, juda bor") g'aliz chiqadi, shuning uchun oddiy darajali ha/yo'q.
+    # "Bormi?" turidagi savollar uchun.
     "yesno": {
-        "uz": ["Yo‘q", "Aniq emas", "Bilmayman", "Ha, {yes}", "Ha, aniq {yes}"],
-        "ru": ["Нет", "Не уверен", "Не знаю", "Да", "Да, точно"],
+        "uz": ["Yo‘q", "Deyarli yo‘q", "Qisman", "Ha, {yes}", "Ha, albatta {yes}"],
+        "ru": ["Нет", "Скорее нет", "Отчасти", "Да", "Да, точно"],
+    },
+    # Fikr so'ralganda ("... deb hisoblaysizmi?") fe'lni takrorlash
+    # g'aliz chiqadi — oddiy rozilik darajasi.
+    "agree": {
+        "uz": ["Yo‘q", "Unchalik emas", "Qisman", "Ha", "Ha, albatta"],
+        "ru": ["Нет", "Скорее нет", "Отчасти", "Да", "Да, конечно"],
     },
     # Qiziqish so'ralganda (kasb testi) fe'l takrorlanmaydi — savolning o'zi
     # mashg'ulot nomi bo'ladi.
     "interest": {
         "uz": ["Umuman qiziq emas", "Unchalik qiziq emas", "Farqi yo‘q",
                "Qiziq", "Juda qiziq"],
-        "ru": ["Совсем не интересно", "Не очень интересно", "Всё равно",
+        "ru": ["Совсем не интересно", "Не очень интересно", "Нейтрально",
                "Интересно", "Очень интересно"],
     },
+}
+
+#: Fe'l shakli berilmagan savollar uchun (masalan, admin CMS orqali
+#: qo'shgan savol). Bo'lmasa "Ha," yoki "Umuman" kabi chala tugma chiqadi.
+GENERIC = {
+    "freq": {"uz": ["Hech qachon", "Kamdan-kam", "Ba’zan", "Ko‘pincha", "Doim"]},
+    "deg": {"uz": ["Umuman yo‘q", "Unchalik emas", "O‘rtacha", "Ha", "Ha, juda"]},
+    "yesno": {"uz": ["Yo‘q", "Deyarli yo‘q", "Qisman", "Ha", "Ha, albatta"]},
 }
 
 #: Javob tugmalari oldidagi raqamlar.
@@ -89,7 +105,10 @@ class Item:
     text — savol shaklida ("... -mi?")
     yes  — tasdiq shakli, javobga qo'yiladi ("jonlanadi")
     no   — inkor shakli ("jonlanmaydi")
-    kind — "freq" (necha marta) yoki "deg" (qanchalik) yoki "interest"
+    kind — "freq" (necha marta), "deg" (qanchalik), "yesno" (bormi),
+           "agree" (fikr), "interest" yoki "custom"
+    options — "custom" savollar uchun tayyor 5 ta javob (masalan, soatlar
+           soni). Raqamli savolga "Ko'pincha" deb javob berib bo'lmaydi.
     """
 
     scale: str
@@ -99,12 +118,18 @@ class Item:
     kind: str = "freq"
     #: True bo'lsa javob teskari hisoblanadi: (MAX_ANSWER - javob).
     reverse: bool = False
+    options: dict[str, list[str]] | None = None
 
     def answers(self, lang: str) -> list[str]:
         """Shu savol uchun javob variantlari matni."""
-        template = TEMPLATES[self.kind][lang]
+        if self.options and self.options.get(lang):
+            return [f"{DIGITS[i]} {text}" for i, text in enumerate(self.options[lang])]
+        kind = self.kind if self.kind in TEMPLATES else "deg"
+        template = TEMPLATES[kind][lang]
         yes = (self.yes or {}).get(lang, "")
         no = (self.no or {}).get(lang, "")
+        if lang in GENERIC.get(kind, {}) and not (yes and no):
+            template = GENERIC[kind][lang]
         out = []
         for i, raw in enumerate(template):
             text = raw.format(yes=yes, no=no)

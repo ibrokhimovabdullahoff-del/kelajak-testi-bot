@@ -7,7 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import content_cms as cms
-from config import IQ_KEY, is_admin
+from config import is_admin
 from psytests import ORDER, REGISTRY
 router=Router()
 class Admin(BaseFilter):
@@ -23,8 +23,9 @@ def admin_menu():
 def admin_text(): return "🛠 <b>Admin panel</b>\n\n<b>Admin buyruqlari:</b>\n/admin — admin panel\n/cms — savollar CMS\n/walletadjust — balansni o‘zgartirish\n/adjustwallet — walletadjust alias\n/user USER_ID — foydalanuvchi boshqaruvi\n/iqprice — IQ narxini ko‘rish\n\n<b>Foydalanuvchi buyruqlari:</b> /start /natijalar /balans /shop /iq /til /haqida /yordam /bekor"
 def tests_menu():
     b=InlineKeyboardBuilder()
-    for key in ORDER+[IQ_KEY]:
-        title=f"{REGISTRY[key].emoji} {REGISTRY[key].title['uz']}" if key in REGISTRY else "🧠 Premium IQ testi"; b.button(text=title,callback_data=f"cms:list:{key}:0")
+    # IQ testi rasmli: savollari kodda (psytests/iq.py), CMS orqali tahrirlanmaydi.
+    for key in ORDER:
+        b.button(text=f"{REGISTRY[key].emoji} {REGISTRY[key].title['uz']}",callback_data=f"cms:list:{key}:0")
     b.button(text="⬅️ Admin panel",callback_data="adm:home"); b.adjust(1); return b.as_markup()
 def list_menu(key,page,rows):
     b=InlineKeyboardBuilder(); chunk=rows[page*PER_PAGE:(page+1)*PER_PAGE]
@@ -79,7 +80,7 @@ async def edit_value(m:Message,state:FSMContext):
     else:v=None if f=='image_url' and raw=='-' else raw
     await cms.update(d['question_id'],**{f:v}); await cms.apply_all(); await state.clear(); await m.answer('✅ Saqlandi va testga qo‘llandi.',reply_markup=tests_menu())
 @router.callback_query(F.data.startswith("cms:add:"))
-async def add_start(c:CallbackQuery,state:FSMContext): await state.clear(); await state.update_data(test_key=c.data.rsplit(':',1)[1]); await state.set_state(Add.category); await c.answer(); await c.message.edit_text('➕ <b>Yangi savol</b>\n\nKategoriya/scale kodini yuboring.\nBig Five: E/A/C/S/O · RIASEC: R/I/A/S/E/C · IQ: sequence/logic/numeric/verbal/spatial/applied/probability')
+async def add_start(c:CallbackQuery,state:FSMContext): await state.clear(); await state.update_data(test_key=c.data.rsplit(':',1)[1]); await state.set_state(Add.category); await c.answer(); await c.message.edit_text('➕ <b>Yangi savol</b>\n\nKategoriya/scale kodini yuboring.\nBig Five: E/A/C/S/O · RIASEC: R/I/A/S/E/C')
 @router.message(Add.category)
 async def add_cat(m:Message,state:FSMContext): await state.update_data(category=(m.text or '').strip()); await state.set_state(Add.difficulty); await m.answer('Qiyinlik 1–5:')
 @router.message(Add.difficulty)

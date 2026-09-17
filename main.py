@@ -21,13 +21,13 @@ COMMANDS = {
     "uz": [
         ("start", "Testlar menyusi"), ("natijalar", "Mening natijalarim"),
         ("balans", "Mening balansim"), ("shop", "Balansdan test sotib olish"),
-        ("iq", "Premium IQ testi — 5 000 so‘m"), ("til", "Tilni o‘zgartirish"),
+        ("iq", "Premium IQ testi (rasmli)"), ("til", "Tilni o‘zgartirish"),
         ("haqida", "Bot va manbalar haqida"), ("bekor", "Testni bekor qilish"),
     ],
     "ru": [
         ("start", "Меню тестов"), ("natijalar", "Мои результаты"),
         ("balans", "Мой баланс"), ("shop", "Покупка тестов с баланса"),
-        ("iq", "Премиум IQ-тест — 5 000 сум"), ("til", "Сменить язык"),
+        ("iq", "Премиум IQ-тест (с картинками)"), ("til", "Сменить язык"),
         ("haqida", "О боте и источниках"), ("bekor", "Отменить тест"),
     ],
 }
@@ -58,6 +58,10 @@ async def main() -> None:
     set_runtime(me.id, storage)
 
     logging.info("Ishga tushdi: @%s (id=%s)", me.username, me.id)
+
+    from psytests.iq import ANSWER_KEY_ENV, answer_key
+    if answer_key() is None:
+        logging.error("%s o‘rnatilmagan yoki noto‘g‘ri — IQ testi yopiq bo‘ladi.", ANSWER_KEY_ENV)
 
     runner = await payments.run_server(on_paid=notify_paid)
     if CLICK_ENABLED:

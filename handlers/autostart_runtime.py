@@ -1,11 +1,9 @@
 """Runtime glue for paid-test autostart, navigation and localized wallet notifications."""
 from __future__ import annotations
 
-from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.base import StorageKey, BaseStorage
 from aiogram.types import CallbackQuery, Message
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 import keyboards as kb
@@ -143,40 +141,6 @@ async def _localized_manual_review(payment_id: int, admin_id: int, approve: bool
     if ok and approve and row:
         await _send_wallet_notice(int(row["user_id"]), int(row["amount"]), await db.get_lang(row["user_id"]) or "uz")
     return ok
-
-
-# --- IQ previous-question navigation ---------------------------------------
-
-
-def _iq_question_markup(index: int, lang: str):
-    b = InlineKeyboardBuilder()
-    options = iq.QUESTIONS[index][2 if lang == "uz" else 3]
-    for i, option in enumerate(options):
-        b.button(text=f"{i + 1}️⃣ {option}", callback_data=f"iq:ans:{index}:{i}")
-    if index > 0:
-        b.button(text=iq.bi(lang, "⬅️ Oldingi savol", "⬅️ Предыдущий вопрос"), callback_data="iq:back")
-    b.button(text=iq.bi(lang, "⛔ Testni to‘xtatish", "⛔ Остановить тест"), callback_data="nav:cancel")
-    b.adjust(1)
-    return b.as_markup()
-
-
-async def _iq_back(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    data = await state.get_data()
-    answers = list(data.get("iq_answers", []))
-    if not answers:
-        await callback.answer()
-        return
-    answers.pop()
-    await state.update_data(iq_answers=answers)
-    index = len(answers)
-    await callback.message.edit_text(iq.question_text(index, lang), reply_markup=_iq_question_markup(index, lang))
-    await callback.answer()
-
-
-# iq_answer resolves question_markup at call time, so replace it with the version
-# containing a previous button; the separate callback handles state rollback.
-iq.question_markup = _iq_question_markup
-iq.router.callback_query(F.data == "iq:back")( _iq_back )
 
 
 # Redirect successful wallet purchases and Click confirmations into the real FSM.

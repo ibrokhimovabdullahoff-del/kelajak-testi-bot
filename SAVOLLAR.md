@@ -1,173 +1,173 @@
 # Botdagi barcha savollar
 
-Jami: 4 ta test, 132 ta savol.
+Jami: 4 ta psixologik test (132 ta savol) va 20 ta rasmli IQ topshirig‘i.
 
-Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
-«teskari» — javob teskari hisoblanadi.
+Bu fayl koddan yig‘ilgan (`psytests/`). «teskari» — javob teskari hisoblanadi.
+Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md).
 
 ---
 
-## 🧠 Big Five — shaxsiyat profili — 50 ta savol
+## 🧠 Big Five — shaxsiyat testi — 50 ta savol
 
 ### 🗣 Ekstraversiya
 
 **1. Davra siz bilan jonlanadimi?**
-   Umuman jonlanmaydi · Kamdan-kam · Bilmayman · Ko‘pincha jonlanadi · Ha, doim jonlanadi
+   Hech qachon jonlanmaydi · Kamdan-kam jonlanadi · Ba’zan jonlanadi · Ko‘pincha jonlanadi · Doim jonlanadi
 
-**2. Kamgapmisiz?**  *(teskari)*
-   Umuman kamgap emasman · Unchalik emas · Bilmayman · Ha, kamgapman · Ha, juda kamgapman
+**6. Tabiatan kamgap odammisiz?**  *(teskari)*
+   Umuman kamgap emasman · Unchalik kamgap emasman · O‘rtacha · Ha, kamgapman · Ha, juda kamgapman
 
-**3. Odamlar orasida o‘zingizni erkin his qilasizmi?**
-   Umuman erkin emasman · Unchalik emas · Bilmayman · Ha, erkinman · Ha, juda erkinman
+**11. Odamlar orasida o‘zingizni erkin his qilasizmi?**
+   Umuman erkin emasman · Unchalik erkin emasman · O‘rtacha · Ha, erkinman · Ha, juda erkinman
 
-**4. Chetda, ko‘zga tashlanmay turishni yoqtirasizmi?**  *(teskari)*
-   Umuman yoqtirmayman · Kamdan-kam · Bilmayman · Ko‘pincha yoqtiraman · Ha, doim yoqtiraman
+**16. Davrada chetroqda, jimgina turishni afzal ko‘rasizmi?**  *(teskari)*
+   Hech qachon afzal ko‘rmayman · Kamdan-kam afzal ko‘raman · Ba’zan afzal ko‘raman · Ko‘pincha afzal ko‘raman · Doim afzal ko‘raman
 
-**5. Gapni birinchi bo‘lib o‘zingiz boshlaysizmi?**
-   Umuman boshlamayman · Kamdan-kam · Bilmayman · Ko‘pincha boshlayman · Ha, doim boshlayman
+**21. Suhbatni birinchi bo‘lib o‘zingiz boshlaysizmi?**
+   Hech qachon boshlamayman · Kamdan-kam boshlayman · Ba’zan boshlayman · Ko‘pincha boshlayman · Doim boshlayman
 
-**6. Aytadigan gapingiz kam bo‘ladimi?**  *(teskari)*
-   Yo‘q · Aniq emas · Bilmayman · Ha, kam bo‘ladi · Ha, aniq kam bo‘ladi
+**26. Suhbatda nima deyishni bilmay, jim qolasizmi?**  *(teskari)*
+   Hech qachon jim qolmayman · Kamdan-kam jim qolaman · Ba’zan jim qolaman · Ko‘pincha jim qolaman · Doim jim qolaman
 
-**7. To‘yu tadbirlarda ko‘p odam bilan gaplashasizmi?**
-   Umuman gaplashmayman · Kamdan-kam · Bilmayman · Ko‘pincha gaplashaman · Ha, doim gaplashaman
+**31. To‘y va tadbirlarda ko‘p odam bilan gaplashasizmi?**
+   Hech qachon gaplashmayman · Kamdan-kam gaplashaman · Ba’zan gaplashaman · Ko‘pincha gaplashaman · Doim gaplashaman
 
-**8. O‘zingizga e’tibor tortishdan qochasizmi?**  *(teskari)*
-   Umuman qochmayman · Kamdan-kam · Bilmayman · Ko‘pincha qochaman · Ha, doim qochaman
+**36. O‘zingizga e’tibor tortishdan qochasizmi?**  *(teskari)*
+   Hech qachon qochmayman · Kamdan-kam qochaman · Ba’zan qochaman · Ko‘pincha qochaman · Doim qochaman
 
-**9. E’tibor markazida bo‘lishni yoqtirasizmi?**
-   Umuman yoqtirmayman · Kamdan-kam · Bilmayman · Ko‘pincha yoqtiraman · Ha, doim yoqtiraman
+**41. E’tibor markazida bo‘lish sizga yoqadimi?**
+   Umuman yoqmaydi · Unchalik yoqmaydi · O‘rtacha · Ha, yoqadi · Ha, juda yoqadi
 
-**10. Notanish odam oldida kamgap bo‘lib qolasizmi?**  *(teskari)*
-   Umuman kamgap bo‘lib qolmayman · Kamdan-kam · Bilmayman · Ko‘pincha kamgap bo‘lib qolaman · Ha, doim kamgap bo‘lib qolaman
+**46. Notanish odamlar oldida tortinib, kam gapirasizmi?**  *(teskari)*
+   Hech qachon tortinmayman · Kamdan-kam tortinib qolaman · Ba’zan tortinib qolaman · Ko‘pincha tortinib qolaman · Doim tortinib qolaman
 
 ### 🤝 Kelishuvchanlik
 
-**11. Boshqalarning ahvoliga befarqmisiz?**  *(teskari)*
-   Umuman befarq emasman · Unchalik emas · Bilmayman · Ha, befarqman · Ha, juda befarqman
+**2. Boshqalarning ahvoliga befarqmisiz?**  *(teskari)*
+   Umuman befarq emasman · Unchalik befarq emasman · O‘rtacha · Ha, befarqman · Ha, juda befarqman
 
-**12. Odamlar sizga qiziqmi?**
-   Umuman qiziq emas · Unchalik emas · Bilmayman · Ha, qiziq · Ha, juda qiziq
+**7. Boshqa odamlar sizni qiziqtiradimi?**
+   Umuman qiziqtirmaydi · Unchalik qiziqtirmaydi · O‘rtacha · Ha, qiziqtiradi · Ha, juda qiziqtiradi
 
-**13. Odamning ko‘nglini og‘ritadigan gap aytib yuborasizmi?**  *(teskari)*
-   Umuman aytmayman · Kamdan-kam · Bilmayman · Ko‘pincha aytib yuboraman · Ha, doim aytib yuboraman
+**12. Odamning ko‘nglini og‘ritadigan gap aytib yuborasizmi?**  *(teskari)*
+   Hech qachon aytmayman · Kamdan-kam aytib yuboraman · Ba’zan aytib yuboraman · Ko‘pincha aytib yuboraman · Doim aytib yuboraman
 
-**14. Boshqalarning ahvoliga achinasizmi?**
-   Umuman achinmayman · Kamdan-kam · Bilmayman · Ko‘pincha achinaman · Ha, doim achinaman
+**17. Boshqalarning dardiga hamdard bo‘lasizmi?**
+   Hech qachon hamdard bo‘lmayman · Kamdan-kam hamdard bo‘laman · Ba’zan hamdard bo‘laman · Ko‘pincha hamdard bo‘laman · Doim hamdard bo‘laman
 
-**15. Boshqalarning muammosidan o‘zingizni chetga olasizmi?**  *(teskari)*
-   Umuman chetga olmayman · Kamdan-kam · Bilmayman · Ko‘pincha chetga olaman · Ha, doim chetga olaman
+**22. Boshqalarning muammosidan o‘zingizni chetga olasizmi?**  *(teskari)*
+   Hech qachon chetga olmayman · Kamdan-kam chetga olaman · Ba’zan chetga olaman · Ko‘pincha chetga olaman · Doim chetga olaman
 
-**16. Ko‘nglingiz yumshoqmi?**
-   Umuman yumshoq emas · Unchalik emas · Bilmayman · Ha, yumshoq · Ha, juda yumshoq
+**27. Ko‘nglingiz yumshoqmi?**
+   Umuman yumshoq emas · Unchalik yumshoq emas · O‘rtacha · Ha, yumshoq · Ha, juda yumshoq
 
-**17. Boshqalarning hayoti sizga qiziqmi?**
-   Umuman qiziq emas · Unchalik emas · Bilmayman · Ha, qiziq · Ha, juda qiziq
+**32. Boshqalar o‘z hayoti haqida gapirsa, zerikib ketasizmi?**  *(teskari)*
+   Hech qachon zerikmayman · Kamdan-kam zerikib ketaman · Ba’zan zerikib ketaman · Ko‘pincha zerikib ketaman · Doim zerikib ketaman
 
-**18. Boshqalar uchun vaqt ajratasizmi?**
-   Umuman ajratmayman · Kamdan-kam · Bilmayman · Ko‘pincha ajrataman · Ha, doim ajrataman
+**37. Boshqalar uchun vaqt ajratasizmi?**
+   Hech qachon ajratmayman · Kamdan-kam ajrataman · Ba’zan ajrataman · Ko‘pincha ajrataman · Doim ajrataman
 
-**19. Boshqalarning kayfiyatini sezib turasizmi?**
-   Umuman sezmayman · Kamdan-kam · Bilmayman · Ko‘pincha sezaman · Ha, doim sezaman
+**42. Boshqalarning kayfiyatini sezib turasizmi?**
+   Hech qachon sezmayman · Kamdan-kam sezaman · Ba’zan sezaman · Ko‘pincha sezaman · Doim sezaman
 
-**20. Odamlar yoningizda o‘zini erkin his qiladimi?**
-   Umuman erkin his qilmaydi · Kamdan-kam · Bilmayman · Ko‘pincha erkin his qiladi · Ha, doim erkin his qiladi
+**47. Odamlar yoningizda o‘zini erkin his qiladimi?**
+   Hech qachon erkin his qilmaydi · Kamdan-kam erkin his qiladi · Ba’zan erkin his qiladi · Ko‘pincha erkin his qiladi · Doim erkin his qiladi
 
 ### 🧱 Vijdonlilik
 
-**21. Ishga tayyor holda kirishasizmi?**
-   Umuman tayyor bo‘lmayman · Kamdan-kam · Bilmayman · Ko‘pincha tayyor bo‘laman · Ha, doim tayyor bo‘laman
+**3. Ishga yoki o‘qishga oldindan tayyorlanib kirishasizmi?**
+   Hech qachon tayyorlanmayman · Kamdan-kam tayyorlanib kirishaman · Ba’zan tayyorlanib kirishaman · Ko‘pincha tayyorlanib kirishaman · Doim tayyorlanib kirishaman
 
-**22. Narsalaringizni joyiga qo‘ymay tashlab ketasizmi?**  *(teskari)*
-   Umuman tashlab ketmayman · Kamdan-kam · Bilmayman · Ko‘pincha tashlab ketaman · Ha, doim tashlab ketaman
+**8. Xonangiz yoki ish joyingiz tartibsiz bo‘lib yotadimi?**  *(teskari)*
+   Hech qachon tartibsiz bo‘lmaydi · Kamdan-kam tartibsiz bo‘ladi · Ba’zan tartibsiz bo‘ladi · Ko‘pincha tartibsiz bo‘ladi · Doim tartibsiz bo‘ladi
 
-**23. Mayda narsalarga e’tibor berasizmi?**
-   Umuman e’tibor bermayman · Kamdan-kam · Bilmayman · Ko‘pincha e’tibor beraman · Ha, doim e’tibor beraman
+**13. Mayda narsalarga e’tibor berasizmi?**
+   Hech qachon e’tibor bermayman · Kamdan-kam e’tibor beraman · Ba’zan e’tibor beraman · Ko‘pincha e’tibor beraman · Doim e’tibor beraman
 
-**24. Ishni chalkashtirib yuborasizmi?**  *(teskari)*
-   Umuman chalkashtirmayman · Kamdan-kam · Bilmayman · Ko‘pincha chalkashtiraman · Ha, doim chalkashtiraman
+**18. Ishni chalkashtirib yuborasizmi?**  *(teskari)*
+   Hech qachon chalkashtirmayman · Kamdan-kam chalkashtiraman · Ba’zan chalkashtiraman · Ko‘pincha chalkashtiraman · Doim chalkashtiraman
 
-**25. Yumushlarni darrov bajarasizmi?**
-   Umuman bajarmayman · Kamdan-kam · Bilmayman · Ko‘pincha bajaraman · Ha, doim bajaraman
+**23. Yumushlarni kechiktirmay, darrov bajarasizmi?**
+   Hech qachon darrov bajarmayman · Kamdan-kam darrov bajaraman · Ba’zan darrov bajaraman · Ko‘pincha darrov bajaraman · Doim darrov bajaraman
 
-**26. Narsani joyiga qaytarib qo‘yishni unutasizmi?**  *(teskari)*
-   Umuman unutmayman · Kamdan-kam · Bilmayman · Ko‘pincha unutaman · Ha, doim unutaman
+**28. Narsani ishlatib bo‘lgach, joyiga qo‘yishni unutasizmi?**  *(teskari)*
+   Hech qachon unutmayman · Kamdan-kam unutaman · Ba’zan unutaman · Ko‘pincha unutaman · Doim unutaman
 
-**27. Tartibni yoqtirasizmi?**
-   Umuman yoqtirmayman · Kamdan-kam · Bilmayman · Ko‘pincha yoqtiraman · Ha, doim yoqtiraman
+**33. Hamma narsa tartibli bo‘lishini yoqtirasizmi?**
+   Umuman yoqtirmayman · Unchalik yoqtirmayman · O‘rtacha · Ha, yoqtiraman · Ha, juda yoqtiraman
 
-**28. Vazifangizdan bo‘yin tovlaysizmi?**  *(teskari)*
-   Umuman bo‘yin tovlamayman · Kamdan-kam · Bilmayman · Ko‘pincha bo‘yin tovlayman · Ha, doim bo‘yin tovlayman
+**38. Vazifangizdan bo‘yin tovlaysizmi?**  *(teskari)*
+   Hech qachon bo‘yin tovlamayman · Kamdan-kam bo‘yin tovlayman · Ba’zan bo‘yin tovlayman · Ko‘pincha bo‘yin tovlayman · Doim bo‘yin tovlayman
 
-**29. Belgilangan jadvalga amal qilasizmi?**
-   Umuman amal qilmayman · Kamdan-kam · Bilmayman · Ko‘pincha amal qilaman · Ha, doim amal qilaman
+**43. Kun tartibi yoki rejaga amal qilasizmi?**
+   Hech qachon amal qilmayman · Kamdan-kam amal qilaman · Ba’zan amal qilaman · Ko‘pincha amal qilaman · Doim amal qilaman
 
-**30. Ishingizda aniqlikni talab qilasizmi?**
-   Umuman talab qilmayman · Kamdan-kam · Bilmayman · Ko‘pincha talab qilaman · Ha, doim talab qilaman
+**48. Ishni puxta, xatosiz bajarishga harakat qilasizmi?**
+   Hech qachon harakat qilmayman · Kamdan-kam harakat qilaman · Ba’zan harakat qilaman · Ko‘pincha harakat qilaman · Doim harakat qilaman
 
 ### 🛡 Hissiy barqarorlik
 
-**31. Tez asabiylashasizmi?**  *(teskari)*
-   Umuman asabiylashmayman · Kamdan-kam · Bilmayman · Ko‘pincha asabiylashaman · Ha, doim asabiylashaman
+**4. Tez asabiylashasizmi?**  *(teskari)*
+   Hech qachon asabiylashmayman · Kamdan-kam asabiylashaman · Ba’zan asabiylashaman · Ko‘pincha asabiylashaman · Doim asabiylashaman
 
-**32. Ko‘p vaqt o‘zingizni tinch his qilasizmi?**
-   Umuman tinch emasman · Unchalik emas · Bilmayman · Ha, tinchman · Ha, juda tinchman
+**9. Ko‘p vaqt o‘zingizni xotirjam his qilasizmi?**
+   Umuman xotirjam emasman · Unchalik xotirjam emasman · O‘rtacha · Ha, xotirjamman · Ha, juda xotirjamman
 
-**33. Ko‘p narsadan tashvishlanasizmi?**  *(teskari)*
-   Umuman tashvishlanmayman · Kamdan-kam · Bilmayman · Ko‘pincha tashvishlanaman · Ha, doim tashvishlanaman
+**14. Ko‘p narsadan tashvishlanasizmi?**  *(teskari)*
+   Hech qachon tashvishlanmayman · Kamdan-kam tashvishlanaman · Ba’zan tashvishlanaman · Ko‘pincha tashvishlanaman · Doim tashvishlanaman
 
-**34. Kayfiyatingiz tez-tez tushadimi?**  *(teskari)*
-   Umuman tushmaydi · Kamdan-kam · Bilmayman · Ko‘pincha tushadi · Ha, doim tushadi
+**19. Odatda kayfiyatingiz yaxshi bo‘ladimi?**
+   Hech qachon yaxshi bo‘lmaydi · Kamdan-kam yaxshi bo‘ladi · Ba’zan yaxshi bo‘ladi · Ko‘pincha yaxshi bo‘ladi · Doim yaxshi bo‘ladi
 
-**35. Sizni osongina bezovta qilish mumkinmi?**  *(teskari)*
-   Yo‘q · Aniq emas · Bilmayman · Ha, mumkin · Ha, aniq mumkin
+**24. Kutilmagan voqeadan tez sarosimaga tushasizmi?**  *(teskari)*
+   Hech qachon sarosimaga tushmayman · Kamdan-kam sarosimaga tushaman · Ba’zan sarosimaga tushaman · Ko‘pincha sarosimaga tushaman · Doim sarosimaga tushaman
 
-**36. Tez xafa bo‘lasizmi?**  *(teskari)*
-   Umuman xafa bo‘lmayman · Kamdan-kam · Bilmayman · Ko‘pincha xafa bo‘laman · Ha, doim xafa bo‘laman
+**29. Tez xafa bo‘lasizmi?**  *(teskari)*
+   Hech qachon xafa bo‘lmayman · Kamdan-kam xafa bo‘laman · Ba’zan xafa bo‘laman · Ko‘pincha xafa bo‘laman · Doim xafa bo‘laman
 
-**37. Kayfiyatingiz tez-tez o‘zgaradimi?**  *(teskari)*
-   Umuman o‘zgarmaydi · Kamdan-kam · Bilmayman · Ko‘pincha o‘zgaradi · Ha, doim o‘zgaradi
+**34. Kichik narsa ham kayfiyatingizni buzib yuboradimi?**  *(teskari)*
+   Hech qachon buzmaydi · Kamdan-kam buzib yuboradi · Ba’zan buzib yuboradi · Ko‘pincha buzib yuboradi · Doim buzib yuboradi
 
-**38. Kayfiyatingiz keskin o‘zgarib turadimi?**  *(teskari)*
-   Umuman o‘zgarmaydi · Kamdan-kam · Bilmayman · Ko‘pincha o‘zgarib turadi · Ha, doim o‘zgarib turadi
+**39. Bir kunning o‘zida kayfiyatingiz goh juda yaxshi, goh juda yomon bo‘ladimi?**  *(teskari)*
+   Hech qachon bunday bo‘lmaydi · Kamdan-kam shunday bo‘ladi · Ba’zan shunday bo‘ladi · Ko‘pincha shunday bo‘ladi · Doim shunday bo‘ladi
 
-**39. Tez jahlingiz chiqadimi?**  *(teskari)*
-   Umuman chiqmaydi · Kamdan-kam · Bilmayman · Ko‘pincha chiqadi · Ha, doim chiqadi
+**44. Tez jahlingiz chiqadimi?**  *(teskari)*
+   Hech qachon chiqmaydi · Kamdan-kam chiqadi · Ba’zan chiqadi · Ko‘pincha chiqadi · Doim chiqadi
 
-**40. Ko‘pincha ichingiz siqiladimi?**  *(teskari)*
-   Umuman siqilmaydi · Kamdan-kam · Bilmayman · Ko‘pincha siqiladi · Ha, doim siqiladi
+**49. Ichingiz siqilib, g‘amgin bo‘lib yurasizmi?**  *(teskari)*
+   Hech qachon g‘amgin bo‘lmayman · Kamdan-kam g‘amgin bo‘laman · Ba’zan g‘amgin bo‘laman · Ko‘pincha g‘amgin bo‘laman · Doim g‘amgin bo‘laman
 
 ### 💡 Ochiqlik va intellekt
 
-**41. So‘z boyligingiz kattami?**
-   Umuman katta emas · Unchalik emas · Bilmayman · Ha, katta · Ha, juda katta
+**5. So‘z boyligingiz kattami?**
+   Umuman katta emas · Unchalik katta emas · O‘rtacha · Ha, katta · Ha, juda katta
 
-**42. Mavhum fikrlarni tushunish sizga qiyinmi?**  *(teskari)*
-   Umuman qiyin emas · Unchalik emas · Bilmayman · Ha, qiyin · Ha, juda qiyin
+**10. Nazariy, falsafiy gaplarni tushunish sizga qiyinmi?**  *(teskari)*
+   Umuman qiyin emas · Unchalik qiyin emas · O‘rtacha · Ha, qiyin · Ha, juda qiyin
 
-**43. Xayolingiz boymi?**
-   Umuman boy emas · Unchalik emas · Bilmayman · Ha, boy · Ha, juda boy
+**15. Tasavvuringiz boymi?**
+   Umuman boy emas · Unchalik boy emas · O‘rtacha · Ha, boy · Ha, juda boy
 
-**44. Chuqur, mavhum mavzular sizni qiziqtiradimi?**
-   Umuman qiziqtirmaydi · Kamdan-kam · Bilmayman · Ko‘pincha qiziqtiradi · Ha, doim qiziqtiradi
+**20. Hayot, inson va olam haqidagi chuqur savollar sizni qiziqtiradimi?**
+   Umuman qiziqtirmaydi · Unchalik qiziqtirmaydi · O‘rtacha · Ha, qiziqtiradi · Ha, juda qiziqtiradi
 
-**45. Sizda zo‘r fikrlar paydo bo‘ladimi?**
-   Umuman paydo bo‘lmaydi · Kamdan-kam · Bilmayman · Ko‘pincha paydo bo‘ladi · Ha, doim paydo bo‘ladi
+**25. Boshingizga yangi, qiziq g‘oyalar keladimi?**
+   Hech qachon kelmaydi · Kamdan-kam keladi · Ba’zan keladi · Ko‘pincha keladi · Doim keladi
 
-**46. Xayolingiz kuchsizmi?**  *(teskari)*
-   Umuman kuchsiz emas · Unchalik emas · Bilmayman · Ha, kuchsiz · Ha, juda kuchsiz
+**30. Biror narsani ko‘z oldingizga keltirish sizga qiyinmi?**  *(teskari)*
+   Umuman qiyin emas · Unchalik qiyin emas · O‘rtacha · Ha, qiyin · Ha, juda qiyin
 
-**47. Narsalarni tez tushunasizmi?**
-   Umuman tushunmayman · Kamdan-kam · Bilmayman · Ko‘pincha tushunaman · Ha, doim tushunaman
+**35. Yangi narsani tez tushunib olasizmi?**
+   Hech qachon tez tushunmayman · Kamdan-kam tez tushunib olaman · Ba’zan tez tushunib olaman · Ko‘pincha tez tushunib olaman · Doim tez tushunib olaman
 
-**48. Og‘ir, murakkab so‘zlarni ishlatasizmi?**
-   Umuman ishlatmayman · Kamdan-kam · Bilmayman · Ko‘pincha ishlataman · Ha, doim ishlataman
+**40. Gapirganda yoki yozganda kitobiy, murakkab so‘zlarni ishlatasizmi?**
+   Hech qachon ishlatmayman · Kamdan-kam ishlataman · Ba’zan ishlataman · Ko‘pincha ishlataman · Doim ishlataman
 
-**49. O‘ylanib o‘tirishni yoqtirasizmi?**
-   Umuman yoqtirmayman · Kamdan-kam · Bilmayman · Ko‘pincha yoqtiraman · Ha, doim yoqtiraman
+**45. Biror narsa haqida uzoq o‘ylab o‘tirish sizga yoqadimi?**
+   Umuman yoqmaydi · Unchalik yoqmaydi · O‘rtacha · Ha, yoqadi · Ha, juda yoqadi
 
-**50. Boshingiz fikrlarga to‘lami?**
-   Umuman to‘la emas · Unchalik emas · Bilmayman · Ha, to‘la · Ha, juda to‘la
+**50. Bitta muammoning bir nechta yechimini o‘ylab topa olasizmi?**
+   Hech qachon topa olmayman · Kamdan-kam topa olaman · Ba’zan topa olaman · Ko‘pincha topa olaman · Doim topa olaman
 
 ---
 
@@ -176,104 +176,104 @@ Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
 ### 🎯 Maqsad va qat’iyat
 
 **1. Yillab intiladigan katta maqsadingiz bormi?**
-   Yo‘q · Aniq emas · Bilmayman · Ha, bor · Ha, aniq bor
+   Yo‘q · Deyarli yo‘q · Qisman · Ha, bor · Ha, albatta bor
 
 **2. Boshlagan ishingizni qiyinlashsa ham oxiriga yetkazasizmi?**
-   Umuman yetkazmayman · Kamdan-kam · Bilmayman · Ko‘pincha yetkazaman · Ha, doim yetkazaman
+   Hech qachon oxiriga yetkazmayman · Kamdan-kam oxiriga yetkazaman · Ba’zan oxiriga yetkazaman · Ko‘pincha oxiriga yetkazaman · Doim oxiriga yetkazaman
 
 **3. Yangi qiziq narsa chiqishi bilan eski maqsadingizni tashlab ketasizmi?**  *(teskari)*
-   Umuman tashlab ketmayman · Kamdan-kam · Bilmayman · Ko‘pincha tashlab ketaman · Ha, doim tashlab ketaman
+   Hech qachon tashlab ketmayman · Kamdan-kam tashlab ketaman · Ba’zan tashlab ketaman · Ko‘pincha tashlab ketaman · Doim tashlab ketaman
 
 ### 🧱 Intizom va mas’uliyat
 
 **4. Kuningizni oldindan rejalashtirasizmi?**
-   Umuman rejalashtirmayman · Kamdan-kam · Bilmayman · Ko‘pincha rejalashtiraman · Ha, doim rejalashtiraman
+   Hech qachon rejalashtirmayman · Kamdan-kam rejalashtiraman · Ba’zan rejalashtiraman · Ko‘pincha rejalashtiraman · Doim rejalashtiraman
 
 **5. Bergan va’dangizni o‘z vaqtida bajarasizmi?**
-   Umuman bajarmayman · Kamdan-kam · Bilmayman · Ko‘pincha bajaraman · Ha, doim bajaraman
+   Hech qachon vaqtida bajarmayman · Kamdan-kam vaqtida bajaraman · Ba’zan vaqtida bajaraman · Ko‘pincha vaqtida bajaraman · Doim vaqtida bajaraman
 
 **6. Muhim ishni oxirgi kunga qoldirasizmi?**  *(teskari)*
-   Umuman qoldirmayman · Kamdan-kam · Bilmayman · Ko‘pincha qoldiraman · Ha, doim qoldiraman
+   Hech qachon qoldirmayman · Kamdan-kam qoldiraman · Ba’zan qoldiraman · Ko‘pincha qoldiraman · Doim qoldiraman
 
 ### 🌱 O‘sish va o‘rganish
 
-**7. Qobiliyatni mehnat bilan o‘stirsa bo‘ladi deb hisoblaysizmi?**
-   Yo‘q · Aniq emas · Bilmayman · Ha, hisoblayman · Ha, aniq hisoblayman
+**7. Biror narsani uddalay olmasangiz, «menda qobiliyat yo‘q» deb qo‘l siltaysizmi?**  *(teskari)*
+   Hech qachon qo‘l siltamayman · Kamdan-kam qo‘l siltayman · Ba’zan qo‘l siltayman · Ko‘pincha qo‘l siltayman · Doim qo‘l siltayman
 
 **8. Xatolaringizdan saboq olasizmi?**
-   Umuman saboq olmayman · Kamdan-kam · Bilmayman · Ko‘pincha saboq olaman · Ha, doim saboq olaman
+   Hech qachon saboq olmayman · Kamdan-kam saboq olaman · Ba’zan saboq olaman · Ko‘pincha saboq olaman · Doim saboq olaman
 
-**9. Har hafta yangi bir narsa o‘rganasizmi?**
-   Umuman o‘rganmayman · Kamdan-kam · Bilmayman · Ko‘pincha o‘rganaman · Ha, doim o‘rganaman
+**9. Yangi narsa (ko‘nikma, fan, til) o‘rganishga qanchalik tez-tez vaqt ajratasiz?**
+   Deyarli ajratmayman · Oyda bir-ikki marta · Haftada bir marta · Haftada bir necha marta · Har kuni
 
 ### 🧘 O‘zini tuta olish
 
-**10. Katta natija uchun bugungi zavqdan voz kecha olasizmi?**
-   Umuman voz kecha olmayman · Kamdan-kam · Bilmayman · Ko‘pincha voz kecha olaman · Ha, doim voz kecha olaman
+**10. Katta maqsad uchun hozirgi zavqdan voz kecha olasizmi? Masalan, o‘yin o‘rniga darsni tugatish.**
+   Hech qachon voz kecha olmayman · Kamdan-kam voz kecha olaman · Ba’zan voz kecha olaman · Ko‘pincha voz kecha olaman · Doim voz kecha olaman
 
 **11. Telefon va ijtimoiy tarmoq sizni ishdan chalg‘itadimi?**  *(teskari)*
-   Umuman chalg‘itmaydi · Kamdan-kam · Bilmayman · Ko‘pincha chalg‘itadi · Ha, doim chalg‘itadi
+   Hech qachon chalg‘itmaydi · Kamdan-kam chalg‘itadi · Ba’zan chalg‘itadi · Ko‘pincha chalg‘itadi · Doim chalg‘itadi
 
 **12. Jahlingiz chiqqanda o‘zingizni tuta olasizmi?**
-   Umuman tuta olmayman · Kamdan-kam · Bilmayman · Ko‘pincha tuta olaman · Ha, doim tuta olaman
+   Hech qachon tuta olmayman · Kamdan-kam tuta olaman · Ba’zan tuta olaman · Ko‘pincha tuta olaman · Doim tuta olaman
 
 ### 🧭 O‘ziga bog‘liqlik hissi
 
-**13. Hayotingizdagi natija ko‘proq o‘z qaroringizga bog‘liqmi?**
-   Umuman bog‘liq emas · Unchalik emas · Bilmayman · Ha, bog‘liq · Ha, juda bog‘liq
+**13. Hayotingiz qanday bo‘lishi ko‘proq o‘zingizga bog‘liq deb hisoblaysizmi?**
+   Yo‘q · Unchalik emas · Qisman · Ha · Ha, albatta
 
 **14. Ishingiz yurishmasa, avval o‘zingizdan sabab qidirasizmi?**
-   Umuman qidirmayman · Kamdan-kam · Bilmayman · Ko‘pincha qidiraman · Ha, doim qidiraman
+   Hech qachon qidirmayman · Kamdan-kam qidiraman · Ba’zan qidiraman · Ko‘pincha qidiraman · Doim qidiraman
 
-**15. Ahvolingiz ko‘proq omadga va boshqalarga bog‘liq deb o‘ylaysizmi?**  *(teskari)*
-   Yo‘q · Aniq emas · Bilmayman · Ha, shunday o‘ylayman · Ha, aniq shunday o‘ylayman
+**15. Hayotingiz ko‘proq omadga va boshqa odamlarga bog‘liq deb o‘ylaysizmi?**  *(teskari)*
+   Yo‘q · Unchalik emas · Qisman · Ha · Ha, albatta
 
 ### 🤝 Odamlar bilan aloqa
 
 **16. Qiyin paytda rostdan yordam beradigan yaqinlaringiz bormi?**
-   Yo‘q · Aniq emas · Bilmayman · Ha, bor · Ha, aniq bor
+   Yo‘q · Deyarli yo‘q · Qisman · Ha, bor · Ha, albatta bor
 
 **17. Yangi odam bilan tanishish sizga osonmi?**
-   Umuman oson emas · Unchalik emas · Bilmayman · Ha, oson · Ha, juda oson
+   Umuman oson emas · Unchalik oson emas · O‘rtacha · Ha, oson · Ha, juda oson
 
 **18. Sizdan tajribaliroq ustoz yoki maslahatchingiz bormi?**
-   Yo‘q · Aniq emas · Bilmayman · Ha, bor · Ha, aniq bor
+   Yo‘q · Deyarli yo‘q · Qisman · Ha, bor · Ha, albatta bor
 
 ### 🛡 Bardoshlilik
 
 **19. Ishingiz yurishmay qolsa, tez o‘zingizni qo‘lga olasizmi?**
-   Umuman qo‘lga ololmayman · Kamdan-kam · Bilmayman · Ko‘pincha qo‘lga olaman · Ha, doim qo‘lga olaman
+   Hech qachon qo‘lga ololmayman · Kamdan-kam tez qo‘lga olaman · Ba’zan tez qo‘lga olaman · Ko‘pincha tez qo‘lga olaman · Doim tez qo‘lga olaman
 
 **20. Vaziyat og‘ir bo‘lsa ham aniq fikrlay olasizmi?**
-   Umuman fikrlay olmayman · Kamdan-kam · Bilmayman · Ko‘pincha fikrlay olaman · Ha, doim fikrlay olaman
+   Hech qachon fikrlay olmayman · Kamdan-kam fikrlay olaman · Ba’zan fikrlay olaman · Ko‘pincha fikrlay olaman · Doim fikrlay olaman
 
 **21. Kelajak haqida o‘ylasangiz, xavotir bosadimi?**  *(teskari)*
-   Umuman bosmaydi · Kamdan-kam · Bilmayman · Ko‘pincha bosadi · Ha, doim bosadi
+   Hech qachon bosmaydi · Kamdan-kam xavotir bosadi · Ba’zan xavotir bosadi · Ko‘pincha xavotir bosadi · Doim xavotir bosadi
 
 ### 😴 Uyqu va tana
 
-**22. Uyqu vaqtingiz har kuni bir xilmi?**
-   Yo‘q · Aniq emas · Bilmayman · Ha, bir xil · Ha, aniq bir xil
+**22. Har kuni taxminan bir vaqtda yotib, bir vaqtda turasizmi?**
+   Yo‘q, har kuni har xil · Kamdan-kam · Ba’zan · Ko‘pincha · Ha, deyarli har kuni
 
 **23. Ertalab o‘zingizni dam olgan his qilasizmi?**
-   Umuman dam olgan bo‘lmayman · Kamdan-kam · Bilmayman · Ko‘pincha dam olgan bo‘laman · Ha, doim dam olgan bo‘laman
+   Hech qachon dam olgan bo‘lmayman · Kamdan-kam dam olgan bo‘laman · Ba’zan dam olgan bo‘laman · Ko‘pincha dam olgan bo‘laman · Doim dam olgan bo‘laman
 
 **24. Uxlash vaqti kelganda ham telefonda o‘tirib qolasizmi?**  *(teskari)*
-   Umuman o‘tirib qolmayman · Kamdan-kam · Bilmayman · Ko‘pincha o‘tirib qolaman · Ha, doim o‘tirib qolaman
+   Hech qachon o‘tirib qolmayman · Kamdan-kam o‘tirib qolaman · Ba’zan o‘tirib qolaman · Ko‘pincha o‘tirib qolaman · Doim o‘tirib qolaman
 
-**25. Haftada kamida uch marta jismoniy harakat qilasizmi?**
-   Umuman qilmayman · Kamdan-kam · Bilmayman · Ko‘pincha qilaman · Ha, doim qilaman
+**25. Haftada necha marta sport yoki faol harakat qilasiz (yurish, yugurish, o‘yin)?**
+   Umuman qilmayman · Haftada 1 marta · Haftada 2 marta · Haftada 3–4 marta · Deyarli har kuni
 
 ### 🕊 Ichki boylik
 
-**26. Hayotingizda aniq ma’no va yo‘nalish bormi?**
-   Yo‘q · Aniq emas · Bilmayman · Ha, bor · Ha, aniq bor
+**26. Qilayotgan ishlaringiz sizga ma’noli va kerakli tuyuladimi?**
+   Hech qachon ma’noli tuyulmaydi · Kamdan-kam ma’noli tuyuladi · Ba’zan ma’noli tuyuladi · Ko‘pincha ma’noli tuyuladi · Doim ma’noli tuyuladi
 
 **27. Boringizga shukr qila olasizmi?**
-   Umuman shukr qilmayman · Kamdan-kam · Bilmayman · Ko‘pincha shukr qilaman · Ha, doim shukr qilaman
+   Hech qachon shukr qilmayman · Kamdan-kam shukr qilaman · Ba’zan shukr qilaman · Ko‘pincha shukr qilaman · Doim shukr qilaman
 
-**28. Baxt ko‘proq pul va narsalarga bog‘liq deb o‘ylaysizmi?**  *(teskari)*
-   Yo‘q · Aniq emas · Bilmayman · Ha, shunday o‘ylayman · Ha, aniq shunday o‘ylayman
+**28. Boshqalarning boriga qarab, o‘zingizni ulardan past his qilasizmi?**  *(teskari)*
+   Hech qachon past his qilmayman · Kamdan-kam past his qilaman · Ba’zan past his qilaman · Ko‘pincha past his qilaman · Doim past his qilaman
 
 ---
 
@@ -298,19 +298,19 @@ Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
 
 ### 🔬 Tadqiqotchi (Investigative)
 
-**6. Muammoning sababini raqamlar orqali aniqlash.**
+**6. Hisob-kitob qilib, muammoning sababini topish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**7. Ilmiy maqola yoki tadqiqot natijalarini o‘qish.**
+**7. Ilm-fan va kashfiyotlar haqida o‘qish yoki video ko‘rish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 **8. Murakkab masalani uzoq vaqt yechib o‘tirish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**9. Tajriba o‘tkazib, faraz to‘g‘riligini tekshirish.**
+**9. Tajriba qilib, nima uchun shunday bo‘lishini bilish (fizika, kimyo, biologiya).**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**10. Katta ma’lumot to‘plamidan qonuniyat topish.**
+**10. Kompyuterda dastur, o‘yin yoki sayt yaratish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 ### 🎨 Ijodkor (Artistic)
@@ -321,10 +321,10 @@ Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
 **12. Matn, ssenariy yoki musiqa yozish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**13. Tayyor qolipsiz, o‘z uslubingizda ishlash.**
+**13. Hech kimga o‘xshamagan, o‘z uslubingizda biror narsa yaratish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**14. Biror g‘oyani ko‘rinadigan shaklga aylantirish.**
+**14. Kiyim, xona yoki buyumning chiroyli ko‘rinishini o‘ylab topish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 **15. Ko‘rgazma, konsert yoki ijodiy tadbirda qatnashish.**
@@ -358,7 +358,7 @@ Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
 **23. O‘z biznesingizni ochish va yuritish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**24. Muzokara olib borib, o‘z shartingizni qabul qildirish.**
+**24. Odamlarni o‘z fikringizga ishontirish va kelishuvga erishish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 **25. Yangi loyihani noldan ko‘tarib chiqish.**
@@ -378,7 +378,7 @@ Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
 **29. Xatolarni topib, ma’lumotni tekshirish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**30. Ish jarayonini tizimga solib, tartib o‘rnatish.**
+**30. Ishni yoki tadbirni puxta rejalashtirib, hammasini tartibga solish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 ---
@@ -388,87 +388,119 @@ Savollar o'zgarmagan — javob variantlari har bir savolga moslangan.
 ### 🧘 O‘zini tuta olish
 
 **1. Farzandingiz boshlagan ishini chalg‘imasdan oxiriga yetkazadimi?**
-   Umuman yetkazmaydi · Kamdan-kam · Bilmayman · Ko‘pincha yetkazadi · Ha, doim yetkazadi
+   Hech qachon oxiriga yetkazmaydi · Kamdan-kam oxiriga yetkazadi · Ba’zan oxiriga yetkazadi · Ko‘pincha oxiriga yetkazadi · Doim oxiriga yetkazadi
 
-**2. U navbatini kuta oladimi?**
-   Umuman kuta olmaydi · Kamdan-kam · Bilmayman · Ko‘pincha kuta oladi · Ha, doim kuta oladi
+**2. O‘yinda yoki suhbatda navbatini kuta oladimi?**
+   Hech qachon kuta olmaydi · Kamdan-kam kuta oladi · Ba’zan kuta oladi · Ko‘pincha kuta oladi · Doim kuta oladi
 
 **3. Xohlagani darhol bo‘lmasa, jahli chiqadimi?**  *(teskari)*
-   Umuman chiqmaydi · Kamdan-kam · Bilmayman · Ko‘pincha chiqadi · Ha, doim chiqadi
+   Hech qachon jahli chiqmaydi · Kamdan-kam jahli chiqadi · Ba’zan jahli chiqadi · Ko‘pincha jahli chiqadi · Doim jahli chiqadi
 
 ### 📚 Qiziquvchanlik
 
-**4. U ko‘p savol beradimi?**
-   Umuman bermaydi · Kamdan-kam · Bilmayman · Ko‘pincha beradi · Ha, doim beradi
+**4. Atrofidagi narsalar haqida ko‘p savol beradimi?**
+   Hech qachon savol bermaydi · Kamdan-kam savol beradi · Ba’zan savol beradi · Ko‘pincha savol beradi · Doim savol beradi
 
-**5. Kitob o‘qishni yoki kitob o‘qib berilishini yoqtiradimi?**
-   Umuman yoqtirmaydi · Kamdan-kam · Bilmayman · Ko‘pincha yoqtiradi · Ha, doim yoqtiradi
+**5. Kitob o‘qishni (yoki unga o‘qib berishingizni) yoqtiradimi?**
+   Umuman yoqtirmaydi · Unchalik yoqtirmaydi · O‘rtacha · Ha, yoqtiradi · Ha, juda yoqtiradi
 
 **6. Yangi narsa o‘rganishni o‘zi xohlaydimi?**
-   Umuman o‘zi xohlamaydi · Kamdan-kam · Bilmayman · Ko‘pincha o‘zi xohlaydi · Ha, doim o‘zi xohlaydi
+   Hech qachon o‘zi xohlamaydi · Kamdan-kam o‘zi xohlaydi · Ba’zan o‘zi xohlaydi · Ko‘pincha o‘zi xohlaydi · Doim o‘zi xohlaydi
 
 ### 🌱 O‘sish tafakkuri
 
 **7. Topshiriq qiyin bo‘lsa, darrov taslim bo‘ladimi?**  *(teskari)*
-   Umuman taslim bo‘lmaydi · Kamdan-kam · Bilmayman · Ko‘pincha taslim bo‘ladi · Ha, doim taslim bo‘ladi
+   Hech qachon taslim bo‘lmaydi · Kamdan-kam taslim bo‘ladi · Ba’zan taslim bo‘ladi · Ko‘pincha taslim bo‘ladi · Doim taslim bo‘ladi
 
-**8. Uni natijasi uchun emas, mehnati uchun maqtaysizmi?**
-   Umuman mehnati uchun maqtamayman · Kamdan-kam · Bilmayman · Ko‘pincha mehnati uchun maqtayman · Ha, doim mehnati uchun maqtayman
+**8. Farzandingiz harakat qilganida, natijasidan qat’i nazar, mehnati uchun maqtaysizmi?**
+   Hech qachon maqtamayman · Kamdan-kam maqtayman · Ba’zan maqtayman · Ko‘pincha maqtayman · Doim maqtayman
 
 **9. Xato qilsa, qaytadan urinib ko‘radimi?**
-   Umuman urinib ko‘rmaydi · Kamdan-kam · Bilmayman · Ko‘pincha urinib ko‘radi · Ha, doim urinib ko‘radi
+   Hech qachon urinib ko‘rmaydi · Kamdan-kam qayta urinib ko‘radi · Ba’zan qayta urinib ko‘radi · Ko‘pincha qayta urinib ko‘radi · Doim qayta urinib ko‘radi
 
 ### 🤝 Tengdoshlar bilan til topishish
 
 **10. Tengdoshlari bilan til topisha oladimi?**
-   Umuman til topisha olmaydi · Kamdan-kam · Bilmayman · Ko‘pincha til topishadi · Ha, doim til topishadi
+   Hech qachon til topisha olmaydi · Kamdan-kam til topishadi · Ba’zan til topishadi · Ko‘pincha til topishadi · Doim til topishadi
 
-**11. Boshqaning ahvolini tushunib, achinadimi?**
-   Umuman achinmaydi · Kamdan-kam · Bilmayman · Ko‘pincha achinadi · Ha, doim achinadi
+**11. Boshqa odam xafa bo‘lsa, buni sezib, hamdardlik qiladimi?**
+   Hech qachon hamdardlik qilmaydi · Kamdan-kam hamdardlik qiladi · Ba’zan hamdardlik qiladi · Ko‘pincha hamdardlik qiladi · Doim hamdardlik qiladi
 
 **12. O‘z fikrini janjalsiz, so‘z bilan tushuntira oladimi?**
-   Umuman tushuntira olmaydi · Kamdan-kam · Bilmayman · Ko‘pincha tushuntira oladi · Ha, doim tushuntira oladi
+   Hech qachon tushuntira olmaydi · Kamdan-kam tushuntira oladi · Ba’zan tushuntira oladi · Ko‘pincha tushuntira oladi · Doim tushuntira oladi
 
 ### 🧹 Mehnatsevarlik
 
-**13. Uyda unga doimiy yumush biriktirilganmi?**
-   Yo‘q · Aniq emas · Bilmayman · Ha, biriktirilgan · Ha, aniq biriktirilgan
+**13. Uyda uning doimiy vazifasi bormi? Masalan, idish yig‘ish yoki xonasini tartibga keltirish.**
+   Yo‘q · Deyarli yo‘q · Qisman · Ha, bor · Ha, albatta bor
 
-**14. Yumushini eslatmasdan bajaradimi?**
-   Umuman eslatmasdan bajarmaydi · Kamdan-kam · Bilmayman · Ko‘pincha eslatmasdan bajaradi · Ha, doim eslatmasdan bajaradi
+**14. Vazifasini eslatmasangiz ham o‘zi bajaradimi?**
+   Hech qachon o‘zi bajarmaydi · Kamdan-kam o‘zi bajaradi · Ba’zan o‘zi bajaradi · Ko‘pincha o‘zi bajaradi · Doim o‘zi bajaradi
 
 **15. Boshqalarga yordam berishni yoqtiradimi?**
-   Umuman yoqtirmaydi · Kamdan-kam · Bilmayman · Ko‘pincha yoqtiradi · Ha, doim yoqtiradi
+   Umuman yoqtirmaydi · Unchalik yoqtirmaydi · O‘rtacha · Ha, yoqtiradi · Ha, juda yoqtiradi
 
 ### 🏡 Uydagi muhit
 
-**16. Har kuni farzandingiz bilan telefonsiz vaqt o‘tkazasizmi?**
-   Umuman o‘tkazmayman · Kamdan-kam · Bilmayman · Ko‘pincha o‘tkazaman · Ha, doim o‘tkazaman
+**16. Farzandingiz bilan telefonsiz, faqat unga ajratilgan vaqt o‘tkazasizmi?**
+   Hech qachon o‘tkazmayman · Kamdan-kam vaqt o‘tkazaman · Ba’zan vaqt o‘tkazaman · Ko‘pincha vaqt o‘tkazaman · Doim vaqt o‘tkazaman
 
 **17. Uni tinglab, fikrini so‘raysizmi?**
-   Umuman so‘ramayman · Kamdan-kam · Bilmayman · Ko‘pincha so‘rayman · Ha, doim so‘rayman
+   Hech qachon so‘ramayman · Kamdan-kam fikrini so‘rayman · Ba’zan fikrini so‘rayman · Ko‘pincha fikrini so‘rayman · Doim fikrini so‘rayman
 
-**18. Oilangizda qoidalar har doim bir xil qo‘llanadimi?**
-   Umuman bir xil qo‘llanmaydi · Kamdan-kam · Bilmayman · Ko‘pincha bir xil qo‘llanadi · Ha, doim bir xil qo‘llanadi
+**18. Oilangizdagi qoidalar kayfiyatga qarab o‘zgarmay, bir xil qo‘llanadimi?**
+   Hech qachon bir xil qo‘llanmaydi · Kamdan-kam bir xil qo‘llanadi · Ba’zan bir xil qo‘llanadi · Ko‘pincha bir xil qo‘llanadi · Doim bir xil qo‘llanadi
 
 ### 🌙 Uyqu va harakat
 
-**19. U yetarli uxlaydimi?**
-   Umuman yetarli uxlamaydi · Kamdan-kam · Bilmayman · Ko‘pincha yetarli uxlaydi · Ha, doim yetarli uxlaydi
+**19. Ertalab o‘zi osongina, charchamay uyg‘onadimi?**
+   Hech qachon osongina uyg‘onmaydi · Kamdan-kam osongina uyg‘onadi · Ba’zan osongina uyg‘onadi · Ko‘pincha osongina uyg‘onadi · Doim osongina uyg‘onadi
 
-**20. Kuniga ekran oldida 3 soatdan ko‘p o‘tiradimi?**  *(teskari)*
-   Umuman o‘tirmaydi · Kamdan-kam · Bilmayman · Ko‘pincha o‘tiradi · Ha, doim o‘tiradi
+**20. Kuniga telefon, planshet yoki televizor oldida qancha vaqt o‘tkazadi (darsdan tashqari)?**  *(teskari)*
+   1 soatdan kam · 1–2 soat · 2–3 soat · 3–5 soat · 5 soatdan ko‘p
 
-**21. Sport yoki faol o‘yin bilan shug‘ullanadimi?**
-   Umuman shug‘ullanmaydi · Kamdan-kam · Bilmayman · Ko‘pincha shug‘ullanadi · Ha, doim shug‘ullanadi
+**21. Haftada necha marta sport yoki faol o‘yin bilan shug‘ullanadi?**
+   Umuman shug‘ullanmaydi · Haftada 1 marta · Haftada 2 marta · Haftada 3–4 marta · Deyarli har kuni
 
 ### 💛 Hissiy holat
 
 **22. Xafa bo‘lsa, buni sizga aytadimi?**
-   Umuman aytmaydi · Kamdan-kam · Bilmayman · Ko‘pincha aytadi · Ha, doim aytadi
+   Hech qachon aytmaydi · Kamdan-kam sizga aytadi · Ba’zan sizga aytadi · Ko‘pincha sizga aytadi · Doim sizga aytadi
 
 **23. Yangi joy yoki yangi odamdan qattiq qo‘rqadimi?**  *(teskari)*
-   Umuman qo‘rqmaydi · Kamdan-kam · Bilmayman · Ko‘pincha qo‘rqadi · Ha, doim qo‘rqadi
+   Hech qachon qo‘rqmaydi · Kamdan-kam qattiq qo‘rqadi · Ba’zan qattiq qo‘rqadi · Ko‘pincha qattiq qo‘rqadi · Doim qattiq qo‘rqadi
 
-**24. Kayfiyati keskin va tez-tez o‘zgaradimi?**  *(teskari)*
-   Umuman o‘zgarmaydi · Kamdan-kam · Bilmayman · Ko‘pincha o‘zgaradi · Ha, doim o‘zgaradi
+**24. Kayfiyati sababsiz, keskin o‘zgarib turadimi?**  *(teskari)*
+   Hech qachon o‘zgarmaydi · Kamdan-kam keskin o‘zgaradi · Ba’zan keskin o‘zgaradi · Ko‘pincha keskin o‘zgaradi · Doim keskin o‘zgaradi
+
+---
+
+## 🧠 Premium IQ testi — 20 ta rasm
+
+Rasmlar `assets/iq/` da, savollar shu tartibda beriladi (oddiydan murakkabga).
+
+🔒 **Javoblar kaliti bu yerda yo‘q** — repozitoriy ochiq. Kalit serverda `IQ_ANSWERS`
+o‘zgaruvchisida, qoidalar bilan to‘liq nusxasi esa egasidagi maxfiy `IQ_JAVOBLAR.md` faylida.
+
+| # | Rasm | Turi |
+|---|---|---|
+| 1 | `07.png` | O‘zgarish qonuniyati |
+| 2 | `13.png` | O‘zgarish qonuniyati |
+| 3 | `14.png` | O‘zgarish qonuniyati |
+| 4 | `04.png` | Fazoviy tasavvur |
+| 5 | `01.png` | Qatorlar mantig‘i |
+| 6 | `03.png` | Fazoviy tasavvur |
+| 7 | `15.png` | Qatorlar mantig‘i |
+| 8 | `02.png` | Shakllarni qo‘shish |
+| 9 | `20.png` | Qatorlar mantig‘i |
+| 10 | `09.png` | O‘zgarish qonuniyati |
+| 11 | `16.png` | Fazoviy tasavvur |
+| 12 | `08.png` | Shakllarni qo‘shish |
+| 13 | `12.png` | Fazoviy tasavvur |
+| 14 | `05.png` | Fazoviy tasavvur |
+| 15 | `06.png` | Fazoviy tasavvur |
+| 16 | `10.png` | Qatorlar mantig‘i |
+| 17 | `11.png` | Qatorlar mantig‘i |
+| 18 | `17.png` | Shakllarni qo‘shish |
+| 19 | `19.png` | Qatorlar mantig‘i |
+| 20 | `18.png` | Shakllarni qo‘shish |

@@ -1,7 +1,7 @@
 # 🧠 Psixologik testlar boti — [@kelajak_testi_bot](https://t.me/kelajak_testi_bot)
 
-O‘zbek va rus tilidagi Telegram bot: to‘rtta psixologik test, har birining
-ilmiy manbasi ochiq ko‘rsatilgan.
+O‘zbek va rus tilidagi Telegram bot: to‘rtta psixologik test va rasmli IQ
+testi, har birining manbasi ochiq ko‘rsatilgan.
 
 | Test | Savollar | Turi | Manba |
 |---|---|---|---|
@@ -9,6 +9,7 @@ ilmiy manbasi ochiq ko‘rsatilgan.
 | 🎯 Kelajak salohiyati | 28 | 0–100 indeks | mualliflik so‘rovnomasi |
 | 🧭 Kasb yo‘nalishi (RIASEC) | 30 | Holland kodi | Holland modeli, savollar bizniki |
 | 👶 Farzand salohiyati | 24 | 0–100 indeks | mualliflik so‘rovnomasi |
+| 🧠 Premium IQ testi | 20 rasm | taxminiy IQ (yoshga qarab) | Raven matritsalari uslubidagi topshiriqlar |
 
 ---
 
@@ -48,17 +49,27 @@ takrorlaydi. Bu psixolog mutaxassisning tanqidiga javob: mavhum
 
 ```
 Davra siz bilan jonlanadimi?
-  1️⃣ Umuman jonlanmaydi
-  2️⃣ Kamdan-kam
-  3️⃣ Bilmayman
+  1️⃣ Hech qachon jonlanmaydi
+  2️⃣ Kamdan-kam jonlanadi
+  3️⃣ Ba’zan jonlanadi
   4️⃣ Ko‘pincha jonlanadi
-  5️⃣ Ha, doim jonlanadi
+  5️⃣ Doim jonlanadi
 ```
 
-Variantlar `psytests/base.py` dagi to‘rtta shablondan yig‘iladi
-(`freq`, `deg`, `yesno`, `interest`), har bir savol esa faqat o‘z fe‘lining
-tasdiq va inkor shaklini beradi. Shu sababli 132 savolning javoblari
-bir xil uslubda va xatosiz chiqadi.
+O‘rtadagi variant **«Bilmayman» emas**: odam «bilmayman» deb emas, «ba’zan»
+yoki «o‘rtacha» deb javob beradi. Soni so‘raladigan savollarda (ekran vaqti,
+haftada necha marta sport) javoblar raqam bilan beriladi — `kind="custom"`.
+
+Variantlar `psytests/base.py` dagi shablonlardan yig‘iladi
+(`freq`, `deg`, `yesno`, `agree`, `interest`), har bir savol esa faqat o‘z
+fe‘lining tasdiq va inkor shaklini beradi.
+
+**Muhim:** ishlab turgan bot savollarni koddan emas, **bazadagi CMS
+jadvalidan** o‘qiydi. Savol matnini o‘zgartirishdan oldin
+`python content_cms.py snapshot` ni ishga tushiring, keyin savollarni
+o‘zgartirib, `content_cms.py` dagi `CONTENT_VERSION` ni oshiring —
+migratsiya admin tegmagan testlarni yangi matn bilan almashtiradi
+(tahrirlanganlarini saqlab qoladi). Batafsil: [CMS.md](CMS.md).
 
 ## Ikki til
 
@@ -112,6 +123,15 @@ ikki marta bosish himoyasi, eski tugma, tarix, admin panel, oddiy
 foydalanuvchining admin panelga kira olmasligi. **Hech kimga xabar
 yubormaydi**, vaqtinchalik bazaga yozadi.
 
+**`iqtest.py`** — rasmli IQ testi: rasmlar va javoblar kaliti (A–D teng
+taqsimlangan), to‘lov to‘sig‘i, yosh tanlash, rasm Telegram'ga bir marta
+yuklanishi, ikki marta bosish, taxminiy IQ, **to‘g‘ri javoblar foydalanuvchiga
+hech qayerda ko‘rinmasligi**, to‘xtatish va to‘lovdan keyin avtomatik boshlanish.
+
+**`contenttest.py`** — CMS migratsiyasi: serverdagi eski bazaga yangi
+savollar to‘g‘ri qo‘llanishi, admin tahriri saqlanishi va tugmalar hech
+qachon chala («Ha,») chiqmasligi.
+
 **`clicktest.py`** — Click integratsiyasi. Haqiqiy Click serveriga
 ulanmaydi: skriptning o‘zi Click bo‘lib, hujjatdagi formula bo‘yicha imzo
 yasaydi va o‘z serverimizga so‘rov yuboradi. Shu sababli internetsiz ham
@@ -139,6 +159,10 @@ turgan botga chiqib ketgan edi.
 | `psytests/future.py` | Kelajak salohiyati |
 | `psytests/career.py` | RIASEC |
 | `psytests/child.py` | Farzand salohiyati |
+| `psytests/iq.py` | IQ topshiriqlari tartibi, taxminiy IQ hisobi, daraja (javoblar kaliti — serverdagi `IQ_ANSWERS` da) |
+| `assets/iq/` | IQ rasmlari (A–D variantlari rasmning o‘zida) |
+| `handlers/iq.py` | IQ oqimi: yosh, rasm, A–D tugmalari, taxminiy IQ bilan natija |
+| `content_cms.py` | savollar CMS jadvali va migratsiyasi |
 | `psytests/__init__.py` | reyestr, yosh guruhlari, yosh maslahatlari |
 | `report.py` | natija matnini yig‘ish |
 | `keyboards.py` | inline tugmalar |

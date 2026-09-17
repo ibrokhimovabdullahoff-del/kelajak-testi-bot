@@ -5,6 +5,9 @@ ikkita kuchli tomon, ikkita aniq qadam.
 """
 from __future__ import annotations
 
+import json
+
+from config import IQ_EMOJI, IQ_KEY
 from locales import t, tr
 from psytests import AGE_ADVICE, AGE_LABELS, TestDef, level_of
 from psytests.base import L
@@ -168,6 +171,17 @@ def _render_interests(test: TestDef, result: dict, lang: str) -> str:
 # --- Tarix ------------------------------------------------------------------
 
 
+def _iq_history(row: dict) -> str:
+    """Rasmli testda taxminiy IQ saqlangan; eski matnli testda — faqat IQ ball."""
+    try:
+        details = json.loads(row.get("scales") or "{}")
+    except (TypeError, ValueError):
+        details = {}
+    if details.get("iq"):
+        return f"IQ ≈{details['iq']} ({row['total']:.0f}/20)"
+    return f"IQ {row['total']:.0f}" if row["total"] > 20 else f"{row['total']:.0f}/20"
+
+
 def render_history(rows: list[dict], lang: str, registry: dict) -> str:
     if not rows:
         return t("history_empty", lang)
@@ -175,10 +189,16 @@ def render_history(rows: list[dict], lang: str, registry: dict) -> str:
     lines = [t("history_title", lang), ""]
     for row in rows:
         test = registry.get(row["test_key"])
-        title = tr(test.title, lang) if test else row["test_key"]
-        emoji = test.emoji if test else "•"
+        if row["test_key"] == IQ_KEY:
+            title = "Premium IQ testi" if lang == "uz" else "Премиум IQ-тест"
+            emoji = IQ_EMOJI
+        else:
+            title = tr(test.title, lang) if test else row["test_key"]
+            emoji = test.emoji if test else "•"
         age = AGE_LABELS.get(row["age_group"] or "")
         parts = [f"{emoji} <b>{title}</b>"]
+        if row["test_key"] == IQ_KEY and row["total"] is not None:
+            parts.append(_iq_history(row))
         if age:
             parts.append(tr(age, lang))
         if row["total"] is not None and test and test.kind == "index":

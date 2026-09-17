@@ -12,6 +12,10 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # config.py tokensiz ishga tushmaydi; testlar Telegram'ga ulanmaydi.
+      BOT_TOKEN: "0:ci"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,7 +25,10 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements.txt
       - run: python -m py_compile $(find . -name '*.py' -type f)
+      - run: python selftest.py
       - run: python attempts_test.py
       - run: python flowtest.py
       - run: python clicktest.py
       - run: python migrationtest.py
+      - run: python contenttest.py
+      - run: python iqtest.py
