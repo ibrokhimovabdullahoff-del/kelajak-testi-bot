@@ -1,12 +1,13 @@
-"""Do'st taklifi (referral) va IQ xatolar tahlilini ochish.
+"""Do'st taklifi (referral).
 
 Har bir foydalanuvchining shaxsiy havolasi bor:
 
     https://t.me/<bot>?start=ref_<telegram_id>
 
 Shu havola orqali botni BIRINCHI MARTA ishga tushirgan yangi odam taklif
-qilgan odamga yoziladi. Kamida bitta shunday odam bo'lsa, taklif qilgan
-odam uchun IQ xatolar tahlili butunlay ochiladi.
+qilgan odamga yoziladi. (Avval bu IQ xatolar tahlilini ochardi — tahlil olib
+tashlandi; `review_unlocks` jadvali eski ma'lumot sifatida qoladi, unga
+endi yozilmaydi.)
 
 Aldashga qarshi qoidalar (bazaning o'zida ham, kodda ham):
   * o'zini o'zi taklif qilib bo'lmaydi (CHECK referrer_id <> referred_id);
@@ -38,9 +39,7 @@ CREATE TABLE IF NOT EXISTS referrals (
 );
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
 
--- Xatolar tahlili kimga ochilgan. Bir marta yozilgan qator o'chirilmaydi:
--- ochilish butunlay. Birlamchi kalit xabarni ham bir martaga cheklaydi —
--- ikkinchi do'st kelganda "ochildi" xabari qayta yuborilmaydi.
+-- Eski: xatolar tahlili kimga ochilgani. Endi yozilmaydi, faqat saqlanadi.
 CREATE TABLE IF NOT EXISTS review_unlocks (
     user_id      INTEGER PRIMARY KEY,
     referral_id  INTEGER REFERENCES referrals(id),
@@ -52,16 +51,13 @@ PREFIX = "ref_"
 _PAYLOAD = re.compile(r"^ref_(\d{1,20})$")
 
 #: record() natijalari.
-UNLOCKED = "unlocked"          # birinchi do'st keldi — tahlil ochildi, xabar yuborish kerak
-COUNTED = "counted"            # do'st yozildi, lekin tahlil avvaldan ochiq edi
+COUNTED = "counted"            # yangi do'st yozildi
 NOT_NEW = "ignored:not_new"    # bu odam botda avval ham bo'lgan
 SELF = "ignored:self"          # o'z havolasini bosgan
 UNKNOWN = "ignored:unknown"    # bunday taklif qiluvchi botda yo'q
 DUPLICATE = "ignored:duplicate"  # bu yangi odam allaqachon kimdandir hisoblangan
 
 _lock = asyncio.Lock()
-#: Ochilish butunlay, shuning uchun "ochiq" javobini keshlab qo'ysa bo'ladi.
-_unlocked: set[int] = set()
 
 
 async def init() -> None:
@@ -96,29 +92,10 @@ async def record(referrer_id: int, new_user_id: int, is_new_user: bool) -> str:
             "INSERT OR IGNORE INTO referrals (referrer_id, referred_id, created_at) VALUES (?, ?, ?)",
             (referrer_id, new_user_id, now),
         )
-        if cursor.rowcount == 0:
-            await conn.commit()
-            return DUPLICATE
-        referral_id = cursor.lastrowid
-        cursor = await conn.execute(
-            "INSERT OR IGNORE INTO review_unlocks (user_id, referral_id, unlocked_at) VALUES (?, ?, ?)",
-            (referrer_id, referral_id, now),
-        )
-        first_unlock = cursor.rowcount == 1
         await conn.commit()
-    _unlocked.add(referrer_id)
-    return UNLOCKED if first_unlock else COUNTED
-
-
-async def is_unlocked(user_id: int) -> bool:
-    if user_id in _unlocked:
-        return True
-    conn = await db.connect()
-    cursor = await conn.execute("SELECT 1 FROM review_unlocks WHERE user_id = ?", (user_id,))
-    if await cursor.fetchone() is None:
-        return False
-    _unlocked.add(user_id)
-    return True
+        if cursor.rowcount == 0:
+            return DUPLICATE
+    return COUNTED
 
 
 async def invited_count(referrer_id: int) -> int:

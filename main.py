@@ -64,12 +64,9 @@ async def main() -> None:
 
     logging.info("Ishga tushdi: @%s (id=%s)", me.username, me.id)
 
-    from psytests.iq import ANSWER_KEY_ENV, EXPLANATIONS_ENV, answer_key, explanations
+    from psytests.iq import ANSWER_KEY_ENV, answer_key
     if answer_key() is None:
         logging.error("%s o‘rnatilmagan yoki noto‘g‘ri — IQ testi yopiq bo‘ladi.", ANSWER_KEY_ENV)
-    if explanations() is None:
-        logging.error("%s o‘rnatilmagan yoki to‘liq emas — IQ xatolar tahlili yopiq bo‘ladi.",
-                      EXPLANATIONS_ENV)
 
     runner = await payments.run_server(on_paid=notify_paid)
     if CLICK_ENABLED:

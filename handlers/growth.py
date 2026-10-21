@@ -2,8 +2,7 @@
 
   * send_certificate() — test tugagach, matnli hisobotdan OLDIN rasm yuboradi;
     uning ostida "to'liq sifatda yuklab olish" tugmasi (PNG hujjat sifatida);
-  * handle_start() — /start ref_<id> orqali kelgan yangi odamni yozadi va
-    taklif qilgan odamga tahlil ochilganini darhol xabar qiladi.
+  * handle_start() — /start ref_<id> orqali kelgan yangi odamni yozadi.
 
 Mazmun va chizish — `result_image.py`, qoidalar — `referrals.py`.
 Hamma matn `locales.py` da.
@@ -15,14 +14,14 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from aiogram import Bot, F, Router
+from aiogram import F, Router
 from aiogram.types import BufferedInputFile, CallbackQuery, Message, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 import referrals
 import result_image
-from config import BOT_USERNAME, IQ_KEY, TIMEZONE
+from config import BOT_USERNAME, TIMEZONE
 from locales import t
 
 log = logging.getLogger(__name__)
@@ -99,31 +98,11 @@ async def download_certificate(callback: CallbackQuery, lang: str) -> None:
 # --- Do'st taklifi -----------------------------------------------------------
 
 
-async def review_button(user_id: int, lang: str):
-    """Oxirgi IQ natijasida xato bo'lsa — tahlilni ochadigan tugma, aks holda None."""
-    row = await db.latest_result(user_id, IQ_KEY)
-    if row is None or row["scales"].get("version") != 2:
-        return None
-    markup = InlineKeyboardBuilder()
-    markup.button(text=t("btn_review", lang), callback_data=f"iqrev:{row['id']}:0")
-    return markup.as_markup()
-
-
-async def handle_start(message: Message, payload: str | None, is_new_user: bool) -> None:
-    """/start ref_<id> — yangi odamni yozadi, kerak bo'lsa taklif qilganga xabar beradi."""
+async def handle_start(message: Message, payload: str | None, is_new_user: bool) -> str | None:
+    """/start ref_<id> — yangi odamni taklif qilganga yozadi. Natija: referrals.record() qiymati."""
     referrer = referrals.parse(payload)
     if referrer is None:
-        return
+        return None
     outcome = await referrals.record(referrer, message.from_user.id, is_new_user)
     log.info("Referral %s → %s: %s", referrer, message.from_user.id, outcome)
-    if outcome == referrals.UNLOCKED:
-        await notify_unlocked(message.bot, referrer)
-
-
-async def notify_unlocked(bot: Bot, referrer: int) -> None:
-    lang = await db.get_lang(referrer) or "uz"
-    try:
-        await bot.send_message(referrer, t("ref_unlocked_notify", lang),
-                               reply_markup=await review_button(referrer, lang))
-    except Exception as exc:  # botni bloklagan bo'lishi mumkin — ochilish baribir saqlangan
-        log.warning("Taklif qilgan odamga xabar yetmadi (%s): %s", referrer, exc)
+    return outcome

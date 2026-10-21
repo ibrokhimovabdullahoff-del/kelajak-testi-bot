@@ -2,11 +2,11 @@
 
 Oqim: kartochka (/iq yoki menyu) → to'lov tekshiruvi → yosh (IQ tengdoshlarga
 nisbatan hisoblanadi) → 20 ta rasm bitta xabarning o'zida almashib turadi
-(chat to'lib ketmaydi) → natija: sertifikat rasmi → xatolar tahlili taklifi →
-taxminiy IQ bilan matnli natija.
+(chat to'lib ketmaydi) → natija: sertifikat rasmi → taxminiy IQ bilan matnli
+natija.
 
-To'g'ri javoblar faqat xatolar tahlilida ko'rinadi, u ham faqat do'stini
-taklif qilgan odamga (referrals.py) va faqat o'zi xato qilgan 3–4 savol uchun.
+To'g'ri javoblar va qaysi savolda xato qilingani hech qachon ko'rsatilmaydi —
+kalit faqat serverdagi IQ_ANSWERS o'zgaruvchisida turadi.
 
 Rasmlar Telegram'ga bir marta yuklanadi: qaytgan file_id bazada saqlanadi va
 keyingi hamma foydalanuvchiga shu id yuboriladi — server rasmni qayta-qayta
@@ -15,7 +15,6 @@ yubormaydi, rasm esa darhol ochiladi.
 from __future__ import annotations
 
 import asyncio
-import html
 import logging
 import time
 from urllib.parse import quote
@@ -25,9 +24,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import (
-    CallbackQuery, FSInputFile, InputMediaPhoto, LinkPreviewOptions, Message,
-)
+from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
@@ -41,7 +38,7 @@ from handlers import payment as pay
 from locales import money, t
 from psytests.iq import (
     AGE_CODES, AGE_GROUPS, DEFAULT_AGE, LETTERS, PUZZLES, TOTAL, Puzzle, answer_key,
-    estimate_iq, explanations, grade, pick_mistakes,
+    estimate_iq, grade,
 )
 from result_image import IQ_NUMBER_MIN
 
@@ -434,30 +431,6 @@ def result_markup(result: dict, iq: int, user_id: int, lang: str):
     return b.as_markup()
 
 
-async def _offer_review(message: Message, user_id: int, row: dict | None,
-                        mistakes: int, lang: str) -> None:
-    """Sertifikatdan keyin: xatolar tahlili — ochiq bo'lsa tugma, bo'lmasa taklif havolasi."""
-    if row is None or mistakes == 0:
-        return
-    if explanations() is None:
-        log.error("IQ_EXPLANATIONS o'rnatilmagan yoki to'liq emas — xatolar tahlili taklif qilinmadi")
-        return
-    b = InlineKeyboardBuilder()
-    if await referrals.is_unlocked(user_id):
-        b.button(text=t("btn_review", lang), callback_data=f"iqrev:{row['id']}:0")
-        await message.answer(t("ref_offer_unlocked", lang), reply_markup=b.as_markup())
-        return
-    await _send_invite(message, user_id, lang)
-
-
-async def _send_invite(message: Message, user_id: int, lang: str) -> None:
-    link = referrals.link(growth.bot_username(), user_id)
-    b = InlineKeyboardBuilder()
-    b.button(text=t("btn_ref_share", lang), url=_share_url(link, t("ref_share_text", lang)))
-    await message.answer(t("ref_offer", lang, link=link), reply_markup=b.as_markup(),
-                         link_preview_options=LinkPreviewOptions(is_disabled=True))
-
-
 async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
                   answers: list[str], started: float | None, age: str | None) -> None:
     key = answer_key()
@@ -490,66 +463,18 @@ async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
         await callback.message.delete()
     except TelegramBadRequest:
         await _retire(callback.message)
-    # Tartib: sertifikat → xatolar tahlili taklifi → batafsil natija.
+    # Tartib: sertifikat → batafsil natija.
     await growth.send_certificate(callback.message, callback.from_user, saved)
-    await _offer_review(callback.message, user_id, saved, len(result["mistakes"]), lang)
     await callback.message.answer(
         report.render_iq(result["correct"], estimate, seconds, lang, comparison),
         reply_markup=result_markup(result, estimate["iq"], user_id, lang),
     )
 
 
-# --- Xatolar tahlili ------------------------------------------------------------
-
-
-@router.callback_query(F.data == "iqrev:close")
-async def review_close(callback: CallbackQuery) -> None:
-    try:
-        await callback.message.delete()
-    except TelegramBadRequest:
-        await _retire(callback.message)
+# --- Eski tugmalar -------------------------------------------------------------
 
 
 @router.callback_query(F.data.startswith("iqrev:"))
-async def review(callback: CallbackQuery, lang: str) -> None:
-    """Xato qilingan 3–4 savol: rasm, sizning javobingiz, to'g'ri javob, sababi."""
-    parts = callback.data.split(":")
-    if len(parts) != 3 or not parts[1].isdigit() or not parts[2].isdigit():
-        return
-    user_id = callback.from_user.id
-    row = await db.get_result(int(parts[1]))
-    if (row is None or row["user_id"] != user_id or row["test_key"] != IQ_KEY
-            or row["scales"].get("version") != RESULT_VERSION
-            or len(row["scales"].get("answers") or []) != TOTAL):
-        await callback.message.answer(t("review_missing", lang))
-        return
-    if not await referrals.is_unlocked(user_id):
-        await _send_invite(callback.message, user_id, lang)
-        return
-    key, texts = answer_key(), explanations()
-    if key is None or texts is None:
-        await callback.message.answer(t("review_unavailable", lang))
-        return
-    answers = row["scales"]["answers"]
-    mistakes = pick_mistakes(answers, key)
-    if not mistakes:
-        await callback.message.answer(t("review_none", lang))
-        return
-    position = min(int(parts[2]), len(mistakes) - 1)
-    index = mistakes[position]
-    puzzle = PUZZLES[index]
-    why = texts[puzzle.file].get(lang) or texts[puzzle.file]["uz"]
-    caption = report.review_caption(position + 1, len(mistakes), index + 1, answers[index],
-                                    key[index], html.escape(why), lang)
-    b = InlineKeyboardBuilder()
-    nav = 0
-    if position > 0:
-        b.button(text="⬅️", callback_data=f"iqrev:{row['id']}:{position - 1}")
-        nav += 1
-    if position < len(mistakes) - 1:
-        b.button(text="➡️", callback_data=f"iqrev:{row['id']}:{position + 1}")
-        nav += 1
-    b.button(text=t("btn_close", lang), callback_data="iqrev:close")
-    b.adjust(*([nav] if nav else []), 1)
-    await _send_puzzle(callback.message, puzzle, caption, b.as_markup(),
-                       edit=bool(callback.message.photo))
+async def review_gone(callback: CallbackQuery, lang: str) -> None:
+    """Xatolar tahlili olib tashlangan. Eski xabarlardagi tugma bosilsa — qisqa izoh."""
+    await callback.answer(t("review_gone", lang), show_alert=True)

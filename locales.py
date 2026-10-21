@@ -387,26 +387,7 @@ STRINGS: dict[str, dict[str, str]] = {
     ),
     "dur_min_sec": L("{m} daqiqa {s} soniya", "{m} мин {s} сек"),
     "dur_sec": L("{s} soniya", "{s} сек"),
-    # --- Do'st taklifi va xatolar tahlili ---------------------------------
-    "ref_offer": L(
-        "🔍 <b>Xatolaringizning batafsil tahlili tayyor!</b>\n\n"
-        "Qaysi savollarda adashganingiz, to‘g‘ri javob va nima uchun aynan u "
-        "to‘g‘ri ekani.\n\n"
-        "🎁 Ochish uchun <b>1 ta do‘stingizni</b> taklif qiling. U shu havola "
-        "orqali botni ishga tushirishi bilan tahlil siz uchun <b>butunlay</b> "
-        "ochiladi:\n\n{link}",
-        "🔍 <b>Подробный разбор ваших ошибок готов!</b>\n\n"
-        "В каких вопросах вы ошиблись, правильный ответ и почему именно он "
-        "верный.\n\n"
-        "🎁 Чтобы открыть, пригласите <b>1 друга</b>. Как только он запустит "
-        "бота по этой ссылке, разбор откроется для вас <b>навсегда</b>:\n\n{link}",
-    ),
-    "ref_offer_unlocked": L(
-        "🔍 <b>Xatolaringiz tahlili siz uchun ochiq.</b>\n\n"
-        "Qaysi savollarda adashganingizni va to‘g‘ri javobni ko‘ring.",
-        "🔍 <b>Разбор ошибок для вас открыт.</b>\n\n"
-        "Посмотрите, где вы ошиблись и какой ответ правильный.",
-    ),
+    # --- Do'st taklifi -------------------------------------------------------
     "ref_share_text": L(
         "Men bu botda IQ testini topshirdim 🧠 Sen ham sinab ko‘r:",
         "Я прошёл IQ-тест в этом боте 🧠 Попробуй и ты:",
@@ -416,35 +397,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "Mening taxminiy IQ im — {iq} ({correct}/{total}). Sen ham sinab ko‘r:",
         "Мой примерный IQ — {iq} ({correct}/{total}). Попробуй и ты:",
     ),
-    "btn_review": L("🔍 Xatolarni ko‘rish", "🔍 Разбор ошибок"),
-    "ref_unlocked_notify": L(
-        "🎉 <b>Do‘stingiz botga qo‘shildi!</b>\n\n"
-        "Xatolaringizning batafsil tahlili endi siz uchun <b>butunlay ochiq</b>.",
-        "🎉 <b>Ваш друг присоединился к боту!</b>\n\n"
-        "Подробный разбор ошибок теперь открыт для вас <b>навсегда</b>.",
-    ),
-    "review_caption": L(
-        "🔍 <b>Xato {pos} / {count}</b> · {num}-savol\n\n"
-        "❌ Sizning javobingiz: <b>{yours}</b>\n"
-        "✅ To‘g‘ri javob: <b>{correct}</b>\n\n"
-        "💡 {why}",
-        "🔍 <b>Ошибка {pos} / {count}</b> · вопрос {num}\n\n"
-        "❌ Ваш ответ: <b>{yours}</b>\n"
-        "✅ Правильный ответ: <b>{correct}</b>\n\n"
-        "💡 {why}",
-    ),
-    "review_none": L(
-        "🎉 Bu testda birorta ham xato qilmadingiz — ko‘rib chiqadigan narsa yo‘q!",
-        "🎉 В этом тесте у вас нет ни одной ошибки — разбирать нечего!",
-    ),
-    "review_locked": L(
-        "🔒 Tahlilni ochish uchun 1 ta do‘stingizni taklif qiling.",
-        "🔒 Чтобы открыть разбор, пригласите 1 друга.",
-    ),
     "review_missing": L("Bu natija topilmadi.", "Результат не найден."),
-    "review_unavailable": L(
-        "⏳ Tahlil vaqtincha mavjud emas. Birozdan keyin urinib ko‘ring.",
-        "⏳ Разбор временно недоступен. Попробуйте чуть позже.",
+    "review_gone": L(
+        "Bu bo‘lim endi mavjud emas.",
+        "Этот раздел больше недоступен.",
     ),
     "btn_close": L("✖️ Yopish", "✖️ Закрыть"),
 }

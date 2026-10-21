@@ -1,4 +1,4 @@
-"""Yangi modullar tekshiruvi: sertifikat rasmi, do'st taklifi, foiz, xatolar tahlili.
+"""Yangi modullar tekshiruvi: sertifikat rasmi, do'st taklifi, foiz, IQ hisoboti.
 
 Telegram'siz ishlaydi, vaqtinchalik bazaga yozadi.
 
@@ -65,16 +65,12 @@ async def referral_rules() -> None:
     check("o‘zini taklif qilib bo‘lmaydi", await referrals.record(1, 1, True) == referrals.SELF)
     check("eski foydalanuvchi hisoblanmaydi", await referrals.record(1, 2, False) == referrals.NOT_NEW)
     check("botda yo‘q taklif qiluvchi rad etiladi", await referrals.record(777, 10, True) == referrals.UNKNOWN)
-    check("hali ochilmagan", not await referrals.is_unlocked(1))
-    check("birinchi do‘st → tahlil ochildi", await referrals.record(1, 11, True) == referrals.UNLOCKED)
-    check("endi ochiq", await referrals.is_unlocked(1))
-    check("ikkinchi do‘st → faqat hisoblandi (xabar yo‘q)", await referrals.record(1, 12, True) == referrals.COUNTED)
+    check("birinchi do‘st hisoblandi", await referrals.record(1, 11, True) == referrals.COUNTED)
+    check("ikkinchi do‘st ham hisoblandi", await referrals.record(1, 12, True) == referrals.COUNTED)
     check("bitta yangi odam ikki marta hisoblanmaydi (boshqa havola)",
           await referrals.record(2, 11, True) == referrals.DUPLICATE)
     check("taklif qilganlar soni 2", await referrals.invited_count(1) == 2)
-    check("do‘sti yo‘q odam ochilmagan", not await referrals.is_unlocked(2))
-    referrals._unlocked.clear()
-    check("ochilish bazada saqlangan (kesh tozalangach ham)", await referrals.is_unlocked(1))
+    check("do‘sti yo‘q odamda 0", await referrals.invited_count(2) == 0)
     conn = sqlite3.connect(DB_FILE)
     try:
         conn.execute("INSERT INTO referrals (referrer_id, referred_id, created_at) VALUES (5, 5, 'x')")
@@ -83,9 +79,9 @@ async def referral_rules() -> None:
         self_ok = True
     conn.rollback()  # aks holda ochiq tranzaksiya bazani qulflab qo'yadi
     check("baza darajasida ham o‘zini taklif qilish taqiqlangan", self_ok)
-    rows = conn.execute("SELECT COUNT(*) FROM review_unlocks WHERE user_id = 1").fetchone()[0]
+    rows = conn.execute("SELECT COUNT(*) FROM review_unlocks").fetchone()[0]
     conn.close()
-    check("ochilish bir marta yozilgan", rows == 1, str(rows))
+    check("xatolar tahlili endi ochilmaydi (review_unlocks ga yozilmaydi)", rows == 0, str(rows))
 
 
 async def percentile_rules() -> None:
@@ -213,34 +209,11 @@ def render_all() -> None:
     check("hamma rasm 1080×1920 PNG, Telegram cheklovidan kichik", not problems, str(problems))
 
 
-def review_rules() -> None:
-    print("6. Xatolar tahlili")
-    key = list("ABCD" * 5)
-    answers = list(key)
-    for i in (2, 5, 9, 14, 18):
-        answers[i] = "A" if key[i] != "A" else "B"
-    check("eng oson 4 ta xato tanlanadi", iqdata.pick_mistakes(answers, key) == [2, 5, 9, 14])
-    answers2 = list(key)
-    answers2[7] = "A" if key[7] != "A" else "B"
-    check("xato 4 tadan kam bo‘lsa — hammasi", iqdata.pick_mistakes(answers2, key) == [7])
-    check("xato yo‘q — bo‘sh", iqdata.pick_mistakes(key, key) == [])
-
-    os.environ.pop(iqdata.EXPLANATIONS_ENV, None)
-    check("tushuntirish yo‘q → tahlil yopiq", iqdata.explanations() is None)
-    full = {p.file: {"uz": "Sabab.", "ru": "Причина."} for p in iqdata.PUZZLES}
-    os.environ[iqdata.EXPLANATIONS_ENV] = json.dumps(dict(list(full.items())[:19]))
-    check("bittasi yetishmasa → yopiq", iqdata.explanations() is None)
-    os.environ[iqdata.EXPLANATIONS_ENV] = "{buzilgan json"
-    check("buzilgan JSON → yopiq", iqdata.explanations() is None)
-    os.environ[iqdata.EXPLANATIONS_ENV] = json.dumps(full)
-    check("hammasi bor → ochiq", iqdata.explanations() == full)
-    private = os.path.join(os.path.dirname(__file__), "iq_private.json")
-    if os.path.exists(private):  # faqat egasining kompyuterida: haqiqiy tushuntirishlar to'liqmi
-        os.environ[iqdata.EXPLANATIONS_ENV] = json.dumps(json.load(open(private, encoding="utf-8"))["explanations"])
-        check("maxfiy iq_private.json dagi tushuntirishlar to‘liq", iqdata.explanations() is not None)
-    caption = report.review_caption(1, 4, 7, "B", "D", "Sabab.", "uz")
-    check("tahlil matni: javob, to‘g‘ri javob, tushuntirish",
-          "<b>B</b>" in caption and "<b>D</b>" in caption and "Sabab." in caption and "7-savol" in caption)
+def review_removed() -> None:
+    print("6. Xatolar tahlili olib tashlangan")
+    check("IQ modulida tushuntirishlar yo‘q",
+          not hasattr(iqdata, "explanations") and not hasattr(iqdata, "pick_mistakes"))
+    check("hisobotda tahlil matni yo‘q", not hasattr(report, "review_caption"))
 
 
 def iq_report() -> None:
@@ -263,7 +236,7 @@ async def main() -> int:
         await percentile_rules()
         card_rules()
         render_all()
-        review_rules()
+        review_removed()
         iq_report()
     finally:
         # Xato bilan to'xtasa ham ulanish yopilsin — aks holda skript osilib qoladi.

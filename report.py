@@ -272,13 +272,6 @@ def render_iq(correct: int, estimate: dict, seconds: int | None, lang: str,
     return "\n".join(lines)
 
 
-def review_caption(position: int, count: int, number: int, yours: str, correct: str,
-                   why: str, lang: str) -> str:
-    """Xatolar tahlilidagi bitta rasm ostidagi matn."""
-    return t("review_caption", lang, pos=position, count=count, num=number,
-             yours=yours, correct=correct, why=why)
-
-
 # --- Tarix ------------------------------------------------------------------
 
 
