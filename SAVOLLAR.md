@@ -102,8 +102,8 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 **43. Kun tartibi yoki rejaga amal qilasizmi?**
    Hech qachon amal qilmayman · Kamdan-kam amal qilaman · Ba’zan amal qilaman · Ko‘pincha amal qilaman · Doim amal qilaman
 
-**48. Ishni puxta, xatosiz bajarishga harakat qilasizmi?**
-   Hech qachon harakat qilmayman · Kamdan-kam harakat qilaman · Ba’zan harakat qilaman · Ko‘pincha harakat qilaman · Doim harakat qilaman
+**48. Ishni puxta, xatosiz bajarasizmi?**
+   Hech qachon puxta bajarmayman · Kamdan-kam puxta bajaraman · Ba’zan puxta bajaraman · Ko‘pincha puxta bajaraman · Doim puxta bajaraman
 
 ### 🛡 Hissiy barqarorlik
 
@@ -208,7 +208,7 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 
 ### 🧘 O‘zini tuta olish
 
-**10. Katta maqsad uchun hozirgi zavqdan voz kecha olasizmi? Masalan, o‘yin o‘rniga darsni tugatish.**
+**10. Katta maqsad uchun hozirgi zavqdan voz kecha olasizmi? Masalan, serial o‘rniga ishni tugatish.**
    Hech qachon voz kecha olmayman · Kamdan-kam voz kecha olaman · Ba’zan voz kecha olaman · Ko‘pincha voz kecha olaman · Doim voz kecha olaman
 
 **11. Telefon va ijtimoiy tarmoq sizni ishdan chalg‘itadimi?**  *(teskari)*
@@ -266,7 +266,7 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 
 ### 🕊 Ichki boylik
 
-**26. Qilayotgan ishlaringiz sizga ma’noli va kerakli tuyuladimi?**
+**26. Qilayotgan ishlaringiz sizga ma’noli tuyuladimi?**
    Hech qachon ma’noli tuyulmaydi · Kamdan-kam ma’noli tuyuladi · Ba’zan ma’noli tuyuladi · Ko‘pincha ma’noli tuyuladi · Doim ma’noli tuyuladi
 
 **27. Boringizga shukr qila olasizmi?**
@@ -298,7 +298,7 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 
 ### 🔬 Tadqiqotchi (Investigative)
 
-**6. Hisob-kitob qilib, muammoning sababini topish.**
+**6. Ma’lumotni tahlil qilib, muammoning sababini topish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 **7. Ilm-fan va kashfiyotlar haqida o‘qish yoki video ko‘rish.**
@@ -327,7 +327,7 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 **14. Kiyim, xona yoki buyumning chiroyli ko‘rinishini o‘ylab topish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**15. Ko‘rgazma, konsert yoki ijodiy tadbirda qatnashish.**
+**15. Ko‘rgazma yoki konsertda o‘z ishingizni ko‘rsatish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 ### ❤️ Ijtimoiy (Social)
@@ -341,7 +341,7 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 **18. Bolalar yoki o‘smirlar bilan ishlash.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
-**19. Jamoadagi kelishmovchilikni yarashtirish.**
+**19. Jamoadagi kelishmovchilikni hal qilish.**
    Umuman qiziq emas · Unchalik qiziq emas · Farqi yo‘q · Qiziq · Juda qiziq
 
 **20. Odamlarning sog‘lig‘i yoki farovonligiga xizmat qilish.**
@@ -423,8 +423,8 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 **10. Tengdoshlari bilan til topisha oladimi?**
    Hech qachon til topisha olmaydi · Kamdan-kam til topishadi · Ba’zan til topishadi · Ko‘pincha til topishadi · Doim til topishadi
 
-**11. Boshqa odam xafa bo‘lsa, buni sezib, hamdardlik qiladimi?**
-   Hech qachon hamdardlik qilmaydi · Kamdan-kam hamdardlik qiladi · Ba’zan hamdardlik qiladi · Ko‘pincha hamdardlik qiladi · Doim hamdardlik qiladi
+**11. Boshqa odam xafa bo‘lsa, unga hamdard bo‘ladimi?**
+   Hech qachon hamdard bo‘lmaydi · Kamdan-kam hamdard bo‘ladi · Ba’zan hamdard bo‘ladi · Ko‘pincha hamdard bo‘ladi · Doim hamdard bo‘ladi
 
 **12. O‘z fikrini janjalsiz, so‘z bilan tushuntira oladimi?**
    Hech qachon tushuntira olmaydi · Kamdan-kam tushuntira oladi · Ba’zan tushuntira oladi · Ko‘pincha tushuntira oladi · Doim tushuntira oladi
@@ -445,7 +445,7 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 **16. Farzandingiz bilan telefonsiz, faqat unga ajratilgan vaqt o‘tkazasizmi?**
    Hech qachon o‘tkazmayman · Kamdan-kam vaqt o‘tkazaman · Ba’zan vaqt o‘tkazaman · Ko‘pincha vaqt o‘tkazaman · Doim vaqt o‘tkazaman
 
-**17. Uni tinglab, fikrini so‘raysizmi?**
+**17. Muhim masalalarda uning fikrini so‘raysizmi?**
    Hech qachon so‘ramayman · Kamdan-kam fikrini so‘rayman · Ba’zan fikrini so‘rayman · Ko‘pincha fikrini so‘rayman · Doim fikrini so‘rayman
 
 **18. Oilangizdagi qoidalar kayfiyatga qarab o‘zgarmay, bir xil qo‘llanadimi?**
@@ -453,7 +453,7 @@ Ishlab turgan bot savollarni CMS bazasidan o‘qiydi — qarang: [CMS.md](CMS.md
 
 ### 🌙 Uyqu va harakat
 
-**19. Ertalab o‘zi osongina, charchamay uyg‘onadimi?**
+**19. Ertalab osongina uyg‘onadimi?**
    Hech qachon osongina uyg‘onmaydi · Kamdan-kam osongina uyg‘onadi · Ba’zan osongina uyg‘onadi · Ko‘pincha osongina uyg‘onadi · Doim osongina uyg‘onadi
 
 **20. Kuniga telefon, planshet yoki televizor oldida qancha vaqt o‘tkazadi (darsdan tashqari)?**  *(teskari)*
