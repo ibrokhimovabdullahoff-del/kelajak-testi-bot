@@ -71,8 +71,15 @@ class UserContext(BaseMiddleware):
                 )
 
             lang = await db.get_lang(user.id)
-            data["lang_known"] = lang in LANGS
-            data["lang"] = lang if lang in LANGS else _guess(user.language_code)
+            if lang not in LANGS:
+                # Birinchi marta: til Telegram sozlamasidan (ru → rus, qolgani → o'zbek).
+                # "🌐 Til / Язык" tugmasi bilan har doim almashtirsa bo'ladi.
+                lang = _guess(user.language_code)
+                await db.set_lang(user.id, lang)
+                import events
+                events.track(user.id, "lang_set", lang=lang, auto=True)
+            data["lang_known"] = True
+            data["lang"] = lang
             return await handler(event, data)
         finally:
             if timer is not None:
@@ -83,7 +90,7 @@ class UserContext(BaseMiddleware):
 
 
 def _guess(code: str | None) -> str:
-    """Telegram interfeys tili bo'yicha taxmin — foydalanuvchi tanlagunicha."""
-    if code and code.split("-")[0].lower() in ("ru", "be", "kk", "ky"):
+    """Telegram interfeys tili: "ru" → rus tili, qolgan hammasi → o'zbek tili."""
+    if code and code.split("-")[0].lower() == "ru":
         return "ru"
     return DEFAULT_LANG

@@ -28,10 +28,11 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+import profiles
 from config import IQ_KEY
 from locales import t, tr
 from psytests import REGISTRY
-from psytests.insights import ARCHETYPES, FALLBACK, IQ_LEVELS
+from psytests.insights import FALLBACK, IQ_LEVELS
 from psytests.iq import KINDS, TOTAL as IQ_TOTAL
 
 ROOT = Path(__file__).resolve().parent
@@ -92,84 +93,79 @@ def _fallback(title: str, lang: str) -> Card:
                 [tr(FALLBACK.line, lang), t("card_fallback_line", lang)])
 
 
-def build_card(test_key: str, total: float | None, details: dict, lang: str) -> Card:
+def build_card(test_key: str, total: float | None, details: dict, lang: str, *,
+               full: bool = False, show_score: bool = True) -> Card:
     """Saqlangan natijadan sertifikat mazmuni.
 
     details — `results.scales` JSON: psixologik testlarda yo'nalish → foiz,
     IQ da esa natija lug'ati (iq, kinds, ...).
+    full — to'liq tahlil ochiqmi (IQ da taxminiy IQ faqat shunda yoziladi).
+    show_score — IQ da to'g'ri javoblar soni ko'rsatilsinmi (foydalanuvchi
+    "Ballni yashirish" tugmasi bilan o'chira oladi).
+
+    Farzand testida sertifikatda bolaning hech qanday natijasi bo'lmaydi —
+    faqat ota-onaning neytral kartasi.
     """
     if test_key == IQ_KEY:
-        return _iq_card(details, lang)
+        return _iq_card(details, lang, full=full, show_score=show_score)
 
     test = REGISTRY[test_key]
-    order = list(test.scales)
-    scores = {key: float(details.get(key) or 0) for key in order}
-    ranked = sorted(order, key=lambda key: (-scores[key], order.index(key)))
     title = tr(test.title, lang)
-    top, second, third = ranked[0], ranked[1], ranked[2]
-    if scores[top] < 0.5:
+    if test.subject == "child":
+        return Card(title, t("card_label_parent", lang), t("card_parent_name", lang),
+                    [t("card_parent_line", lang), t("card_parent_line2", lang)])
+
+    scores = {key: float(details.get(key) or 0) for key in test.scales}
+    if max(scores.values(), default=0) < 0.5:
         return _fallback(title, lang)
+    order = profiles.ranked(test_key, scores)
+    top = order[0]
+    arch = profiles.archetype(test_key, scores)
+    lines = [tr(arch.line, lang)]
 
     def name(key: str) -> str:
         return _plain(tr(test.scales[key].name, lang))
 
-    arch = ARCHETYPES[test_key][top]
-    lines = [tr(arch.line, lang)]
-
     if test.kind == "interests":
-        if scores[third] >= 0.5:
-            lines.append(t("card_career_more", lang, first=name(second), second=name(third)))
-        else:
-            lines.append(t("card_fallback_line", lang))
+        # Holland kodi — to'liq tahlilda; sertifikatda faqat eng yaqin yo'nalish.
         return Card(title, t("card_label_career", lang), tr(arch.name, lang), lines,
-                    pill=t("card_holland", lang, code="".join(ranked[:3])))
-
-    child = test.subject == "child"
-    if scores[second] >= 0.5:
-        lines.append(t("card_second_child" if child else "card_second", lang, name=name(second)))
-    else:
-        lines.append(t("card_fallback_line", lang))
+                    pill=name(top) if profiles.is_strong(scores[top]) else None)
 
     if test.kind == "traits":
         return Card(title, t("card_label_type", lang), tr(arch.name, lang), lines, pill=name(top))
 
-    label = t("card_label_child" if child else "card_label_strength", lang)
     if total is not None and total >= INDEX_NUMBER_MIN:
         pill = t("card_index", lang, score=round(total))
     else:
-        pill = name(top)
-    return Card(title, label, tr(arch.name, lang), lines, pill=pill)
+        pill = name(top) if profiles.is_strong(scores[top]) else None
+    return Card(title, t("card_label_strength", lang), tr(arch.name, lang), lines, pill=pill)
 
 
-def _iq_card(details: dict, lang: str) -> Card:
+def _iq_card(details: dict, lang: str, *, full: bool, show_score: bool) -> Card:
     title = t("iq_title", lang)
     iq = int(details.get("iq") or 0)
-    order = list(KINDS)
-    ratios = {}
-    for key in order:
-        ok, n = (details.get("kinds") or {}).get(key, [0, 0])
-        if n:
-            ratios[key] = ok / n
-    best = max(ratios, key=lambda key: (ratios[key], -order.index(key))) if ratios else None
-    has_best = best is not None and ratios[best] > 0
-
+    best = profiles.iq_best(details)
     correct = int(details.get("correct") or 0)
     total = int(details.get("total") or IQ_TOTAL)
-    if iq >= IQ_NUMBER_MIN:
+    # Yarmidan kam to'g'ri bo'lsa, ball katta raqam bo'lib emas, oddiy qator
+    # bo'lib yoziladi — past natija hech qachon sertifikatdagi asosiy raqam emas.
+    strong = correct * 2 >= total
+    stat = ((t("card_label_correct", lang), t("card_score", lang, correct=correct, total=total))
+            if show_score and strong else None)
+    if full and show_score and iq >= IQ_NUMBER_MIN:
+        # To'liq tahlil ochiq: taxminiy IQ sarlavhada (faqat 100 va undan yuqori).
         _, level, line = next(item for item in IQ_LEVELS if iq >= item[0])
-        second = (t("card_iq_best", lang, name=tr(KINDS[best].name, lang)) if has_best
+        second = (t("card_iq_best", lang, name=tr(KINDS[best].name, lang)) if best
                   else t("card_iq_generic", lang))
         return Card(title, t("card_label_iq", lang), str(iq), [tr(line, lang), second],
-                    pill=tr(level, lang), number=True,
-                    stat=(t("card_label_correct", lang),
-                          t("card_score", lang, correct=correct, total=total)))
-    if has_best:
-        # IQ 100 dan past: raqam sarlavhaga chiqmaydi, to'g'ri javoblar esa
-        # oddiy qator sifatida yoziladi — asosiy raqam bo'lib ko'rinmaydi.
-        arch = ARCHETYPES["iq"][best]
-        return Card(title, t("card_label_strength", lang), tr(arch.name, lang),
-                    [tr(arch.line, lang), t("card_score_line", lang, correct=correct, total=total)])
-    return _fallback(title, lang)
+                    pill=tr(level, lang), number=True, stat=stat)
+    arch = profiles.archetype(IQ_KEY, details)
+    lines = [tr(arch.line, lang)]
+    if show_score and not strong:
+        lines.append(t("card_score_line", lang, correct=correct, total=total))
+    elif not best:
+        lines.append(t("card_iq_generic", lang))
+    return Card(title, t("card_label_strength", lang), tr(arch.name, lang), lines, stat=stat)
 
 
 # --- Shrift va matn ----------------------------------------------------------

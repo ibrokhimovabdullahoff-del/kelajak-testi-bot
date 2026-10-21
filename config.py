@@ -30,7 +30,15 @@ DEFAULT_PRICE = int(os.getenv("PRICE_UZS", "9900"))
 DEFAULT_PRICE_ALL = int(os.getenv("PRICE_ALL_UZS", "24900"))
 IQ_KEY = "iq"
 IQ_PRICE_DEFAULT = int(os.getenv("IQ_PRICE_UZS", "5000"))
-IQ_EMOJI = "🧠"
+IQ_EMOJI = "🧩"
+#: "5 ta testning to'liq tahlili" to'plami. Narxi admin panelda o'zgaradi.
+BUNDLE_KEY = "bundle"
+BUNDLE_PRICE_DEFAULT = int(os.getenv("PRICE_BUNDLE_UZS", "7990"))
+#: Menyudagi tartib: eng qiziq test birinchi.
+MENU_ORDER = [IQ_KEY, "bigfive", "career", "future", "child"]
+#: Karta orqali to'lov: chek kelgach adminni kutmasdan ochish faqat shu
+#: summagacha (admin panelda yoqiladi, odatda o'chiq).
+OPTIMISTIC_MAX = int(os.getenv("OPTIMISTIC_MAX_UZS", "5000"))
 CURRENCY = "so'm"
 
 CLICK_SERVICE_ID = os.getenv("CLICK_SERVICE_ID", "").strip()

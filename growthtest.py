@@ -117,17 +117,28 @@ async def percentile_rules() -> None:
 def card_rules() -> None:
     print("4. Sertifikat mazmuni")
     kinds = {"change": [3, 4], "combine": [1, 4], "spatial": [2, 6], "rows": [0, 6]}
-    low = ri.build_card("iq", 9, {"iq": 92, "kinds": kinds}, "uz")
+    low = ri.build_card("iq", 9, {"iq": 92, "kinds": kinds}, "uz", full=True)
     check("IQ < 100 — raqam yozilmaydi", not low.number and not re.search(r"\d", low.headline + (low.pill or "")),
           str(low))
-    high = ri.build_card("iq", 17, {"iq": 124, "kinds": kinds}, "ru")
-    check("IQ ≥ 100 — raqam va daraja", high.number and high.headline == "124" and high.pill, str(high))
-    check("IQ ≥ 100 — to‘g‘ri javoblar alohida ko‘rsatkich sifatida",
+    high = ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "ru", full=True)
+    check("to‘liq tahlil ochiq, IQ ≥ 100 — raqam va daraja", high.number and high.headline == "124" and high.pill,
+          str(high))
+    free = ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "ru")
+    check("bepul sertifikatda taxminiy IQ yo‘q (u — to‘liq tahlilda)", not free.number and "124" not in str(free),
+          str(free))
+    check("to‘g‘ri javoblar alohida ko‘rsatkich sifatida",
           ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "uz").stat
           == ("To‘g‘ri javoblar", "17 / 20"))
+    hidden = ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "uz",
+                           full=True, show_score=False)
+    check("«Ballni yashirish»: hech qanday raqam yo‘q", not hidden.number and hidden.stat is None
+          and not re.search(r"\d", hidden.headline + " ".join(hidden.lines)), str(hidden))
     low_scored = ri.build_card("iq", 9, {"iq": 92, "correct": 9, "total": 20, "kinds": kinds}, "uz")
-    check("IQ < 100 — ball katta raqam emas, oddiy qator",
+    check("yarmidan kam — ball katta raqam emas, oddiy qator",
           low_scored.stat is None and any("9\u00a0tasini" in line for line in low_scored.lines), str(low_scored))
+    parent = ri.build_card("child", 80, {k: 90 for k in REGISTRY["child"].scales}, "uz")
+    check("farzand testi: sertifikatda bolaning natijasi yo‘q", not re.search(r"\d", str(parent))
+          and not any(tr_(sc.name, "uz") in str(parent) for sc in REGISTRY["child"].scales.values()), str(parent))
 
     # Joylashuv: katta raqam, daraja va to'g'ri javoblar bir-birini bosmasin.
     # (Xato bo'lgan: chizuvchi lambda keyinroq o'zgargan o'zgaruvchini o'qirdi.)
@@ -164,8 +175,10 @@ def card_rules() -> None:
     names = [REGISTRY["bigfive"].scales[k].name["ru"] for k in "ACSO"]
     check("0 foizli yo‘nalish kuchli tomon deb yozilmaydi",
           not any(n in " ".join(only_one.lines) for n in names), str(only_one.lines))
-    check("hamma 0 — halol «yo‘l boshida»", ri.build_card("child", 0, {k: 0 for k in REGISTRY["child"].scales},
+    check("hamma 0 — halol «yo‘l boshida»", ri.build_card("future", 0, {k: 0 for k in REGISTRY["future"].scales},
                                                           "uz").headline == "Yo‘l boshida")
+    check("past ballga «kuchli» nom berilmaydi", ri.build_card("future", 30, {k: 30 for k in REGISTRY["future"].scales},
+                                                               "uz").headline == "Yo‘l boshida")
     check("ism: emoji olib tashlanadi", ri.clean_name("🔥 Aziza 🔥") == "Aziza")
     check("ism: faqat emoji → ism yo‘q", ri.clean_name("😎🔥") is None)
     check("ism: o‘zbek kirill saqlanadi", ri.clean_name("Ҳусан Ўринов") == "Ҳусан Ўринов")

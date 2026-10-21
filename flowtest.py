@@ -147,18 +147,22 @@ async def main() -> int:
     dp.include_router(build_router())
     # main.py kabi: sertifikat va havolalar botning getMe() dagi nomi bilan.
     from handlers.growth import set_bot_username
+    from handlers.payment import set_bot
     set_bot_username((await bot.get_me()).username)
+    set_bot(bot)  # to'lovdan keyin to'liq tahlil shu bot orqali yuboriladi
 
     as_user(TEST_USER)
 
-    # --- 1. Birinchi kirish: til so'raladi ---------------------------------
-    print("1. Til tanlash")
+    # --- 1. Birinchi kirish: til Telegram sozlamasidan, darrov menyu ------
+    print("1. Til (avtomatik) va menyu")
     await send(dp, bot, "/start")
-    check("til so‘raldi", "Tilni tanlang" in last_text(), last_text()[:60])
-    check("ikkita til tugmasi", len(buttons()) == 2, str(len(buttons())))
-    await press(dp, bot, "lang:uz")
-    check("menyu o‘zbekcha", "Psixologik testlar" in last_text(), last_text()[:60])
-    check("menyuda 4 test + IQ + 4 tugma", len(buttons()) == 9, str(len(buttons())))
+    menu = last_text()
+    check("til so‘ralmadi — darrov menyu (o‘zbekcha)", "Kelajak Testi" in menu and "Tilni tanlang" not in menu,
+          menu[:60])
+    check("menyuda nima bepul, nima pullik", "Testni topshirish — bepul" in menu and "so‘mdan" in menu, menu)
+    check("qulf belgisi yo‘q", "🔒 " not in "".join(b.text for b in buttons()), str([b.text for b in buttons()]))
+    check("menyuda 5 test + 4 tugma", len(buttons()) == 9, str(len(buttons())))
+    check("birinchi tugma — IQ", buttons()[0].callback_data == "iq:card", buttons()[0].callback_data)
     check("IQ tugmasi kartochkani ochadi",
           any(b.callback_data == "iq:card" for b in buttons()),
           str([b.callback_data for b in buttons()]))
@@ -269,7 +273,7 @@ async def main() -> int:
     CALLS.clear()
     await send(dp, bot, "/til")
     await press(dp, bot, "lang:ru")
-    check("menyu ruscha", "Психологические тесты" in last_text(), last_text()[:60])
+    check("menyu ruscha", "Тесты мировой психологии" in last_text(), last_text()[:80])
     check("til yangilandi", await db.get_lang(TEST_USER) == "ru")
     await press(dp, bot, "test:future")
     check("kartochka ruscha", "Авторский опросник" in last_text(), last_text()[-100:])
@@ -297,7 +301,7 @@ async def main() -> int:
     check("tugma bosish so‘raldi (ruscha)", "выберите один из вариантов" in
           last_text().lower(), last_text()[:60])
     await send(dp, bot, "/bekor")
-    check("/bekor ishladi", "отменён" in last_text().lower(), last_text()[:60])
+    check("/bekor: test to‘xtatildi, javoblar saqlandi", "остановлен" in all_text().lower(), all_text()[-200:])
 
     # --- 10. Tugagan testdagi eski tugma -----------------------------------
     print("10. Eski tugma")
@@ -335,71 +339,76 @@ async def main() -> int:
     CALLS.clear()
     await send(dp, bot, "/admin")
     check("admin panel ochilmadi", "Admin panel" not in last_text(), last_text()[:60])
-    check("yangi foydalanuvchidan til so‘raldi", "Tilni tanlang" in last_text())
+    check("yangi foydalanuvchi: til avtomatik (uz)", await db.get_lang(999) == "uz")
     await press(dp, bot, "lang:ru")
     await press(dp, bot, "test:bigfive")
     check("yangi foydalanuvchi ruscha ko‘rdi", "50 вопросов" in last_text(),
           last_text()[-80:])
 
-    # --- 13. To'lov to'sig'i ------------------------------------------------
-    # Eng muhim qism: pul to'lanmaguncha test ochilmasligi kerak.
-    print("13. To‘lov to‘sig‘i")
+    # --- 13. Test bepul, to'liq tahlil pullik --------------------------------
+    print("13. Bepul test → bepul natija → to‘liq tahlil to‘lovi")
     as_user(999, "Oddiy")
     CALLS.clear()
     await press(dp, bot, "lang:uz")
     await press(dp, bot, "test:bigfive")
     card = last_text()
-    check("kartochkada narx bor", "Narxi" in card, card[-120:])
+    check("test oldidan: nima bepul aytilgan", "Bepul:" in card and "sertifikat" in card, card[-200:])
+    check("test oldidan: to‘liq tahlil narxi aytilgan", "To‘liq tahlil — 9 900 so‘m" in card, card[-200:])
     labels = [b.text for b in buttons()]
-    check("«To‘lash» tugmasi chiqdi",
-          any("to‘lash" in x.lower() for x in labels), str(labels))
-    check("«Boshlash» tugmasi yo‘q",
-          not any("Boshlash" in x for x in labels), str(labels))
+    check("«Boshlash» tugmasi bor (pul so‘ralmaydi)", any("Boshlash" in x for x in labels), str(labels))
 
     CALLS.clear()
     await press(dp, bot, "go:bigfive")
-    wall = last_text()
-    check("test o‘rniga paywall chiqdi", "Bu test pullik" in wall, wall[:80])
-    check("savol berilmadi", "Savol 1" not in all_text())
+    check("test darhol boshlandi", "Savol 1 / 50" in last_text(), last_text()[:60])
+    CALLS.clear()
+    await take_test(dp, bot, "bigfive")
+    free = last_text()
+    check("bepul natija: eng kuchli tomon va qulflangan qatorlar",
+          "Test yakunlandi" in free and "Eng kuchli tomoningiz" in free and free.count("🔒") == 4, free[:300])
+    check("bepul natijada to‘liq tahlil bo‘limlari yo‘q", "█" not in free and "XAVF ZONALARI" not in free)
+    check("ogohlantirish bepul natijada ham bor", "tashxis emas" in free)
+    pay_buttons = [b for b in buttons()]
+    unlock = next((b.callback_data for b in pay_buttons if (b.callback_data or "").startswith("rep:buy:")), "")
+    check("«To‘liq tahlilni ochish — narx» tugmasi", unlock and "9 900" in pay_buttons[0].text,
+          str([b.text for b in pay_buttons]))
+    check("to‘plam ikkinchi bo‘lib taklif qilindi",
+          (pay_buttons[1].callback_data or "").startswith("rep:bundle:") and "7 990" in pay_buttons[1].text,
+          str([b.text for b in pay_buttons]))
+    photos = [m for n, m in CALLS if n == "SendPhoto"]
+    check("sertifikat bepul yuborildi", bool(photos))
 
     CALLS.clear()
-    await press(dp, bot, "pay:bigfive")
+    await press(dp, bot, unlock)
     pay_text = last_text()
-    check("to‘lov ekrani ochildi", "Buyurtma" in pay_text, pay_text[:80])
+    check("to‘lov ekrani: aynan tahlil narxi", "to‘liq tahlil" in pay_text and "9 900" in pay_text, pay_text[:120])
+    labels = [b.text for b in buttons()]
+    check("avval Click, keyin karta", "Click" in labels[0] and "Karta" in labels[1], str(labels))
     urls = [b.url for b in buttons() if b.url]
-    check("my.click.uz havolasi berildi",
-          any("my.click.uz" in (u or "") for u in urls), str(urls))
-
+    check("my.click.uz havolasi berildi", any("my.click.uz" in (u or "") for u in urls), str(urls))
     payment = (await db.recent_payments(1))[0]
-    check("to‘lov bazaga yozildi",
-          payment["user_id"] == 999 and payment["status"] == "pending", str(payment))
+    check("to‘lov bazaga yozildi (tahlil narxiga)",
+          payment["user_id"] == 999 and payment["status"] == "pending" and payment["amount"] == 9900
+          and payment["product"] == "bigfive", str(payment))
 
+    # Click "to'landi" dedi (webhook) — tahlil shu chatda darhol ochilishi kerak.
+    import access
+    from handlers import payment as payment_handlers
     CALLS.clear()
-    await press(dp, bot, "ans:0:4")
-    check("to‘lovsiz savolga javob berib bo‘lmadi", "Savol 2" not in all_text())
-
-    # Click "to'landi" dedi — endi ochilishi kerak.
     await db.mark_paid(payment["id"])
-    check("huquq berildi", await db.has_access(999, "bigfive"))
+    await payment_handlers.notify_paid(payment["id"])
+    check("huquq berildi", await access.has(999, "bigfive"))
+    full = all_text()
+    check("to‘lov qabul qilindi va to‘liq tahlil keldi",
+          "To‘lov qabul qilindi" in full and "█" in full and "XAVF ZONALARI" in full and "ODAT" in full, full[:200])
 
     CALLS.clear()
-    await press(dp, bot, "go:bigfive")
-    # Big Five yosh so'ramaydi — to'lovdan keyin darrov savolga o'tadi.
-    check("test ochildi va savol berildi", "Savol 1" in last_text(), last_text()[:60])
-    await press(dp, bot, "ans:0:4")
-    check("javob qabul qilindi", "Savol 2" in last_text(), last_text()[:60])
-
-    CALLS.clear()
-    await press(dp, bot, "pay:bigfive")
-    # Test hali tugatilmagan — to'langan urinish ishlatilmagan, qayta pul so'ralmaydi.
-    check("ikkinchi marta pul so‘ralmadi",
-          "allaqachon ochiq" in last_text(), last_text()[:80])
-    check("yangi buyurtma ochilmadi",
-          len(await db.recent_payments(10)) == 1, str(await db.recent_payments(10)))
+    await press(dp, bot, unlock)
+    check("ikkinchi marta pul so‘ralmadi — to‘liq tahlil ochildi", "█" in all_text(), all_text()[:80])
+    check("yangi buyurtma ochilmadi", len(await db.recent_payments(10)) == 1, str(await db.recent_payments(10)))
 
     CALLS.clear()
     await press(dp, bot, "test:career")
-    check("boshqa test hamon yopiq", "Narxi" in last_text(), last_text()[-80:])
+    check("boshqa testning to‘liq tahlili hamon pullik", "To‘liq tahlil — " in last_text(), last_text()[-120:])
 
     # --- 14. Sinov rejimi ---------------------------------------------------
     # Admin odatda to'siqni ko'rmaydi — bu tugma uni ham to'siq ortiga qo'yadi,
@@ -411,17 +420,16 @@ async def main() -> int:
     await press(dp, bot, "lang:uz")
     CALLS.clear()
     await press(dp, bot, "test:career")
-    check("admin to‘siqni ko‘rmaydi", "Narxi" not in last_text(), last_text()[-60:])
+    check("admin uchun to‘liq tahlil ochiq", "To‘liq tahlil — " not in last_text(), last_text()[-60:])
 
     await press(dp, bot, "adm:testmode")
     check("sinov rejimi yoqildi", await db.admin_pays())
     CALLS.clear()
     await press(dp, bot, "test:career")
-    check("endi admin ham narxni ko‘radi", "Narxi" in last_text(), last_text()[-60:])
+    check("endi admin ham narxni ko‘radi", "To‘liq tahlil — " in last_text(), last_text()[-120:])
     CALLS.clear()
     await press(dp, bot, "go:career")
-    check("admin ham to‘siqqa uchradi", "Bu test pullik" in last_text(),
-          last_text()[:60])
+    check("test baribir bepul boshlanadi", "Savol 1" in last_text(), last_text()[:60])
 
     await press(dp, bot, "adm:testmode")
     check("sinov rejimi o‘chirildi", not await db.admin_pays())

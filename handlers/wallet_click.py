@@ -1,4 +1,4 @@
-"""Click checkout for wallet top-ups."""
+"""Click checkout for wallet top-ups (credit happens in reports.after_payment)."""
 from __future__ import annotations
 
 import re
@@ -59,75 +59,10 @@ def methods_menu(lang: str):
     return b.as_markup()
 
 
-async def _credit_click_topup(payment: dict) -> bool:
-    """Credit a Click wallet top-up exactly once."""
-    if payment.get("product") != PRODUCT or payment.get("status") != "paid":
-        return False
-    return await wallet.credit(
-        int(payment["user_id"]),
-        int(payment["amount"]),
-        "click_topup",
-        reference=f"click_topup:{payment['id']}",
-        note=f"Click wallet top-up #{payment['id']}",
-    )
-
-
-async def _announce_wallet_aware(message, payment: dict, lang: str, original_announce) -> None:
-    if payment.get("product") == PRODUCT:
-        credited = await _credit_click_topup(payment)
-        amount = money(int(payment["amount"]))
-        if credited or payment.get("status") == "paid":
-            user_id = int(payment["user_id"])
-            await message.answer(
-                bi(
-                    lang,
-                    f"✅ Balans to‘ldirildi: <b>+{amount} so‘m</b>.\n\n💰 Yangi balans: <b>{money(await wallet.balance(user_id))} so‘m</b>",
-                    f"✅ Баланс пополнен на <b>+{amount} сум</b>.\n\n💰 Новый баланс: <b>{money(await wallet.balance(user_id))} сум</b>",
-                ),
-                reply_markup=wallet_menu(lang),
-            )
-        return
-    await original_announce(message, payment, lang)
-
-
-from handlers import payment as _payment_module
-
-_original_announce = _payment_module._announce
-
-
-async def _announce(message, payment, lang: str) -> None:
-    await _announce_wallet_aware(message, payment, lang, _original_announce)
-
-
-_payment_module._announce = _announce
-
-_original_notify_paid = _payment_module.notify_paid
-
-
-async def notify_paid(payment_id: int) -> None:
-    payment = await db.get_payment(payment_id)
-    if payment and payment.get("product") == PRODUCT and payment.get("status") == "paid":
-        user_id = int(payment["user_id"])
-        lang = await db.get_lang(user_id) or "uz"
-        await _credit_click_topup(payment)
-        if _payment_module._bot is not None:
-            try:
-                await _payment_module._bot.send_message(
-                    user_id,
-                    bi(
-                        lang,
-                        f"✅ Balans to‘ldirildi: <b>+{money(int(payment['amount']))} so‘m</b>.\n💰 Yangi balans: <b>{money(await wallet.balance(user_id))} so‘m</b>",
-                        f"✅ Баланс пополнен на <b>+{money(int(payment['amount']))} сум</b>.\n💰 Новый баланс: <b>{money(await wallet.balance(user_id))} сум</b>",
-                    ),
-                    reply_markup=wallet_menu(lang),
-                )
-            except Exception:
-                pass
-        return
-    await _original_notify_paid(payment_id)
-
-
-_payment_module.notify_paid = notify_paid
+# Click orqali to'ldirilgan pul balansga `handlers/reports.after_payment()` da
+# tushadi (reference "click_topup:<id>" — ikki marta tushmaydi). Avval bu yerda
+# payment._announce va notify_paid almashtirilardi; ular boshqa modul bilan
+# bir-birini bosib, webhook yo'lida balans umuman to'ldirilmas edi.
 
 
 async def _payment_text(amount: int, payment_id: int, lang: str) -> str:

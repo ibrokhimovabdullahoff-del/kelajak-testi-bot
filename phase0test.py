@@ -203,7 +203,7 @@ async def main() -> int:
         "WHERE user_id = ? AND event = 'q_answered' ORDER BY id", (uid,))]
     check("test ichidagi bosqichlar: 25, 50, 75 — bittadan", pcts == [25, 50, 75], str(pcts))
     paywalls = await query("SELECT test_id, meta FROM events WHERE user_id = ? AND event = 'paywall_shown'", (uid,))
-    check("paywall: kartochka va to‘lov oynasi", {json.loads(m)["where"] for _, m in paywalls} == {"card", "paywall"},
+    check("paywall: natijadan keyin (test o‘zi bepul)", {json.loads(m)["where"] for _, m in paywalls} == {"result"},
           str(paywalls))
 
     print("4. IQ hodisalari")

@@ -28,6 +28,8 @@ log = logging.getLogger(__name__)
 #: To'lov tasdiqlanganda chaqiriladigan funksiya. main.py uni o'rnatadi —
 #: shu tufayli bu modul Telegram haqida hech narsa bilmaydi va aksincha.
 _on_paid = None
+#: Click to'lovni bekor qilganda chaqiriladi (foydalanuvchiga "qayta urinish").
+_on_failed = None
 
 
 def _reply(data: dict, error: int, extra: dict | None = None) -> web.Response:
@@ -146,6 +148,11 @@ async def complete(request: web.Request) -> web.Response:
         import events
         events.track(payment["user_id"], "payment_failed", payment["product"],
                      method="click", amount=payment["amount"], code=reported)
+        if _on_failed is not None and payment["status"] != "cancelled":
+            try:
+                await _on_failed(payment_id)
+            except Exception:  # noqa: BLE001
+                log.exception("Bekor qilingan to'lov haqida xabar yuborilmadi: %s", payment_id)
         return _reply(data, click.CANCELLED)
 
     if payment["status"] == "paid":
@@ -223,10 +230,11 @@ def build_app() -> web.Application:
     return app
 
 
-async def run_server(on_paid=None) -> web.AppRunner:
+async def run_server(on_paid=None, on_failed=None) -> web.AppRunner:
     """Serverni ko'taradi va uni qaytaradi (to'xtatish uchun kerak)."""
-    global _on_paid
+    global _on_paid, _on_failed
     _on_paid = on_paid
+    _on_failed = on_failed
 
     runner = web.AppRunner(build_app())
     await runner.setup()

@@ -217,8 +217,35 @@ Faqat tegishli `psytests/*.py` faylini tahrirlang. Ikkala tilni ham yozing —
   bazada va Telegram'da o‘tgan vaqt
 - 📣 **Xabar yuborish** — hammaga, faqat o‘zbekchaga yoki faqat ruschaga.
   Tasdiqlash so‘raladi, bloklaganlar avtomatik belgilanadi
-- 💳 **To‘lovlar** — tushum, oxirgi to‘lovlar, narxlarni deploy qilmasdan
-  o‘zgartirish, testni vaqtincha bepul qilish, huquqni qo‘lda ochish
+- 💳 **To‘lovlar** — tushum, oxirgi to‘lovlar, to‘liq tahlil narxlari (va
+  to‘plam), to‘liq tahlilni vaqtincha bepul qilish, qo‘lda ochish, «Chekdan
+  oldin ochish» (odatda o‘chiq), **Click to‘ldirishlarini tekshirish** (eski
+  xato tufayli balansga tushmagan to‘ldirishlarni topib, bir marta tushiradi)
+
+---
+
+## Pul modeli: test bepul, to‘liq tahlil pullik
+
+- Hamma test **bepul topshiriladi**. Natijadan keyin **qisqa natija va
+  sertifikat bepul**; **to‘liq tahlil** — pullik (har bir test narxi admin
+  panelda, «📦 5 ta test to‘plami» — alohida narx).
+- Nima bepul, nima pullik — **test boshlanishidan oldin** aytiladi.
+- Avval testni sotib olganlar o‘sha testning to‘liq tahlilini bepul ko‘radi
+  (migratsiya 5: `report_access`, source = `legacy`).
+- To‘lov ekrani: **avval Click** (aynan tahlil narxiga, balans emas),
+  **keyin karta** (summa va karta raqami ko‘rsatiladi → odam faqat chek
+  rasmini yuboradi → chek **adminlarga ID bo‘yicha** tasdiqlash/rad etish
+  tugmalari bilan boradi), balans yetarli bo‘lsa — balansdan.
+- To‘lovdan keyin to‘liq tahlil **shu chatda darhol** ochiladi.
+- «⚡️ Chekdan oldin ochish» (admin → To‘lovlar, **odatda o‘chiq**): 5 000
+  so‘mgacha chek rasmi kelishi bilan ochiladi; bir odamda bir vaqtda bitta;
+  rad etilsa — yopiladi va u odamga bu imkoniyat boshqa berilmaydi.
+- Test o‘rtasida javoblar bazaga yoziladi (`progress`): /start da «▶️ Testni
+  davom ettirish (23/50)», bot qayta ishga tushsa ham eski savol tugmasi ishlaydi.
+
+**To‘liq tahlil matnlari** — `content/reports.toml` (kodga tegmasdan
+tahrirlanadi; hammasi DRAFT, egasi ko‘rib chiqishi kerak). `selftest.py`
+ularni ham tekshiradi (apostroflar, kitobiy so‘zlar).
 
 ---
 

@@ -1,0 +1,319 @@
+# Kelajak Testi — to‘liq tahlil (pullik hisobot) matnlari.
+#
+# Bu faylni kodga tegmasdan tahrirlash mumkin. Har bir matn ikki tilda:
+#     { uz = "...", ru = "..." }
+# Qoidalar (selftest.py tekshiradi):
+#   * o‘/g‘ dan keyin ‘ belgisi, tutuq belgisi (ma’lumot, e’tibor) — ’
+#   * bitta matn — bitta-ikki qisqa jumla: odamlar telefonda o‘qiydi
+#   * tashxis ham, kelajakni aytish ham yo‘q — faqat moyillik va aniq qadam
+#
+# DRAFT: bu matnlarni Claude yozgan, egasi ko‘rib chiqishi kerak.
+# Ko‘rib chiqqan bo‘limingizda `reviewed = true` qiling.
+
+[meta]
+reviewed = false
+note = "Generated draft — needs owner review"
+
+# =============================================================================
+# Test oldidan ekran va natijadagi to‘lov oynasi
+#   free    — bepul nima beriladi (test oldidan aytiladi)
+#   paid    — to‘liq tahlilda nima bor (qisqa)
+#   bullets — natijadan keyin «To‘liq tahlilda:» ro‘yxati
+# =============================================================================
+
+[tests.iq]
+free = { uz = "to‘g‘ri javoblar soni, eng kuchli tomoningiz va sertifikat", ru = "число верных ответов, ваша сильная сторона и сертификат" }
+paid = { uz = "taxminiy IQ (yoshingizga qarab, ±7), 4 ta fikrlash turi bo‘yicha tahlil va mashqlar", ru = "примерный IQ (по вашему возрасту, ±7), разбор по 4 типам мышления и упражнения" }
+bullets = [
+  { uz = "Taxminiy IQ — tengdoshlaringizga nisbatan, ±7 oraliq bilan", ru = "Примерный IQ — относительно сверстников, с диапазоном ±7" },
+  { uz = "4 ta fikrlash turi bo‘yicha natijangiz", ru = "Ваш результат по 4 типам мышления" },
+  { uz = "Har bir tur nimani anglatadi va uni qanday mashq qilish mumkin", ru = "Что значит каждый тип и как его тренировать" },
+]
+
+[tests.bigfive]
+free = { uz = "eng kuchli xususiyatingiz va sertifikat", ru = "ваша самая сильная черта и сертификат" }
+paid = { uz = "5 ta o‘lchov, kuchli va zaif tomonlar, sizga mos muhit", ru = "5 шкал, сильные и слабые стороны, подходящая вам среда" }
+bullets = [
+  { uz = "5 ta o‘lchov bo‘yicha foiz va izoh", ru = "Проценты и пояснение по 5 шкалам" },
+  { uz = "Kuchli tomonlaringiz va xavf zonalari", ru = "Ваши сильные стороны и зоны риска" },
+  { uz = "Sizga mos ish va o‘qish muhiti", ru = "Подходящая вам среда для работы и учёбы" },
+  { uz = "Natijani eng ko‘p o‘zgartiradigan bitta odat", ru = "Одна привычка, которая изменит больше всего" },
+]
+
+[tests.career]
+free = { uz = "sizga eng yaqin yo‘nalish va sertifikat", ru = "самое близкое вам направление и сертификат" }
+paid = { uz = "6 ta yo‘nalish bo‘yicha profil, Holland kodi, mos kasblar va o‘qish yo‘nalishlari", ru = "профиль по 6 направлениям, код Холланда, профессии и направления учёбы" }
+bullets = [
+  { uz = "6 ta yo‘nalish bo‘yicha to‘liq profil", ru = "Полный профиль по 6 направлениям" },
+  { uz = "Holland kodingiz (2–3 harf)", ru = "Ваш код Холланда (2–3 буквы)" },
+  { uz = "Sizga mos kasblar va O‘zbekistonda qayerda o‘qish mumkin", ru = "Подходящие профессии и где учиться в Узбекистане" },
+  { uz = "Keyingi oyda nimani sinab ko‘rish kerak", ru = "Что попробовать в ближайший месяц" },
+]
+
+[tests.future]
+free = { uz = "umumiy indeks (0–100), eng kuchli tomoningiz va sertifikat", ru = "общий индекс (0–100), ваша сильная сторона и сертификат" }
+paid = { uz = "9 ta yo‘nalish, ustida ishlash kerak bo‘lgan 3 tasi va aniq qadamlar", ru = "9 направлений, 3 главных для работы и конкретные шаги" }
+bullets = [
+  { uz = "9 ta yo‘nalish bo‘yicha foiz", ru = "Проценты по 9 направлениям" },
+  { uz = "Ustida ishlash kerak bo‘lgan 3 ta yo‘nalish va aniq qadamlar", ru = "3 направления для работы и конкретные шаги" },
+  { uz = "Har bir yo‘nalish haqida tadqiqotlar nima deydi", ru = "Что говорят исследования о каждом направлении" },
+]
+
+[tests.child]
+free = { uz = "umumiy indeks va farzandingizning eng kuchli tomoni", ru = "общий индекс и самая сильная сторона ребёнка" }
+paid = { uz = "8 ta yo‘nalish va har biri bo‘yicha ota-onaga amaliy maslahat", ru = "8 направлений и практический совет родителям по каждому" }
+bullets = [
+  { uz = "8 ta yo‘nalish bo‘yicha foiz", ru = "Проценты по 8 направлениям" },
+  { uz = "Har bir yo‘nalish bo‘yicha amaliy maslahat", ru = "Практический совет по каждому направлению" },
+  { uz = "Farzandingiz yoshiga mos tavsiya", ru = "Рекомендация по возрасту ребёнка" },
+]
+
+# =============================================================================
+# IQ: 4 ta fikrlash turi (kalitlar — psytests/iq.py dagi KINDS)
+# =============================================================================
+
+[iq.kinds.change]
+meaning = { uz = "Narsalar qaysi qoida bilan o‘zgarayotganini sezish: son, rang yoki holat har qadamda qanday o‘zgaradi.", ru = "Умение заметить правило изменений: как от шага к шагу меняются число, цвет или положение." }
+train = { uz = "Har kuni 5 daqiqa sonli qatorlar yeching (2, 4, 8, …) va javobdan oldin qoidani ovoz chiqarib ayting.", ru = "Каждый день 5 минут решайте числовые ряды (2, 4, 8, …) и до ответа проговаривайте правило вслух." }
+
+[iq.kinds.spatial]
+meaning = { uz = "Shaklni xayolan aylantirish, uning ko‘zgudagi aksini va burilishini ko‘ra olish.", ru = "Умение мысленно поворачивать фигуру и видеть её отражение и вращение." }
+train = { uz = "Tangram, Rubik kubigi yoki LEGO yig‘ing; tanish yo‘lni xaritaga qaramay yurib ko‘ring.", ru = "Собирайте танграм, кубик Рубика или LEGO; пройдите знакомый маршрут, не глядя в карту." }
+
+[iq.kinds.rows]
+meaning = { uz = "Qator va ustunlardagi tartibni ko‘rib, qaysi bo‘lak yetishmayotganini topish.", ru = "Умение увидеть порядок в строках и столбцах и найти недостающий элемент." }
+train = { uz = "Sudoku va «nima ortiqcha?» topshiriqlarini yeching: avval qatorni, keyin ustunni tekshiring.", ru = "Решайте судоку и задачи «что лишнее?»: сначала проверяйте строку, потом столбец." }
+
+[iq.kinds.combine]
+meaning = { uz = "Ikki shaklni xayolan ustma-ust qo‘yib, natijani oldindan ko‘ra olish.", ru = "Умение мысленно наложить две фигуры и заранее увидеть результат." }
+train = { uz = "Origami yasang yoki rasmlarni ustma-ust qo‘yish o‘yinlarini o‘ynang — natijani avval xayolan chizing.", ru = "Делайте оригами или играйте в игры на наложение картинок — сначала представьте результат в уме." }
+
+# =============================================================================
+# Big Five
+# =============================================================================
+
+# Eng kuchli ikki xususiyat juftligi — sertifikat va bepul natijadagi nom.
+# Juftlik faqat ikkala xususiyat ham o‘rtachadan yuqori bo‘lsa ishlatiladi.
+# Kalit — harflar shu tartibda: E A C S O.
+[bigfive.pairs.EA]
+name = { uz = "Odamlar do‘sti", ru = "Друг для всех" }
+line = { uz = "Odamlarni yaxshi ko‘rasiz va ular ham sizga intiladi.", ru = "Вы любите людей, и они тянутся к вам." }
+[bigfive.pairs.EC]
+name = { uz = "Tashabbuskor yetakchi", ru = "Инициативный лидер" }
+line = { uz = "Odamlarni yig‘asiz va ishni oxiriga yetkazasiz.", ru = "Вы собираете людей и доводите дело до конца." }
+[bigfive.pairs.ES]
+name = { uz = "Xotirjam ruhlantiruvchi", ru = "Спокойный вдохновитель" }
+line = { uz = "Davraga quvvat berasiz va bosim ostida ham o‘zingizni yo‘qotmaysiz.", ru = "Вы заряжаете компанию и не теряетесь под давлением." }
+[bigfive.pairs.EO]
+name = { uz = "G‘oyalar tarqatuvchisi", ru = "Генератор идей" }
+line = { uz = "Yangi g‘oyani topasiz va odamlarni unga ilhomlantirasiz.", ru = "Вы находите новую идею и зажигаете ею людей." }
+[bigfive.pairs.AC]
+name = { uz = "Ishonchli tayanch", ru = "Надёжная опора" }
+line = { uz = "Va’dangizga ishonsa bo‘ladi, yordamga esa doim tayyorsiz.", ru = "На ваше слово можно положиться, и вы всегда готовы помочь." }
+[bigfive.pairs.AS]
+name = { uz = "Xotirjam qalb", ru = "Спокойное сердце" }
+line = { uz = "Yoningizda odamlar o‘zini xavfsiz his qiladi.", ru = "Рядом с вами людям спокойно." }
+[bigfive.pairs.AO]
+name = { uz = "Ijodkor qalb", ru = "Творческое сердце" }
+line = { uz = "Boshqalarni tushunasiz va dunyoga o‘zgacha qaraysiz.", ru = "Вы понимаете других и смотрите на мир по-своему." }
+[bigfive.pairs.CS]
+name = { uz = "Sovuqqon strateg", ru = "Хладнокровный стратег" }
+line = { uz = "Rejaga amal qilasiz va qiyin vaziyatda ham xotirjam qolasiz.", ru = "Вы следуете плану и сохраняете спокойствие в трудной ситуации." }
+[bigfive.pairs.CO]
+name = { uz = "Tizimli izlanuvchi", ru = "Системный исследователь" }
+line = { uz = "G‘oyani rejaga aylantirib, oxirigacha olib borasiz.", ru = "Вы превращаете идею в план и доводите её до конца." }
+[bigfive.pairs.SO]
+name = { uz = "Erkin fikrlovchi", ru = "Свободный мыслитель" }
+line = { uz = "Yangilikdan qo‘rqmaysiz va uni xotirjam o‘rganasiz.", ru = "Вы не боитесь нового и спокойно его изучаете." }
+
+# Xususiyatlar bir-biriga yaqin (hech biri aniq ajralib turmaydi).
+[bigfive.balanced]
+name = { uz = "Muvozanatli shaxs", ru = "Гармоничная личность" }
+line = { uz = "Xususiyatlaringiz bir-biriga yaqin: vaziyatga qarab moslashasiz.", ru = "Ваши черты близки друг к другу: вы подстраиваетесь под ситуацию." }
+
+# Har bir daraja uchun bitta aniq qadam (past / o‘rta / yuqori).
+[bigfive.action.E]
+high = { uz = "Har kuni 30 daqiqa yolg‘iz, telefonsiz diqqat talab qiladigan ishga ajrating.", ru = "Выделяйте каждый день 30 минут на сосредоточенную работу в одиночку, без телефона." }
+mid = { uz = "Haftada bir marta yangi davraga boring — to‘garak, kurs yoki tadbir.", ru = "Раз в неделю ходите в новую компанию — кружок, курс или мероприятие." }
+low = { uz = "Haftada bitta muhim tanishingizga o‘zingiz yozing: qisqa savol yoki tabrik yetarli.", ru = "Раз в неделю сами напишите одному важному знакомому: хватит короткого вопроса или поздравления." }
+[bigfive.action.A]
+high = { uz = "Haftada bir marta «yo‘q» deyishni mashq qiling — o‘z vaqtingizni himoya qilish ham mehr.", ru = "Раз в неделю тренируйтесь говорить «нет» — защищать своё время тоже забота." }
+mid = { uz = "Tortishuvda avval suhbatdoshingiz fikrini qaytarib ayting, keyin o‘zingiznikini.", ru = "В споре сначала перескажите мнение собеседника, потом своё." }
+low = { uz = "Har kuni bitta odamga sababi bilan aniq rahmat ayting.", ru = "Каждый день говорите одному человеку конкретное спасибо — с причиной." }
+[bigfive.action.C]
+high = { uz = "Haftalik rejangizga bitta bo‘sh «dam» oynasini qo‘shing — ortiqcha yuklanish natijani pasaytiradi.", ru = "Добавьте в недельный план одно пустое «окно отдыха» — перегрузка снижает результат." }
+mid = { uz = "Bitta odatni tanlang va uni 21 kun ketma-ket, bir xil vaqtda bajaring.", ru = "Выберите одну привычку и выполняйте её 21 день подряд в одно и то же время." }
+low = { uz = "Har bir katta ishni 15 daqiqalik bo‘laklarga bo‘ling va birinchisini darhol boshlang.", ru = "Делите каждое большое дело на 15-минутные куски и начинайте первый сразу." }
+[bigfive.action.S]
+high = { uz = "Xotirjamligingizni yaqinlaringizga ham ulashing: qiyin paytda ularning yonida bo‘ling.", ru = "Делитесь спокойствием с близкими: будьте рядом с ними в трудную минуту." }
+mid = { uz = "Asabiylashganda 4 soniya nafas oling, 4 soniya ushlab turing, 6 soniyada chiqaring — 3 marta.", ru = "Когда нервничаете: вдох 4 секунды, пауза 4, выдох 6 — три раза." }
+low = { uz = "Har kecha tashvishlaringizni 5 daqiqa qog‘ozga yozing — shunda ular xayolni band qilmaydi.", ru = "Каждый вечер 5 минут записывайте тревоги на бумагу — так они меньше занимают мысли." }
+[bigfive.action.O]
+high = { uz = "G‘oyalaringizdan bittasini tanlab, bir oy ichida kichik natijaga olib chiqing.", ru = "Выберите одну идею и за месяц доведите её до маленького результата." }
+mid = { uz = "Har hafta o‘zingizga notanish sohadan bitta maqola o‘qing yoki video ko‘ring.", ru = "Каждую неделю читайте статью или смотрите видео из незнакомой вам области." }
+low = { uz = "Oyiga bir marta yangi narsani sinab ko‘ring: yangi taom, yo‘l yoki kitob janri.", ru = "Раз в месяц пробуйте что-то новое: блюдо, маршрут или жанр книги." }
+
+# Xavf zonasi: xususiyat juda yuqori yoki juda past bo‘lganda.
+[bigfive.risk.E]
+high = { uz = "Ko‘p gapirib, tinglashni unutish va yolg‘iz ishda tez zerikish.", ru = "Много говорить и забывать слушать, быстро скучать в одиночной работе." }
+low = { uz = "Kerakli aloqalar qurilmay qolishi va fikringiz yig‘ilishda eshitilmasligi.", ru = "Нужные связи могут не сложиться, а ваше мнение — не прозвучать на встречах." }
+[bigfive.risk.A]
+high = { uz = "O‘z manfaatingizni himoya qilmaslik va «yo‘q» deya olmaslik.", ru = "Не отстаивать свои интересы и не уметь сказать «нет»." }
+low = { uz = "Odamlar sizni qattiqqo‘l deb o‘ylashi va jamoada nizo chiqishi.", ru = "Вас могут счесть жёстким, в команде возможны конфликты." }
+[bigfive.risk.C]
+high = { uz = "O‘zingizni ortiqcha yuklash va mukammallikka berilib, ishni kechiktirish.", ru = "Перегружать себя и откладывать дела из-за перфекционизма." }
+low = { uz = "Muddatlarni o‘tkazib yuborish va boshlangan ishning chala qolishi.", ru = "Срывать сроки и бросать начатое на полпути." }
+[bigfive.risk.S]
+high = { uz = "Xavfni kam baholab, ehtiyot choralarini unutish.", ru = "Недооценивать риск и забывать о мерах предосторожности." }
+low = { uz = "Stressdan keyin uzoq tiklanish va kichik tashvishning kattalashib ketishi.", ru = "Долго восстанавливаться после стресса и раздувать мелкие тревоги." }
+[bigfive.risk.O]
+high = { uz = "Ko‘p g‘oyani boshlab, birortasini oxiriga yetkazmaslik.", ru = "Начинать много идей и не доводить ни одну до конца." }
+low = { uz = "Yangi imkoniyatni o‘zgarishdan qo‘rqib o‘tkazib yuborish.", ru = "Упускать новые возможности из-за страха перемен." }
+
+# Sizga mos muhit — eng kuchli xususiyat bo‘yicha.
+[bigfive.environment]
+E = { uz = "Odamlar bilan ko‘p ishlanadigan joy: sotuv, o‘qitish, tadbirlar, jamoaviy loyihalar. O‘qishda — guruhda o‘qish va taqdimotlar.", ru = "Работа с людьми: продажи, преподавание, мероприятия, командные проекты. В учёбе — групповые занятия и презентации." }
+A = { uz = "Odamlarga yordam beriladigan joy: ta’lim, tibbiyot, mijozlar bilan ishlash. Raqobat kuchli joyda chegarangizni aniq ayting.", ru = "Там, где помогают людям: образование, медицина, работа с клиентами. Где сильна конкуренция — чётко обозначайте границы." }
+C = { uz = "Aniq maqsad va muddat bor joy: moliya, muhandislik, loyiha boshqaruvi, huquq. O‘qishda — reja bilan mustaqil o‘qish.", ru = "Там, где есть чёткие цели и сроки: финансы, инженерия, управление проектами, право. В учёбе — самостоятельно и по плану." }
+S = { uz = "Tez qaror va bosim bor joy: rahbarlik, tibbiyot, xavfsizlik, murakkab mijozlar bilan ishlash.", ru = "Там, где нужны быстрые решения под давлением: руководство, медицина, безопасность, сложные клиенты." }
+O = { uz = "Yangilik va erkinlik bor joy: dizayn, IT, tadqiqot, kontent, startaplar. O‘qishda — loyiha orqali o‘rganish.", ru = "Там, где есть новизна и свобода: дизайн, IT, исследования, контент, стартапы. В учёбе — через проекты." }
+
+# Natijani eng ko‘p o‘zgartiradigan odat — eng past xususiyat bo‘yicha.
+[bigfive.habit]
+E = { uz = "Haftada bitta suhbatni o‘zingiz boshlang — 3 oyda tanishlaringiz doirasi sezilarli kengayadi.", ru = "Начинайте один разговор в неделю сами — за 3 месяца круг знакомых заметно вырастет." }
+A = { uz = "Har kuni bitta odamga yordam bering yoki iliq so‘z ayting — munosabatlaringiz tez yaxshilanadi.", ru = "Каждый день помогайте кому-то или говорите тёплое слово — отношения быстро улучшатся." }
+C = { uz = "Har kecha ertangi 3 ta ishni yozing — tartib eng tez shu odat bilan o‘sadi.", ru = "Каждый вечер записывайте 3 дела на завтра — порядок быстрее всего растёт от этой привычки." }
+S = { uz = "Har kuni 10 daqiqa piyoda yuring va 3 marta chuqur nafas oling — stress sezilarli kamayadi.", ru = "Каждый день 10 минут ходьбы и три глубоких вдоха — стресс заметно уменьшится." }
+O = { uz = "Har hafta bitta yangi narsa: kitob, joy yoki mahorat — fikrlashingiz kengayadi.", ru = "Каждую неделю что-то новое: книга, место или навык — мышление станет шире." }
+
+# =============================================================================
+# Kasb yo‘nalishi (RIASEC)
+# =============================================================================
+
+[career.jobs]
+R = { uz = "muhandis, elektrik, mexanik, quruvchi, payvandchi, agronom, dron operatori", ru = "инженер, электрик, механик, строитель, сварщик, агроном, оператор дронов" }
+I = { uz = "dasturchi, ma’lumotlar tahlilchisi, shifokor, farmatsevt, laborant, tadqiqotchi", ru = "программист, аналитик данных, врач, фармацевт, лаборант, исследователь" }
+A = { uz = "dizayner, SMM va kontent mutaxassisi, videomontajchi, fotograf, arxitektor, tarjimon", ru = "дизайнер, SMM и контент-специалист, видеомонтажёр, фотограф, архитектор, переводчик" }
+S = { uz = "o‘qituvchi, psixolog, shifokor, hamshira, murabbiy, HR mutaxassisi", ru = "учитель, психолог, врач, медсестра, тренер, HR-специалист" }
+E = { uz = "tadbirkor, sotuv menejeri, marketolog, loyiha rahbari, yurist, turizm menejeri", ru = "предприниматель, менеджер по продажам, маркетолог, руководитель проектов, юрист, менеджер по туризму" }
+C = { uz = "buxgalter, moliyachi, bank xodimi, auditor, logist, ofis menejeri", ru = "бухгалтер, финансист, банковский специалист, аудитор, логист, офис-менеджер" }
+
+[career.study]
+R = { uz = "Texnika va muhandislik oliygohlari (masalan, TDTU), qurilish, energetika va transport yo‘nalishlari; texnikumlar va kasb kurslari.", ru = "Технические и инженерные вузы (например, ТашГТУ), строительство, энергетика, транспорт; техникумы и курсы профессий." }
+I = { uz = "IT (masalan, TATU yoki IT Park kurslari), tibbiyot institutlari, matematika, fizika, kimyo va biologiya fakultetlari.", ru = "IT (например, ТУИТ или курсы IT Park), медицинские институты, факультеты математики, физики, химии и биологии." }
+A = { uz = "San’at va dizayn institutlari, jurnalistika, arxitektura, kino va media; onlayn dizayn va montaj kurslari.", ru = "Институты искусства и дизайна, журналистика, архитектура, кино и медиа; онлайн-курсы дизайна и монтажа." }
+S = { uz = "Pedagogika universitetlari, psixologiya, tibbiyot, ijtimoiy ish; murabbiylik va til kurslari.", ru = "Педагогические университеты, психология, медицина, социальная работа; тренерские и языковые курсы." }
+E = { uz = "Iqtisodiyot va menejment (masalan, TDIU), marketing, xalqaro munosabatlar, huquq; tadbirkorlik kurslari.", ru = "Экономика и менеджмент (например, ТГЭУ), маркетинг, международные отношения, право; курсы предпринимательства." }
+C = { uz = "Moliya, buxgalteriya, bank ishi, statistika, logistika; buxgalteriya va Excel kurslari.", ru = "Финансы, бухгалтерия, банковское дело, статистика, логистика; курсы бухгалтерии и Excel." }
+
+[career.next]
+R = { uz = "Bu oy biror narsani o‘z qo‘lingiz bilan ta’mirlang yoki yig‘ing va bir kun ustaxonada kuzatib turing.", ru = "В этом месяце почините или соберите что-то своими руками и проведите день в мастерской как наблюдатель." }
+I = { uz = "Bu oy bepul onlayn kursda (dasturlash, tahlil yoki biologiya) birinchi modulni tugating.", ru = "В этом месяце пройдите первый модуль бесплатного онлайн-курса (программирование, аналитика или биология)." }
+A = { uz = "Bu oy bitta kichik ishni oxirigacha yarating — afisha, qisqa video yoki rasm — va uni 3 kishiga ko‘rsating.", ru = "В этом месяце создайте одну небольшую работу до конца — афишу, короткое видео или рисунок — и покажите трём людям." }
+S = { uz = "Bu oy kimgadir bepul dars bering yoki biror tadbirda ko‘ngilli bo‘lib yordam bering.", ru = "В этом месяце проведите кому-то бесплатное занятие или помогите волонтёром на мероприятии." }
+E = { uz = "Bu oy kichik savdoni sinab ko‘ring: biror narsani soting, foyda va xatolarni yozib boring.", ru = "В этом месяце попробуйте маленькую продажу: продайте что-то и записывайте прибыль и ошибки." }
+C = { uz = "Bu oy shaxsiy yoki oilaviy xarajatlarni Excel jadvalida yuritib ko‘ring.", ru = "В этом месяце ведите личные или семейные расходы в таблице Excel." }
+
+# =============================================================================
+# Kelajak salohiyati — har bir yo‘nalish
+#   research — tadqiqotlar nima deydi (bitta jumla)
+#   high/mid/low — shu darajada bitta aniq qadam
+# =============================================================================
+
+[future.maqsad]
+research = { uz = "Duckworth (2007): uzoq maqsadga sabr bilan intilish ko‘p sohada natijani qobiliyatdan kam bo‘lmagan darajada belgilaydi.", ru = "Duckworth (2007): упорство в долгой цели во многих сферах определяет результат не меньше способностей." }
+high = { uz = "Katta maqsadingizni yiliga bir marta qayta ko‘rib chiqing: u hali ham sizniki ekaniga ishonch hosil qiling.", ru = "Раз в год пересматривайте большую цель: убедитесь, что она всё ещё ваша." }
+mid = { uz = "Bitta maqsadni tanlang va uni avval 3 oylik, keyin 1 haftalik qadamlarga bo‘ling.", ru = "Выберите одну цель и разбейте её на шаги: сначала на 3 месяца, потом на неделю." }
+low = { uz = "Bugun «5 yildan keyin men…» deb boshlanadigan 3 ta gap yozing va bittasini tanlang.", ru = "Сегодня напишите 3 фразы, начинающиеся с «Через 5 лет я…», и выберите одну." }
+
+[future.intizom]
+research = { uz = "Barrick va Mount (1991): mas’uliyat va tartib — ish natijasi bilan eng barqaror bog‘langan xususiyat.", ru = "Barrick и Mount (1991): ответственность и организованность — черта, сильнее всего связанная с рабочим результатом." }
+high = { uz = "Rejangizga dam olishni ham kiriting — charchoq intizomni sekin yemiradi.", ru = "Включайте в план и отдых — усталость незаметно разрушает дисциплину." }
+mid = { uz = "Kuningizni oldingi kechqurun 3 ta asosiy ish bilan rejalashtiring.", ru = "Планируйте день накануне вечером: три главных дела." }
+low = { uz = "Bitta kichik ishni har kuni bir xil vaqtda bajaring — masalan, 10 daqiqa kitob o‘qish.", ru = "Делайте одно маленькое дело каждый день в одно время — например, 10 минут чтения." }
+
+[future.tafakkur]
+research = { uz = "Dweck (2006): qobiliyatni o‘stirsa bo‘ladi deb biladigan odamlar qiyinchilikda ko‘proq harakat qiladi va tezroq o‘sadi.", ru = "Dweck (2006): люди, верящие, что способности можно развить, больше стараются в трудностях и растут быстрее." }
+high = { uz = "O‘rgangan narsangizni boshqalarga o‘rgating — bilim shunda mustahkamlanadi.", ru = "Учите других тому, что узнали, — так знания закрепляются." }
+mid = { uz = "Har hafta bitta xatoingizni va undan olgan saboqni yozib boring.", ru = "Каждую неделю записывайте одну ошибку и урок, который из неё вынесли." }
+low = { uz = "«Men buni qila olmayman» o‘rniga «Men buni hali qila olmayman» deng.", ru = "Вместо «я не умею» говорите «я пока не умею»." }
+
+[future.nazorat]
+research = { uz = "Moffitt va hamkasblari (2011): bolalikdagi o‘zini tuta olish 30 yildan keyingi sog‘liq va daromad bilan bog‘liq chiqdi.", ru = "Moffitt и коллеги (2011): самоконтроль в детстве оказался связан со здоровьем и доходом через 30 лет." }
+high = { uz = "O‘zingizga ba’zan rejadan tashqari kichik zavq bering — qattiq nazorat ham charchatadi.", ru = "Иногда позволяйте себе маленькое удовольствие вне плана — жёсткий контроль тоже утомляет." }
+mid = { uz = "Ish paytida telefonni boshqa xonaga qo‘ying: 25 daqiqa ish, 5 daqiqa dam.", ru = "Во время работы оставляйте телефон в другой комнате: 25 минут работы, 5 минут отдыха." }
+low = { uz = "Biror narsani xohlaganingizda 10 daqiqa kuting — istak ko‘pincha o‘zi so‘nadi.", ru = "Когда чего-то хочется, подождите 10 минут — желание часто проходит само." }
+
+[future.mustaqillik]
+research = { uz = "Rotter (1966): natijani o‘ziga bog‘liq deb biladigan odamlar faolroq harakat qiladi va qiyinchilikka chidamliroq bo‘ladi.", ru = "Rotter (1966): люди, считающие результат зависящим от себя, действуют активнее и устойчивее к трудностям." }
+high = { uz = "Yordam so‘rashdan qo‘rqmang — mustaqil odam ham jamoaga tayanadi.", ru = "Не бойтесь просить о помощи — самостоятельные люди тоже опираются на команду." }
+mid = { uz = "Har kecha bitta savolga javob bering: «Bugun natijaga o‘zim nima qo‘shdim?»", ru = "Каждый вечер отвечайте на вопрос: «Что я сам сегодня сделал для результата?»" }
+low = { uz = "Omadsizlikdan keyin «Keyingi safar o‘zim nimani boshqacha qilaman?» deb yozing.", ru = "После неудачи запишите: «Что я сам сделаю иначе в следующий раз?»" }
+
+[future.muloqot]
+research = { uz = "Garvard tadqiqoti (Grant Study, 80 yildan ortiq): baxt va sog‘liq yaqin munosabatlar bilan eng kuchli bog‘langan.", ru = "Гарвардское исследование (Grant Study, более 80 лет): счастье и здоровье сильнее всего связаны с близкими отношениями." }
+high = { uz = "Odamlarni bir-biri bilan bog‘lang — foydasi tegadigan ikki kishini tanishtiring.", ru = "Связывайте людей — познакомьте двоих, кому это будет полезно." }
+mid = { uz = "Haftada bir marta yaqin odamingizga qo‘ng‘iroq qiling — shunchaki hol-ahvol so‘rash uchun.", ru = "Раз в неделю звоните близкому человеку — просто спросить, как дела." }
+low = { uz = "Bu hafta bitta eski do‘stingizga o‘zingiz yozing yoki uchrashishni taklif qiling.", ru = "На этой неделе сами напишите старому другу или предложите встретиться." }
+
+[future.bardosh]
+research = { uz = "Masten (2001): bardoshlilik — maxsus iste’dod emas, mashq bilan o‘sadigan oddiy ko‘nikmalar to‘plami.", ru = "Masten (2001): стойкость — не особый дар, а набор обычных навыков, которые растут с практикой." }
+high = { uz = "Qiyinchilikni qanday yenggan tajribangizni yozib qo‘ying — u boshqalarga ham yordam beradi.", ru = "Запишите, как вы справились с трудностью, — это поможет и другим." }
+mid = { uz = "Qiyin kundan keyin bitta yaxshi narsani yozing: «Bugun nima yaxshi bo‘ldi?»", ru = "После трудного дня запишите одну хорошую вещь: «Что сегодня было хорошего?»" }
+low = { uz = "Qiyin vaziyatda muammoni 3 qismga bo‘ling va eng kichigidan boshlang.", ru = "В трудной ситуации разделите проблему на 3 части и начните с самой маленькой." }
+
+[future.uyqu]
+research = { uz = "Walker (2017) va boshqa tadqiqotlar: 7 soatdan kam uyqu diqqat, xotira va kayfiyatni sezilarli pasaytiradi.", ru = "Walker (2017) и другие исследования: сон меньше 7 часов заметно ухудшает внимание, память и настроение." }
+high = { uz = "Uyqu tartibingizni dam olish kunlari ham saqlang — energiyangiz siri shunda.", ru = "Сохраняйте режим сна и в выходные — в этом секрет вашей энергии." }
+mid = { uz = "Har kuni bir xil vaqtda yoting va uxlashdan 1 soat oldin ekranni o‘chiring.", ru = "Ложитесь в одно и то же время и выключайте экран за час до сна." }
+low = { uz = "Bu hafta 30 daqiqa erta yoting va har kuni 20 daqiqa piyoda yuring.", ru = "На этой неделе ложитесь на 30 минут раньше и гуляйте по 20 минут в день." }
+
+[future.ichki]
+research = { uz = "Emmons va McCullough (2003): har hafta minnatdorlik yozib borgan odamlar o‘zini baxtliroq va sog‘lomroq his qilgan.", ru = "Emmons и McCullough (2003): люди, каждую неделю записывавшие благодарности, чувствовали себя счастливее и здоровее." }
+high = { uz = "Ichki xotirjamligingizni boshqalar bilan bo‘lishing — kimgadir beg‘araz yordam bering.", ru = "Делитесь внутренним спокойствием — бескорыстно помогите кому-нибудь." }
+mid = { uz = "Har kecha minnatdor bo‘lgan 3 ta narsani yozing.", ru = "Каждый вечер записывайте 3 вещи, за которые вы благодарны." }
+low = { uz = "Haftada bir marta 20 daqiqa telefonsiz, yolg‘iz sayr qiling yoki shunchaki o‘ylab o‘tiring.", ru = "Раз в неделю проведите 20 минут без телефона: прогуляйтесь одни или просто подумайте." }
+
+# =============================================================================
+# Farzand salohiyati — ota-onaga amaliy maslahat (past / o‘rta / yuqori)
+# =============================================================================
+
+[child.boshqaruv]
+high = { uz = "Farzandingizga kattaroq vazifalarni ishoning — masalan, o‘z kunini o‘zi rejalashtirsin.", ru = "Доверяйте ребёнку задачи посложнее — например, пусть сам планирует свой день." }
+mid = { uz = "Kutishni o‘yin orqali mashq qiling: navbat bilan o‘ynaladigan o‘yinlar, qum soati.", ru = "Тренируйте умение ждать через игру: игры по очереди, песочные часы." }
+low = { uz = "Topshiriqlarni 5–10 daqiqalik bo‘laklarga bo‘ling va har bir bo‘lakdan keyin maqtang.", ru = "Делите задания на куски по 5–10 минут и хвалите после каждого." }
+
+[child.qiziqish]
+high = { uz = "Savollariga javobni birga qidiring — kitobdan, tajriba qilib yoki muzeyda.", ru = "Ищите ответы на его вопросы вместе — в книгах, опытах или музеях." }
+mid = { uz = "Haftada bir marta yangi joyga boring yoki yangi narsani birga sinab ko‘ring.", ru = "Раз в неделю ходите в новое место или пробуйте что-то новое вместе." }
+low = { uz = "Nimaga qiziqayotganini kuzating va shu mavzuda bitta kitob yoki o‘yin topib bering.", ru = "Заметьте, чем он интересуется, и найдите книгу или игру на эту тему." }
+
+[child.tafakkur]
+high = { uz = "Natijani emas, harakatni maqtashda davom eting: «Ko‘p urinding — shuning uchun chiqdi».", ru = "Продолжайте хвалить усилие, а не результат: «Ты старался — поэтому получилось»." }
+mid = { uz = "Xato qilganda «Bundan nimani o‘rgandik?» deb birga gaplashing.", ru = "Когда ребёнок ошибается, обсудите вместе: «Чему мы научились?»" }
+low = { uz = "«Aqllisan» o‘rniga «Ko‘p harakat qilding» deng — shunda bola qiyinchilikdan qochmaydi.", ru = "Вместо «ты умный» говорите «ты много старался» — тогда ребёнок не будет избегать трудностей." }
+
+[child.ijtimoiy]
+high = { uz = "Kichik yetakchilik vazifalarini bering: o‘yin tashkil qilish, ukasiga yordam berish.", ru = "Давайте маленькие роли лидера: организовать игру, помочь младшему." }
+mid = { uz = "Tengdoshlari bilan uchrashuvlarni ko‘paytiring — mehmonga borish, to‘garaklar.", ru = "Чаще устраивайте встречи со сверстниками — гости, кружки." }
+low = { uz = "Bitta do‘st bilan tinch muhitda uchrashishdan boshlang va his-tuyg‘ulari haqida gaplashing.", ru = "Начните со встреч с одним другом в спокойной обстановке и говорите о чувствах." }
+
+[child.mehnat]
+high = { uz = "Mehnatini rag‘batlantiring va dam olishni ham o‘rgating.", ru = "Поощряйте трудолюбие и учите также отдыхать." }
+mid = { uz = "Doimiy uy vazifasini bering — masalan, gul sug‘orish — va u buni har kuni bajarsin.", ru = "Дайте постоянную обязанность по дому — например, поливать цветы — каждый день." }
+low = { uz = "Vazifani avval birga bajaring, keyin asta-sekin o‘ziga topshiring.", ru = "Сначала делайте дело вместе, потом постепенно передавайте ребёнку." }
+
+[child.oila]
+high = { uz = "Oilaviy odatlarni saqlang: birga ovqatlanish, kechki suhbat.", ru = "Сохраняйте семейные привычки: совместные ужины, вечерние разговоры." }
+mid = { uz = "Har kuni 15 daqiqani telefonsiz, faqat farzandingiz bilan o‘tkazing.", ru = "Каждый день проводите 15 минут только с ребёнком, без телефона." }
+low = { uz = "Kuniga bir marta farzandingizni oxirigacha tinglang — gapini bo‘lmasdan va baho bermasdan.", ru = "Раз в день выслушайте ребёнка до конца — не перебивая и не оценивая." }
+
+[child.sogliq]
+high = { uz = "Uyqu va harakat tartibini ta’tilda ham saqlang.", ru = "Сохраняйте режим сна и движения и на каникулах." }
+mid = { uz = "Yotish vaqtini aniq belgilang va kechqurun ekran vaqtini qisqartiring.", ru = "Установите точное время сна и сократите экраны вечером." }
+low = { uz = "Har kuni kamida 1 soat ochiq havoda harakat qilsin va yotishdan 1 soat oldin ekran o‘chsin.", ru = "Каждый день — не меньше часа движения на улице, а экраны — выключать за час до сна." }
+
+[child.hissiyot]
+high = { uz = "His-tuyg‘ular haqida gaplashishda davom eting — bu farzandingizning eng katta himoyasi.", ru = "Продолжайте говорить о чувствах — это главная защита ребёнка." }
+mid = { uz = "Kechqurun so‘rang: «Bugun seni nima xursand qildi, nima xafa qildi?»", ru = "Вечером спрашивайте: «Что тебя сегодня порадовало, а что огорчило?»" }
+low = { uz = "Qo‘rquv yoki xafagarchilikni kamsitmang; kerak bo‘lsa, bolalar psixologi bilan maslahatlashing.", ru = "Не обесценивайте страх или обиду; при необходимости посоветуйтесь с детским психологом." }

@@ -62,6 +62,8 @@ def bilingual_strings():
         yield "band.name", name
         yield "band.note", note
     yield from insights.all_texts()
+    import content  # to'liq tahlil matnlari (content/reports.toml)
+    yield from content.all_texts()
 
 
 def check_translations() -> None:

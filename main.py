@@ -17,23 +17,21 @@ import referrals
 import wallet
 from config import BOT_TOKEN, CLICK_ENABLED, LOG_LEVEL, PUBLIC_URL
 from handlers import build_router
-from handlers.autostart_runtime import notify_paid, set_runtime
+from handlers.autostart_runtime import notify_failed, notify_paid, set_runtime
 from handlers.growth import set_bot_username
 from handlers.lifecycle import record_blocked
 from handlers.payment import set_bot
 
 COMMANDS = {
     "uz": [
-        ("start", "Testlar menyusi"), ("natijalar", "Mening natijalarim"),
-        ("balans", "Mening balansim"), ("shop", "Balansdan test sotib olish"),
-        ("iq", "Premium IQ testi (rasmli)"), ("til", "Tilni o‘zgartirish"),
-        ("haqida", "Bot va manbalar haqida"), ("bekor", "Testni bekor qilish"),
+        ("start", "Testlar menyusi"), ("natijalar", "Natijalarim"),
+        ("iq", "IQ testi (rasmli)"), ("til", "Tilni o‘zgartirish"),
+        ("haqida", "Bot va manbalar haqida"), ("bekor", "Testni to‘xtatish"),
     ],
     "ru": [
         ("start", "Меню тестов"), ("natijalar", "Мои результаты"),
-        ("balans", "Мой баланс"), ("shop", "Покупка тестов с баланса"),
-        ("iq", "Премиум IQ-тест (с картинками)"), ("til", "Сменить язык"),
-        ("haqida", "О боте и источниках"), ("bekor", "Отменить тест"),
+        ("iq", "IQ-тест (с картинками)"), ("til", "Сменить язык"),
+        ("haqida", "О боте и источниках"), ("bekor", "Остановить тест"),
     ],
 }
 
@@ -74,7 +72,7 @@ async def main() -> None:
     if answer_key() is None:
         logging.error("%s o‘rnatilmagan yoki noto‘g‘ri — IQ testi yopiq bo‘ladi.", ANSWER_KEY_ENV)
 
-    runner = await payments.run_server(on_paid=notify_paid)
+    runner = await payments.run_server(on_paid=notify_paid, on_failed=notify_failed)
     if CLICK_ENABLED:
         logging.info("Click prepare: %s/click/prepare", PUBLIC_URL)
         logging.info("Click complete: %s/click/complete", PUBLIC_URL)

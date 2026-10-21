@@ -1,9 +1,13 @@
 """Premium IQ testi: savol — rasm, javob — rasm ostidagi A–D tugmalari.
 
-Oqim: kartochka (/iq yoki menyu) → to'lov tekshiruvi → yosh (IQ tengdoshlarga
-nisbatan hisoblanadi) → 20 ta rasm bitta xabarning o'zida almashib turadi
-(chat to'lib ketmaydi) → natija: sertifikat rasmi → taxminiy IQ bilan matnli
-natija.
+Oqim: test oldidan ekran (/iq yoki menyu; nima bepul, nima pullik) → yosh
+(IQ tengdoshlarga nisbatan hisoblanadi) → 20 ta rasm bitta xabarning o'zida
+almashib turadi (chat to'lib ketmaydi) → sertifikat → bepul natija (to'g'ri
+javoblar soni va eng kuchli fikrlash turi) yoki to'liq tahlil (taxminiy IQ,
+4 ta tur bo'yicha natija va mashqlar). Test o'zi bepul.
+
+Javoblar har bosishda bazaga yoziladi (`progress.py`) — bot qayta ishga
+tushsa ham test shu joydan davom etadi.
 
 To'g'ri javoblar va qaysi savolda xato qilingani hech qachon ko'rsatilmaydi —
 kalit faqat serverdagi IQ_ANSWERS o'zgaruvchisida turadi.
@@ -27,15 +31,17 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+import access
+import content
 import database as db
 import events
 import keyboards as kb
-import peers
+import progress
 import referrals
-import report
 from config import IQ_EMOJI, IQ_KEY, is_admin
 from handlers import growth
 from handlers import payment as pay
+from handlers import reports
 from locales import money, t
 from psytests.iq import (
     AGE_CODES, AGE_GROUPS, DEFAULT_AGE, LETTERS, PUZZLES, TOTAL, Puzzle, answer_key,
@@ -147,61 +153,46 @@ async def _retire(message: Message, text: str | None = None) -> None:
 # --- Kartochka ----------------------------------------------------------------
 
 
-def intro(lang: str) -> str:
-    return bi(
-        lang,
-        f"{IQ_EMOJI} <b>Premium IQ testi — rasmli mantiq</b>\n\n"
-        f"{TOTAL} ta rasmli topshiriq. Har birida rasmlar ma’lum qoida bo‘yicha "
-        "o‘zgaradi: qoidani toping va «?» o‘rniga to‘g‘ri variantni tanlang.\n\n"
-        "📊 <b>Natijada:</b> taxminiy IQ (yoshingizga qarab), darajangiz va "
-        "to‘g‘ri javoblar soni.\n\n"
-        "⏱ Taxminan 15–20 daqiqa. Shoshmang, lekin bitta savolda qotib qolmang.\n"
-        "💡 Test yarmida to‘xtatilsa, to‘lov kuymaydi — u faqat test oxirigacha "
-        "yechilganda hisoblanadi.",
-        f"{IQ_EMOJI} <b>Премиум IQ-тест — логика в картинках</b>\n\n"
-        f"{TOTAL} заданий с картинками. В каждом картинки меняются по определённому "
-        "правилу: найдите правило и выберите вариант вместо «?».\n\n"
-        "📊 <b>В результате:</b> примерный IQ (с учётом возраста), ваш уровень и "
-        "число правильных ответов.\n\n"
-        "⏱ Примерно 15–20 минут. Не спешите, но и не застревайте на одном вопросе.\n"
-        "💡 Если остановить тест на полпути, оплата не сгорает — она засчитывается "
-        "только когда тест пройден до конца.",
-    )
-
-
 def _unavailable_text(lang: str) -> str:
     return bi(lang, "⏳ IQ testi vaqtincha yopiq. Birozdan keyin qayta urinib ko‘ring.",
               "⏳ IQ-тест временно недоступен. Попробуйте чуть позже.")
 
 
-async def card(message: Message, user_id: int, lang: str, edit: bool) -> None:
-    locked = await pay.is_locked(user_id, IQ_KEY)
-    text = intro(lang)
-    events.track(user_id, "test_opened", IQ_KEY)
-    b = InlineKeyboardBuilder()
-    if answer_key() is None:
-        # Kalitsiz natijani hisoblab bo'lmaydi — pul olib, noto'g'ri baho berishdan ko'ra yopamiz.
-        log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi yopiq")
-        text += "\n\n" + _unavailable_text(lang)
-    elif locked:
-        events.track(user_id, "paywall_shown", IQ_KEY, where="card")
-        price = money(await pay.price_for(IQ_KEY))
-        text += "\n\n" + bi(lang, f"🔒 Narxi: <b>{price} so‘m</b>", f"🔒 Цена: <b>{price} сум</b>")
-        b.button(text=bi(lang, "💳 Click orqali to‘lash", "💳 Оплатить через Click"), callback_data=f"pay:{IQ_KEY}")
-        b.button(text=bi(lang, "💰 Balansdan to‘lash", "💰 Оплатить с баланса"), callback_data=f"shop:buy:{IQ_KEY}")
-        b.button(text=bi(lang, "➕ Balansni to‘ldirish", "➕ Пополнить баланс"), callback_data="wallet:topup")
+async def card_text(user_id: int, lang: str, saved: dict | None) -> str:
+    """Test oldidan ekran: nima bepul, to'liq tahlilda nima bor va narxi."""
+    paid = tr(content.text("tests", IQ_KEY, "paid"), lang)
+    if await access.has(user_id, IQ_KEY):
+        owned = IQ_KEY in await access.owned(user_id)
+        paid_line = t("card_owned" if owned else "card_report_free", lang, paid=paid)
     else:
-        b.button(text=bi(lang, "▶️ Testni boshlash", "▶️ Начать тест"), callback_data="iq:start")
-    b.button(text=bi(lang, "⬅️ Orqaga", "⬅️ Назад"), callback_data="nav:menu")
-    b.adjust(1)
+        paid_line = t("card_paid", lang, price=money(await pay.price_for(IQ_KEY)), paid=paid)
+    text = t("card_iq", lang, emoji=IQ_EMOJI, title=t("iq_title", lang), count=TOTAL,
+             minutes=t("iq_minutes", lang), instruction=t("instr_iq", lang),
+             free=tr(content.text("tests", IQ_KEY, "free"), lang), paid_line=paid_line)
+    if saved and saved.get("answers"):
+        text += t("card_progress", lang, done=len(saved["answers"]))
+    return text
+
+
+async def card(message: Message, user_id: int, lang: str, edit: bool) -> None:
+    events.track(user_id, "test_opened", IQ_KEY)
+    if answer_key() is None:
+        # Kalitsiz natijani hisoblab bo'lmaydi — noto'g'ri baho berishdan ko'ra yopamiz.
+        log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi yopiq")
+        text = f"{IQ_EMOJI} <b>{t('iq_title', lang)}</b>\n\n" + _unavailable_text(lang)
+        markup = kb.back_to_menu(lang)
+    else:
+        saved = await progress.load(user_id, IQ_KEY)
+        text = await card_text(user_id, lang, saved)
+        markup = kb.test_card(IQ_KEY, lang, saved)
     if edit and not message.photo:
         try:
-            await message.edit_text(text, reply_markup=b.as_markup())
+            await message.edit_text(text, reply_markup=markup)
             return
         except TelegramBadRequest as exc:
             if "not modified" in str(exc).lower():
                 return
-    await message.answer(text, reply_markup=b.as_markup())
+    await message.answer(text, reply_markup=markup)
 
 
 @router.message(Command("iq"))
@@ -255,10 +246,9 @@ async def _start_test(target, state: FSMContext, lang: str, user_id: int) -> Non
         log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi boshlanmadi")
         await message.answer(_unavailable_text(lang))
         return
-    if await pay.is_locked(user_id, IQ_KEY):
-        await pay.show_paywall(message, user_id, IQ_KEY, lang)
-        return
+    # Test bepul: to'lov tekshiruvi yo'q. "Boshlash" — yangidan (eski javoblar o'chadi).
     await state.clear()
+    await progress.clear(user_id, IQ_KEY)
     await state.set_state(IQState.age)
     b = InlineKeyboardBuilder()
     for code, label in AGE_GROUPS:
@@ -293,13 +283,11 @@ async def picked_age(callback: CallbackQuery, state: FSMContext, lang: str) -> N
         log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi boshlanmadi")
         await callback.message.answer(_unavailable_text(lang))
         return
-    # Eski xabardagi yosh tugmasi ham shu yerga keladi — huquqni qayta tekshiramiz.
-    if await pay.is_locked(user_id, IQ_KEY):
-        await pay.show_paywall(callback.message, user_id, IQ_KEY, lang)
-        return
     await state.clear()
     await state.set_state(IQState.answering)
-    await state.update_data(iq_answers=[], iq_started=time.time(), iq_age=age, iq_ms=[])
+    started = time.time()
+    await state.update_data(iq_answers=[], iq_started=started, iq_age=age, iq_ms=[])
+    await progress.save(user_id, IQ_KEY, [], age, {"started": started, "ms": []})
     await db.log_start(user_id, IQ_KEY)
     events.track(user_id, "test_started", IQ_KEY)
     await _retire(callback.message, bi(lang, f"{IQ_EMOJI} IQ testi boshlandi. Omad!", f"{IQ_EMOJI} IQ-тест начался. Удачи!"))
@@ -329,8 +317,11 @@ async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     index, letter = int(parts[2]), parts[3]
     async with _lock(callback.from_user.id):
         if await state.get_state() != IQState.answering.state:
-            await callback.answer()
-            return
+            # Bot qayta ishga tushgan bo'lishi mumkin — javoblarni bazadan tiklaymiz.
+            if not await _restore(state, callback.from_user.id):
+                await callback.answer(bi(lang, "Bu test tugagan yoki to‘xtatilgan. Qayta boshlash: /iq",
+                                         "Этот тест завершён или остановлен. Начать заново: /iq"), show_alert=True)
+                return
         data = await state.get_data()
         answers = list(data.get("iq_answers", []))
         if index != len(answers):
@@ -342,6 +333,8 @@ async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
             reached.append(pct)
             events.track(callback.from_user.id, "q_answered", IQ_KEY, pct=pct)
         await state.update_data(iq_answers=answers, iq_ms=reached)
+        await progress.save(callback.from_user.id, IQ_KEY, answers, data.get("iq_age"),
+                            {"started": data.get("iq_started"), "ms": reached})
         await callback.answer()
         if len(answers) < TOTAL:
             await _show(callback.message, len(answers), lang, edit=True)
@@ -349,9 +342,12 @@ async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
         await _finish(callback, state, lang, answers, data.get("iq_started"), data.get("iq_age"))
 
 
-@router.callback_query(IQState.answering, F.data == "iq:back")
+@router.callback_query(F.data == "iq:back")
 async def back(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     async with _lock(callback.from_user.id):
+        if await state.get_state() != IQState.answering.state and not await _restore(state, callback.from_user.id):
+            await callback.answer()
+            return
         data = await state.get_data()
         answers = list(data.get("iq_answers", []))
         await callback.answer()
@@ -359,24 +355,73 @@ async def back(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
             return
         answers.pop()
         await state.update_data(iq_answers=answers)
+        await progress.save(callback.from_user.id, IQ_KEY, answers, data.get("iq_age"),
+                            {"started": data.get("iq_started"), "ms": data.get("iq_ms") or []})
         await _show(callback.message, len(answers), lang, edit=True)
+
+
+async def _restore(state: FSMContext, user_id: int) -> dict | None:
+    """FSM bo'sh — bazadagi javoblardan IQ testini tiklaydi."""
+    saved = await progress.load(user_id, IQ_KEY)
+    if saved is None:
+        return None
+    data = {"iq_answers": saved["answers"], "iq_age": saved["age_group"] or DEFAULT_AGE,
+            "iq_started": saved["extra"].get("started"), "iq_ms": saved["extra"].get("ms", [])}
+    await state.set_state(IQState.answering)
+    await state.update_data(**data)
+    return data
+
+
+async def resume(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    """Menyudagi "▶️ Testni davom ettirish": joriy rasm yangi xabarda chiqadi."""
+    if answer_key() is None:
+        await callback.message.answer(_unavailable_text(lang))
+        return
+    async with _lock(callback.from_user.id):
+        data = await _restore(state, callback.from_user.id)
+    if not data:
+        await card(callback.message, callback.from_user.id, lang, edit=True)
+        return
+    answers = data["iq_answers"]
+    if len(answers) >= TOTAL:
+        await _finish(callback, state, lang, answers, data["iq_started"], data["iq_age"])
+        return
+    await _show(callback.message, len(answers), lang, edit=False)
 
 
 @router.callback_query(F.data == "iq:stop")
 async def stop(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
-    if await state.get_state() == IQState.answering.state:
-        await state.clear()
-    await callback.answer(bi(lang, "Test to‘xtatildi", "Тест остановлен"))
+    """⛔ To'xtatish — avval so'raymiz: javoblar saqlanadi."""
+    b = InlineKeyboardBuilder()
+    b.button(text=t("btn_quit_yes", lang), callback_data=f"iqquit:yes:{callback.message.message_id}")
+    b.button(text=t("btn_quit_no", lang), callback_data="iqquit:no")
+    b.adjust(1)
+    await callback.message.answer(t("cancel_confirm", lang), reply_markup=b.as_markup())
+
+
+@router.callback_query(F.data.startswith("iqquit:"))
+async def stop_choice(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
+    parts = callback.data.split(":")
+    if parts[1] == "yes":
+        if await state.get_state() == IQState.answering.state:
+            await state.clear()
+        if len(parts) == 3 and parts[2].isdigit():
+            try:
+                await callback.bot.delete_message(callback.message.chat.id, int(parts[2]))
+            except TelegramBadRequest:
+                pass
+        from handlers import user  # aylanma importdan qochish uchun shu yerda
+
+        await user.safe_edit(callback.message, t("test_paused", lang))
+        await user.show_menu(callback.message, lang, callback.from_user.id, edit=False)
+        return
     try:
         await callback.message.delete()
     except TelegramBadRequest:
         await _retire(callback.message)
-    from handlers import user  # aylanma importdan qochish uchun shu yerda
-
-    await user.show_menu(callback.message, lang, callback.from_user.id, edit=False)
 
 
-@router.callback_query(F.data.startswith("iq:a:") | F.data.startswith("iq:ans:") | (F.data == "iq:back"))
+@router.callback_query(F.data.startswith("iq:a:") | F.data.startswith("iq:ans:"))
 async def stale(callback: CallbackQuery, lang: str) -> None:
     await callback.answer(
         bi(lang, "Bu test tugagan yoki to‘xtatilgan. Qayta boshlash: /iq",
@@ -449,6 +494,7 @@ async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
         return
     await state.clear()
     user_id = callback.from_user.id
+    await progress.clear(user_id, IQ_KEY)
     age = age if age in AGE_CODES else DEFAULT_AGE
     result = grade(answers, key)
     seconds = int(time.time() - started) if started else None
@@ -467,17 +513,16 @@ async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
     })
     events.track(user_id, "test_completed", IQ_KEY)
     saved = await db.latest_result(user_id, IQ_KEY)
-    comparison = await peers.compare(IQ_KEY, user_id, result["correct"])
-    try:
-        await callback.message.delete()
-    except TelegramBadRequest:
-        await _retire(callback.message)
-    # Tartib: sertifikat → batafsil natija.
-    await growth.send_certificate(callback.message, callback.from_user, saved)
-    await callback.message.answer(
-        report.render_iq(result["correct"], estimate, seconds, lang, comparison),
-        reply_markup=result_markup(result, estimate["iq"], user_id, lang),
-    )
+    if callback.message.photo:
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            await _retire(callback.message)
+    # Tartib: sertifikat (bepul) → natija: to'liq tahlil yoki bepul natija + to'lov.
+    full = await access.has(user_id, IQ_KEY)
+    await growth.send_certificate(callback.message, callback.from_user, saved, full=full)
+    if saved:
+        await reports.deliver(callback.bot, user_id, saved, lang)
 
 
 # --- Eski tugmalar -------------------------------------------------------------

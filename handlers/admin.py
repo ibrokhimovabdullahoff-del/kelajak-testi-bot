@@ -15,7 +15,8 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message
 
 import database as db
 import keyboards as kb
-from config import CLICK_ENABLED, DEFAULT_PRICE, IQ_EMOJI, IQ_KEY, IQ_PRICE_DEFAULT, is_admin
+from config import (BUNDLE_KEY, BUNDLE_PRICE_DEFAULT, CLICK_ENABLED, DEFAULT_PRICE, IQ_EMOJI, IQ_KEY,
+                    IQ_PRICE_DEFAULT, OPTIMISTIC_MAX, is_admin)
 from locales import money, t, tr
 from psytests import ORDER, REGISTRY
 
@@ -199,8 +200,13 @@ class Grant(StatesGroup):
 
 
 def _product_title(key: str) -> str:
-    if key == IQ_KEY: return "🧠 Premium IQ testi"
+    if key == IQ_KEY: return f"{IQ_EMOJI} IQ testi"
+    if key == BUNDLE_KEY: return "📦 5 ta testning to‘liq tahlili"
     test = REGISTRY.get(key); return f"{test.emoji} {tr(test.title, 'uz')}" if test else key
+
+
+async def _optimistic() -> bool:
+    return await db.get_setting("optimistic_unlock", "0") == "1"
 
 
 @router.callback_query(F.data == "adm:pay")
@@ -210,8 +216,12 @@ async def payments_home(callback: CallbackQuery, state: FSMContext) -> None:
 
 async def draw_payments(callback: CallbackQuery) -> None:
     data = await db.payment_stats(); free = await db.free_tests()
-    lines = ["💳 <b>To‘lovlar</b>", "", f"✅ To‘langan: <b>{data['count']:.0f}</b> ta · <b>{money(int(data['sum']))}</b> so‘m", f"📅 Bugun: <b>{data['today']:.0f}</b> ta · <b>{money(int(data['today_sum']))}</b> so‘m", f"🧾 Boshlangan urinishlar: <b>{data['started']:.0f}</b>", f"🔓 Qo‘lda ochilgan: <b>{data['manual']:.0f}</b>", "", f"Click ulanishi: {'🟢 sozlangan' if CLICK_ENABLED else '🔴 sozlanmagan'}", "", "<b>Testlar:</b> 💳 pullik · 🎁 bepul"]
-    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays()))
+    optimistic = await _optimistic()
+    lines = ["💳 <b>To‘lovlar</b>", "", f"✅ To‘langan: <b>{data['count']:.0f}</b> ta · <b>{money(int(data['sum']))}</b> so‘m", f"📅 Bugun: <b>{data['today']:.0f}</b> ta · <b>{money(int(data['today_sum']))}</b> so‘m", f"🧾 Boshlangan urinishlar: <b>{data['started']:.0f}</b>", f"🔓 Qo‘lda ochilgan: <b>{data['manual']:.0f}</b>", "", f"Click ulanishi: {'🟢 sozlangan' if CLICK_ENABLED else '🔴 sozlanmagan'}",
+             "", "⚡️ <b>Chekdan oldin ochish</b> — karta orqali to‘lovda chek rasmi kelishi bilan to‘liq tahlil ochiladi, "
+             f"siz keyin tekshirasiz ({money(OPTIMISTIC_MAX)} so‘mgacha, bitta odamda bir vaqtda bitta). Rad etsangiz, tahlil yopiladi "
+             "va u odamga bu imkoniyat boshqa berilmaydi. " + ("Hozir: <b>YOQIQ</b>." if optimistic else "Hozir: <b>o‘chiq</b>.")]
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays(), optimistic))
 
 
 @router.callback_query(F.data == "adm:paylist")
@@ -222,24 +232,28 @@ async def payment_list(callback: CallbackQuery) -> None:
         who = f"@{row['username']}" if row["username"] else f"id{row['user_id']}"; mark = marks.get(row["status"], "•")
         lines.append(f"{mark} <code>#{row['id']}</code> {who} · {_product_title(row['product'])} · <b>{money(row['amount'])}</b> so‘m")
     if not rows: lines.append("Hali to‘lov yo‘q.")
-    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays()))
+    await callback.message.edit_text("\n".join(lines), reply_markup=kb.admin_payments(await db.admin_pays(), await _optimistic()))
 
 
 async def _price_rows() -> list[tuple[str, str, int]]:
-    rows = [(key, f"{REGISTRY[key].emoji} {tr(REGISTRY[key].title, 'uz')}", await db.price_of(key, DEFAULT_PRICE)) for key in ORDER]
-    rows.append((IQ_KEY, "🧠 Premium IQ testi", await db.price_of(IQ_KEY, IQ_PRICE_DEFAULT)))
+    rows = [(IQ_KEY, f"{IQ_EMOJI} IQ testi", await db.price_of(IQ_KEY, IQ_PRICE_DEFAULT))]
+    rows += [(key, f"{REGISTRY[key].emoji} {tr(REGISTRY[key].title, 'uz')}", await db.price_of(key, DEFAULT_PRICE)) for key in ORDER]
+    rows.append((BUNDLE_KEY, "📦 5 ta test to‘plami", await db.price_of(BUNDLE_KEY, BUNDLE_PRICE_DEFAULT)))
     return rows
 
 
 @router.callback_query(F.data == "adm:prices")
 async def show_prices(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer(); await state.clear(); await callback.message.edit_text("💰 <b>Narxlar</b>\n\nO‘zgartirish uchun testni tanlang.", reply_markup=kb.admin_prices(await _price_rows()))
+    await callback.answer(); await state.clear()
+    await callback.message.edit_text("💰 <b>To‘liq tahlil narxlari</b>\n\nTestlarni topshirish bepul — narx faqat to‘liq tahlil uchun. "
+                                     "To‘plam har bir to‘lov oynasida ikkinchi bo‘lib chiqadi.\n\nO‘zgartirish uchun tanlang.",
+                                     reply_markup=kb.admin_prices(await _price_rows()))
 
 
 @router.callback_query(F.data.startswith("admprice:"))
 async def ask_price(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer(); key = callback.data.split(":",1)[1]
-    if key not in ORDER and key != IQ_KEY: return
+    if key not in ORDER and key not in (IQ_KEY, BUNDLE_KEY): return
     await state.set_state(Prices.waiting_amount); await state.update_data(product=key); await callback.message.edit_text(f"💰 <b>{_product_title(key)}</b>\n\nYangi narxni so‘mda yuboring — faqat raqam.")
 
 
@@ -264,12 +278,12 @@ async def toggle_free(callback: CallbackQuery) -> None:
         return
     now_free = await db.toggle_free_test(key)
     free = await db.free_tests()
-    await callback.message.edit_text(f"🎁 <b>Pullik / bepul testlar</b>\n\n{'🎁 Bepul' if now_free else '💳 Pullik'}: <b>{_product_title(key)}</b>\n\nHolatni boshqa test uchun ham o‘zgartirishingiz mumkin.", reply_markup=kb.admin_paid_tests(free))
+    await callback.message.edit_text(f"🎁 <b>To‘liq tahlil: pullik / bepul</b>\n\n{'🎁 Bepul' if now_free else '💳 Pullik'}: <b>{_product_title(key)}</b>\n\nHolatni boshqa test uchun ham o‘zgartirishingiz mumkin.", reply_markup=kb.admin_paid_tests(free))
 
 
 @router.callback_query(F.data == "adm:grant")
 async def ask_grant(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer(); await state.set_state(Grant.waiting_user); await callback.message.edit_text("🔓 <b>Qo‘lda ochish</b>\n\nFoydalanuvchi ID va test kalitini yuboring.\n<code>123456789 bigfive</code>\nBekor qilish: /bekor")
+    await callback.answer(); await state.set_state(Grant.waiting_user); await callback.message.edit_text("🔓 <b>To‘liq tahlilni qo‘lda ochish</b>\n\nFoydalanuvchi ID va test kalitini yuboring (to‘plam uchun — <code>bundle</code>).\n<code>123456789 bigfive</code>\nKalitlar: iq, bigfive, career, future, child, bundle\nBekor qilish: /bekor")
 
 
 @router.message(Grant.waiting_user, Command("bekor"))
@@ -282,10 +296,13 @@ async def do_grant(message: Message, state: FSMContext, bot: Bot) -> None:
     parts = (message.text or "").split()
     if len(parts) != 2 or not parts[0].isdigit(): await message.answer("Format: <code>123456789 bigfive</code>"); return
     user_id, product = int(parts[0]), parts[1]
-    if product not in REGISTRY and product != IQ_KEY: await message.answer("Bunday test yo‘q."); return
-    await state.clear(); await db.grant_access(user_id, product, message.from_user.id); await message.answer(f"✅ <code>{user_id}</code> uchun <b>{_product_title(product)}</b> ochildi.", reply_markup=kb.admin_menu())
+    if product not in REGISTRY and product not in (IQ_KEY, BUNDLE_KEY): await message.answer("Bunday test yo‘q."); return
+    import access
+    await state.clear(); await access.grant(user_id, access.products_for(product), "admin")
+    await message.answer(f"✅ <code>{user_id}</code> uchun <b>{_product_title(product)}</b> to‘liq tahlili ochildi.", reply_markup=kb.admin_menu())
     try:
-        lang = await db.get_lang(user_id) or "uz"; await bot.send_message(user_id, t("pay_success", lang, product=_product_title(product)))
+        from handlers.payment import product_title
+        lang = await db.get_lang(user_id) or "uz"; await bot.send_message(user_id, t("pay_report_ok", lang, title=product_title(product, lang)), reply_markup=kb.back_to_menu(lang))
     except Exception: pass
 
 
@@ -297,4 +314,62 @@ async def toggle_test_mode(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "adm:freetests")
 async def free_tests_screen(callback: CallbackQuery) -> None:
     await callback.answer()
-    await callback.message.edit_text("🎁 <b>Pullik / bepul testlar</b>\n\n💳 — test pullik\n🎁 — test bepul\n\nBosing va holatini darhol almashtiring.", reply_markup=kb.admin_paid_tests(await db.free_tests()))
+    await callback.message.edit_text("🎁 <b>To‘liq tahlil: pullik / bepul</b>\n\nTestni topshirish har doim bepul. Bu yerda to‘liq tahlilni vaqtincha bepul qilish mumkin (masalan, aksiya uchun).\n\n💳 — to‘liq tahlil pullik\n🎁 — to‘liq tahlil bepul\n\nBosing va holatini darhol almashtiring.", reply_markup=kb.admin_paid_tests(await db.free_tests()))
+
+
+@router.callback_query(F.data == "adm:optimistic")
+async def toggle_optimistic(callback: CallbackQuery) -> None:
+    """Chekdan oldin ochish (odatda o'chiq). Brief: yoqishdan oldin egasidan so'rang."""
+    await callback.answer()
+    now_on = not await _optimistic()
+    await db.set_setting("optimistic_unlock", "1" if now_on else "0")
+    await draw_payments(callback)
+
+
+async def _uncredited_topups() -> list[dict]:
+    """To'langan Click to'ldirishlari, lekin balansga tushmagan (eski xato)."""
+    conn = await db.connect()
+    cursor = await conn.execute(
+        """
+        SELECT p.id, p.user_id, p.amount, p.paid_at FROM payments p
+        WHERE p.product = 'wallet_topup_click' AND p.status = 'paid'
+          AND NOT EXISTS (SELECT 1 FROM wallet_transactions w WHERE w.reference = 'click_topup:' || p.id)
+        ORDER BY p.id
+        """
+    )
+    return [{"id": r[0], "user_id": r[1], "amount": r[2], "paid_at": r[3]} for r in await cursor.fetchall()]
+
+
+@router.callback_query(F.data == "adm:reconcile")
+async def reconcile(callback: CallbackQuery) -> None:
+    await callback.answer()
+    rows = await _uncredited_topups()
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    b = InlineKeyboardBuilder()
+    if not rows:
+        text = "🔎 <b>Click to‘ldirishlari</b>\n\n✅ Hammasi balansga tushgan."
+    else:
+        total = sum(int(r["amount"]) for r in rows)
+        lines = [f"🔎 <b>Click to‘ldirishlari</b>\n\n⚠️ {len(rows)} ta to‘lov Click’da o‘tgan, lekin balansga tushmagan "
+                 f"(eski xato). Jami: <b>{money(total)} so‘m</b>.", ""]
+        lines += [f"• #{r['id']} · <code>{r['user_id']}</code> · {money(int(r['amount']))} so‘m · {(r['paid_at'] or '')[:10]}"
+                  for r in rows[:30]]
+        lines += ["", "«Balansga tushirish» — har biri bir marta (qayta bossangiz ham ikki marta tushmaydi), "
+                  "foydalanuvchiga xabar boradi."]
+        text = "\n".join(lines)
+        b.button(text=f"💰 Balansga tushirish ({len(rows)} ta)", callback_data="adm:reconcile:do")
+    b.button(text="⬅️ To‘lovlar", callback_data="adm:pay")
+    b.adjust(1)
+    await callback.message.edit_text(text, reply_markup=b.as_markup())
+
+
+@router.callback_query(F.data == "adm:reconcile:do")
+async def reconcile_do(callback: CallbackQuery) -> None:
+    await callback.answer("Tushirilmoqda…")
+    from handlers import reports
+    done = 0
+    for row in await _uncredited_topups():
+        await reports.after_payment(int(row["id"]), source="click")
+        done += 1
+    await callback.message.answer(f"✅ {done} ta to‘ldirish balansga tushirildi.", reply_markup=kb.admin_menu())
+

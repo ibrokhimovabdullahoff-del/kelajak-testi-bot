@@ -132,10 +132,13 @@ async def debit(user_id: int, amount: int, kind: str, reference: str | None = No
         await conn.close()
 
 
-async def purchase(user_id: int, product: str, amount: int) -> bool:
-    """Debit wallet and create paid access in one atomic SQLite transaction."""
+async def purchase(user_id: int, product: str, amount: int) -> int:
+    """Debit wallet and create paid access in one atomic SQLite transaction.
+
+    Returns the new payment id (truthy) or 0 when the balance is too low.
+    """
     if amount <= 0:
-        return False
+        return 0
     conn = await _tx_conn()
     try:
         await conn.execute("BEGIN IMMEDIATE")
@@ -146,7 +149,7 @@ async def purchase(user_id: int, product: str, amount: int) -> bool:
         )
         if cur.rowcount != 1:
             await conn.rollback()
-            return False
+            return 0
         cur = await conn.execute(
             "INSERT INTO payments(user_id,product,amount,method,status,note,created_at,paid_at) VALUES(?,?,?,?,?,?,?,?)",
             (user_id, product, amount, "wallet", "paid", "Wallet purchase", now, now),
@@ -161,7 +164,7 @@ async def purchase(user_id: int, product: str, amount: int) -> bool:
         db._drop_access_cache(user_id)
         import events
         events.track(user_id, "payment_success", product, method="wallet", amount=amount)
-        return True
+        return int(payment_id)
     except Exception:
         await conn.rollback()
         raise
@@ -189,10 +192,11 @@ async def manual_review(payment_id: int, admin_id: int, approve: bool) -> bool:
     try:
         await conn.execute("BEGIN IMMEDIATE")
         cur = await conn.execute(
-            "SELECT user_id, amount, status, method FROM payments WHERE id=?", (payment_id,)
+            "SELECT user_id, amount, status, method, product FROM payments WHERE id=?", (payment_id,)
         )
         row = await cur.fetchone()
-        if not row or row[2] != "pending" or row[3] != "manual_card":
+        # Faqat balansni to'ldirish cheki: to'liq tahlil cheki boshqa joyda ko'riladi.
+        if not row or row[2] != "pending" or row[3] != "manual_card" or row[4] != "wallet_topup":
             await conn.rollback()
             return False
         user_id, amount = int(row[0]), int(row[1])

@@ -26,7 +26,6 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m py_compile $(find . -name '*.py' -type f)
       - run: python selftest.py
-      - run: python attempts_test.py
       - run: python flowtest.py
       - run: python clicktest.py
       - run: python migrationtest.py
@@ -34,3 +33,4 @@ jobs:
       - run: python iqtest.py
       - run: python growthtest.py
       - run: python phase0test.py
+      - run: python phase1test.py

@@ -78,10 +78,84 @@ async def m3_stats_indexes(conn: aiosqlite.Connection) -> None:
     )
 
 
+async def m4_reports_and_progress(conn: aiosqlite.Connection) -> None:
+    """To'liq tahlilga kirish huquqi va test o'rtasida saqlangan javoblar."""
+    await conn.executescript(
+        """
+        -- Kim qaysi testning TO'LIQ tahlilini ocha oladi. Bir test — bir qator:
+        -- ochilish butunlay (keyingi urinishlarga ham).
+        --   source: legacy | click | wallet | card | card_optimistic | bundle
+        --           | referral | promo | admin
+        CREATE TABLE IF NOT EXISTS report_access (
+            user_id     INTEGER NOT NULL,
+            test_key    TEXT NOT NULL,
+            source      TEXT NOT NULL,
+            payment_id  INTEGER,
+            created_at  TEXT NOT NULL,
+            PRIMARY KEY (user_id, test_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_report_access_payment ON report_access(payment_id);
+
+        -- Test o'rtasida to'xtatilsa yoki bot qayta ishga tushsa ham javoblar
+        -- yo'qolmasin: har bir javobdan keyin yoziladi, test tugagach o'chadi.
+        CREATE TABLE IF NOT EXISTS progress (
+            user_id     INTEGER NOT NULL,
+            test_key    TEXT NOT NULL,
+            answers     TEXT NOT NULL,
+            age_group   TEXT,
+            extra       TEXT,
+            updated_at  TEXT NOT NULL,
+            PRIMARY KEY (user_id, test_key)
+        );
+
+        -- Rad etilgan chekdan keyin bu foydalanuvchiga "chekdan oldin ochish" yo'q.
+        CREATE TABLE IF NOT EXISTS optimistic_blocked (
+            user_id     INTEGER PRIMARY KEY,
+            payment_id  INTEGER,
+            created_at  TEXT NOT NULL
+        );
+        """
+    )
+
+
+#: Pullik test bo'lgan mahsulotlar — migratsiya o'z vaqtidagi ro'yxatni ishlatadi.
+_LEGACY_TESTS = ("iq", "bigfive", "future", "career", "child")
+
+
+async def m5_keep_paid_access(conn: aiosqlite.Connection) -> None:
+    """Avval testni sotib olganlar o'sha testning to'liq tahlilini bepul ko'radi.
+
+    Eski model: to'lov = bitta urinish. Yangi model: test bepul, to'lov =
+    to'liq tahlil. Kim qachondir to'lagan (Click, balans yoki admin ochgan)
+    bo'lsa — o'sha test uchun to'liq tahlil ochiq. "all" paketi — hamma test.
+    """
+    tests = ",".join(f"'{key}'" for key in _LEGACY_TESTS)
+    await conn.execute(
+        f"""
+        INSERT OR IGNORE INTO report_access (user_id, test_key, source, payment_id, created_at)
+        SELECT user_id, product, 'legacy', MIN(id), strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')
+        FROM payments WHERE status = 'paid' AND product IN ({tests})
+        GROUP BY user_id, product
+        """
+    )
+    union = " UNION ALL ".join(f"SELECT '{key}' AS key" for key in _LEGACY_TESTS)
+    await conn.execute(
+        f"""
+        INSERT OR IGNORE INTO report_access (user_id, test_key, source, payment_id, created_at)
+        SELECT p.user_id, t.key, 'legacy', MIN(p.id), strftime('%Y-%m-%dT%H:%M:%S+00:00', 'now')
+        FROM payments p JOIN ({union}) t
+        WHERE p.status = 'paid' AND p.product = 'all'
+        GROUP BY p.user_id, t.key
+        """
+    )
+
+
 MIGRATIONS = [
     (1, "events table", m1_events),
     (2, "users: source, source_at, blocked_at", m2_user_source_and_blocks),
     (3, "indexes for /stats", m3_stats_indexes),
+    (4, "report_access, progress, optimistic_blocked", m4_reports_and_progress),
+    (5, "keep full-report access for everyone who already paid", m5_keep_paid_access),
 ]
 
 

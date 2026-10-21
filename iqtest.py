@@ -109,6 +109,10 @@ def last_text() -> str:
     return ""
 
 
+def all_texts() -> str:
+    return "\n".join(m.text or "" for name, m in CALLS if name in ("SendMessage", "EditMessageText"))
+
+
 def text_buttons() -> list:
     for name, m in reversed(CALLS):
         if name in ("SendMessage", "EditMessageText") and m.reply_markup:
@@ -212,29 +216,22 @@ async def main() -> int:
     as_user(user)
     await db.set_lang(user, "uz")
 
-    print("2. Kartochka va to‘lov to‘sig‘i")
+    print("2. Test oldidan ekran (test bepul)")
     CALLS.clear()
     await send(dp, bot, "/iq")
     card = last_text()
     check("kartochka: 20 ta rasmli topshiriq", "20 ta rasmli topshiriq" in card, card[:80])
-    check("kartochkada narx", "Narxi" in card, card[-80:])
-    check("to‘lov tugmalari bor", any(b.callback_data == "pay:iq" for b in text_buttons()))
-    CALLS.clear()
-    await press(dp, bot, "iq:start")
-    check("to‘lovsiz rasm yuborilmadi", not calls("SendPhoto"))
-    check("paywall chiqdi", "pullik" in last_text().lower(), last_text()[:80])
+    check("nima bepul, nima pullik — boshlashdan oldin", "Bepul:" in card and "To‘liq tahlil — 5 000 so‘m" in card,
+          card[-200:])
+    check("«Boshlash» tugmasi, to‘lov tugmasi yo‘q",
+          any(b.callback_data == "iq:start" for b in text_buttons())
+          and not any((b.callback_data or "").startswith("pay:") for b in text_buttons()),
+          str([b.callback_data for b in text_buttons()]))
     CALLS.clear()
     await press(dp, bot, "iq:a:0:A", on_photo=True)
-    check("to‘lovsiz javob qabul qilinmadi", "tugagan" in alert(), alert())
-
-    payment_id = await db.create_payment(user, "iq", 5000, "click")
-    await db.mark_paid(payment_id)
+    check("boshlanmagan testga javob qabul qilinmadi", "tugagan" in alert(), alert())
 
     print("3. Test boshlanishi va rasm yuklash")
-    CALLS.clear()
-    await press(dp, bot, "iq:card")
-    check("to‘lovdan keyin «Boshlash» tugmasi",
-          any(b.callback_data == "iq:start" for b in text_buttons()), str([b.text for b in text_buttons()]))
     CALLS.clear()
     await press(dp, bot, "iq:start")
     check("avval yosh so‘raldi (rasm hali yo‘q)", "Yoshingizni tanlang" in last_text() and not calls("SendPhoto"),
@@ -273,23 +270,48 @@ async def main() -> int:
     result = last_text()
     check("to‘g‘ri javoblar 18 / 20", "18 / 20" in result, result[:200])
     expected = estimate_iq(18, "i_18_29", [])
+    print("5a. Bepul natija va to‘lov")
+    check("bepul natija: to‘g‘ri javoblar va eng kuchli tur", "Test yakunlandi" in result
+          and "Eng kuchli tomoningiz" in result, result[:300])
+    check("taxminiy IQ qulflangan (raqam yo‘q)", "Taxminiy IQ — ░░░░░ 🔒" in result
+          and f"≈ {expected['iq']}" not in result, result)
+    cert_photo = next(m for n, m in CALLS if n == "SendPhoto" and "sertifikat" in (m.caption or ""))
+    cert_buttons = [b.callback_data for row in cert_photo.reply_markup.inline_keyboard for b in row]
+    check("sertifikatda «Ballni yashirish» tugmasi", any(c.startswith("cardsc:") for c in cert_buttons), str(cert_buttons))
+    unlock = next((b.callback_data for b in text_buttons() if (b.callback_data or "").startswith("rep:buy:")), "")
+    check("«To‘liq tahlilni ochish — 5 000 so‘m»", bool(unlock) and "5 000" in text_buttons()[0].text,
+          str([b.text for b in text_buttons()]))
+    free_calls = list(CALLS)
+    CALLS.clear()
+    await press(dp, bot, unlock)
+    pay_row = (await db.recent_payments(1))[0]
+    check("Click to‘lovi aynan IQ tahlili narxiga", pay_row["product"] == "iq" and pay_row["amount"] == 5000,
+          str(pay_row))
+    await db.mark_paid(pay_row["id"])
+    CALLS.clear()
+    await autostart_runtime.notify_paid(pay_row["id"])
+    result = last_text()
+    check("to‘lovdan keyin to‘liq tahlil shu chatda", "To‘lov qabul qilindi" in "\n".join(
+        m.text or "" for n, m in CALLS if n == "SendMessage"), str([n for n, _ in CALLS]))
+    CALLS[:0] = free_calls  # tartib tekshiruvi uchun bepul qism ham ro'yxatda qolsin
     check(f"taxminiy IQ ≈ {expected['iq']} ko‘rsatildi", f"Taxminiy IQ: <b>≈ {expected['iq']}</b>" in result, result[:200])
     check("IQ oralig‘i ko‘rsatildi", f"{expected['low']}–{expected['high']}" in result, result[:260])
     check("IQ shkalasi ko‘rsatildi", "🔵" in result and f"{IQ_MIN} " in result)
     check(f"daraja: {level_for(expected['iq']).name['uz']}",
           f"Daraja: <b>{level_for(expected['iq']).name['uz']}</b>" in result, result[:300])
-    check("fikrlash turlari ko‘rsatilmadi", not any(k.name["uz"] in result for k in KINDS.values()))
+    check("to‘liq tahlilda 4 ta fikrlash turi va mashq", all(k.name["uz"] in result for k in KINDS.values())
+          and "Mashq:" in result, result[-600:])
     check("vaqt ko‘rsatildi", "Sarflangan vaqt" in result)
     check("tez yechilgani haqida ogohlantirish", "Juda tez" in result)
     check("«rasmiy IQ emas» izohi yo‘q", "IQ taxminiy" not in result and "rasmiy" not in result, result[-200:])
     check("oxirida keyingi qadam", "KEYINGI QADAM" in result and result.rstrip().endswith("oching."), result[-200:])
     check("HTML teglar yopilgan", result.count("<b>") == result.count("</b>") and result.count("<i>") == result.count("</i>"))
     check("natija 4096 belgidan qisqa", len(result) < 4096, str(len(result)))
-    order = [(n, getattr(m, "caption", None) or getattr(m, "text", "") or "") for n, m in CALLS
+    order = [(n, getattr(m, "caption", None) or getattr(m, "text", "") or "") for n, m in free_calls
              if n in ("SendPhoto", "SendMessage")]
     cert = next((i for i, (n, text) in enumerate(order) if n == "SendPhoto" and "sertifikat" in text), None)
-    check("tartib: sertifikat → natija (xatolar tahlili taklifi yo‘q)",
-          cert is not None and cert == len(order) - 2 and "TAXMINIY IQ" in order[-1][1].upper()
+    check("tartib: sertifikat → bepul natija (xatolar tahlili taklifi yo‘q)",
+          cert is not None and cert == len(order) - 2 and "Test yakunlandi" in order[-1][1]
           and not any("start=ref_777" in text for _, text in order[:-1]),
           str([(n, t[:30]) for n, t in order]))
     cert_markup = next(m.reply_markup for n, m in CALLS if n == "SendPhoto" and "sertifikat" in (m.caption or ""))
@@ -305,7 +327,8 @@ async def main() -> int:
     check("natija saqlandi (18)", history and history[0]["test_key"] == "iq" and history[0]["total"] == 18.0, str(history[:1]))
     saved = json.loads(history[0]["scales"])
     check("yosh va IQ saqlandi", history[0]["age_group"] == "i_18_29" and saved["iq"] == expected["iq"], str(saved)[:120])
-    check("to‘langan urinish ishlatildi", not await db.has_access(user, "iq"))
+    import access
+    check("to‘liq tahlil ochiq qoldi (keyingi urinishlarda ham)", await access.has(user, "iq"))
 
     print("6. To‘g‘ri javoblar hech qayerda ko‘rinmaydi")
     everything = "\n".join(
@@ -328,21 +351,20 @@ async def main() -> int:
     check("eski tugma: ogohlantirish", "tugagan" in alert(), alert())
     CALLS.clear()
     await press(dp, bot, "iq:card")
-    check("qayta topshirish uchun yana to‘lov", "Narxi" in last_text(), last_text()[-80:])
+    check("kartochka: to‘liq tahlil sizda ochiq", "sizda ochiq" in last_text(), last_text()[-120:])
     CALLS.clear()
     await press(dp, bot, "nav:history")
     check(f"tarixda «Premium IQ testi · IQ ≈{expected['iq']} (18/20)»",
           "Premium IQ testi" in last_text() and f"IQ ≈{expected['iq']} (18/20)" in last_text(), last_text())
     CALLS.clear()
     await press(dp, bot, "iqage:i_18_29")
-    check("to‘lovsiz eski yosh tugmasi → paywall", "pullik" in last_text().lower() and not calls("SendPhoto"),
-          last_text()[:60])
+    caption, _, _ = last_photo()
+    check("eski yosh tugmasi — test yana bepul boshlanadi", "1 / 20" in caption, caption)
 
     print("8. Rasm keshidan foydalanish va buzilgan file_id")
     other = 999
     as_user(other)
     await db.set_lang(other, "uz")
-    await db.mark_paid(await db.create_payment(other, "iq", 5000, "click"))
     CALLS.clear()
     await begin(dp, bot)
     _, _, media = last_photo()
@@ -355,14 +377,27 @@ async def main() -> int:
     check("buzilgan file_id → fayl qayta yuklandi", "2 / 20" in caption and isinstance(media, FSInputFile),
           f"{caption[:30]} {type(media).__name__}")
 
-    print("9. To‘xtatish")
+    print("9. To‘xtatish (javoblar saqlanadi)")
     CALLS.clear()
     await press(dp, bot, "iq:stop", on_photo=True)
-    check("to‘xtatildi va menyu chiqdi", "to‘xtatildi" in alert() and "Psixologik testlar" in last_text(), alert())
+    check("avval so‘raldi: javoblar saqlanishi aytildi", "to‘xtatasizmi" in last_text() and "saqlanadi" in last_text(),
+          last_text()[:80])
+    yes = next(b.callback_data for b in text_buttons() if b.callback_data.startswith("iqquit:yes"))
+    CALLS.clear()
+    await press(dp, bot, yes)
+    check("to‘xtatildi va menyu chiqdi", "to‘xtatildi" in all_texts() and "Kelajak Testi" in last_text(),
+          all_texts()[:200])
+    check("menyuda «Testni davom ettirish (1/20)»",
+          any(b.callback_data == "resume:iq" and "1/20" in b.text for b in text_buttons()),
+          str([b.text for b in text_buttons()]))
+    CALLS.clear()
+    await press(dp, bot, "resume:iq")
+    caption, _, _ = last_photo()
+    check("davom ettirish — 2-savoldan", "2 / 20" in caption, caption)
     CALLS.clear()
     await press(dp, bot, "iq:a:1:A", on_photo=True)
-    check("to‘xtatilgandan keyin javob qabul qilinmaydi", "tugagan" in alert(), alert())
-    check("to‘xtatilgan test urinishni yemadi", await db.has_access(other, "iq"))
+    caption, _, _ = last_photo()
+    check("javob qabul qilindi va 3-savol", "3 / 20" in caption, caption)
 
     print("10. Ishtirokchilar orasidagi o‘rin (rus tili)")
     conn = await db.connect()
@@ -377,6 +412,7 @@ async def main() -> int:
     await conn.commit()
     as_user(other, "ru")
     await db.set_lang(other, "ru")
+    await access.grant(other, ["iq"], "admin")  # to'liq tahlil (foiz bilan) ko'rinsin
     CALLS.clear()
     await begin(dp, bot)
     caption, _, _ = last_photo()
@@ -406,7 +442,7 @@ async def main() -> int:
     check("test boshlanmadi", not calls("SendPhoto") and "vaqtincha yopiq" in last_text(), last_text()[:60])
     os.environ["IQ_ANSWERS"] = "".join(KEY)
 
-    print("11. To‘lovdan keyin avtomatik boshlanish")
+    print("11. Testni topshirmay turib to‘lov")
     auto = 555
     as_user(auto)
     await db.set_lang(auto, "uz")
@@ -414,10 +450,9 @@ async def main() -> int:
     await db.mark_paid(pid)
     CALLS.clear()
     await autostart_runtime.notify_paid(pid)
-    check("Click to‘lovidan keyin yosh o‘zi so‘raldi", "Yoshingizni tanlang" in last_text(), last_text()[:60])
-    await press(dp, bot, "iqage:i_10_13")
-    caption, _, _ = last_photo()
-    check("yoshdan keyin 1-rasm keldi", "1 / 20" in caption, caption)
+    check("huquq berildi", await access.has(auto, "iq"))
+    check("«testni topshiring — tahlil darhol ochiladi»", "hali topshirmagansiz" in last_text()
+          and any(b.callback_data == "iq:card" for b in text_buttons()), last_text()[:80])
 
     print("12. Do‘st taklifi")
     import referrals

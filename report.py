@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import json
 
+import content
+import profiles
 from config import IQ_EMOJI, IQ_KEY
 from locales import t, tr
 from psytests import AGE_ADVICE, AGE_LABELS, REGISTRY, TestDef, level_of
 from psytests.base import L
 from psytests.insights import INSIGHTS, NEXT_TEST
-from psytests.iq import RUSHED_SECONDS_PER_PUZZLE, TOTAL as IQ_TOTAL, level_for
+from psytests.iq import KINDS, RUSHED_SECONDS_PER_PUZZLE, TOTAL as IQ_TOTAL, level_for
 
 BAR_LEN = 10
 SEP = "━━━━━━━━━━━━━━━━━━"
@@ -65,6 +67,12 @@ def pct(percent: float, lang: str) -> str:
 def bar(percent: float) -> str:
     filled = max(0, min(BAR_LEN, round(percent / 100 * BAR_LEN)))
     return "█" * filled + "░" * (BAR_LEN - filled)
+
+
+def level_text(scale, level: str, lang: str) -> str | None:
+    """Daraja izohi. Ba'zi testlarda "o'rta" izohi yo'q — u holda None."""
+    text = scale.levels.get(level)
+    return tr(text, lang) if text else None
 
 
 def _band(total: float):
@@ -132,15 +140,39 @@ def next_step(test_key: str, lang: str) -> str:
 
 
 def _render_traits(test: TestDef, result: dict, lang: str) -> str:
-    lines = []
-    for key, scale in test.scales.items():
-        percent = result["scales"][key]
-        level = t("lvl_" + level_of(percent), lang)
-        lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b> — {level}")
+    scales = result["scales"]
+    arch = profiles.archetype(test.key, scales)
+    lines = [t("res_type", lang, name=tr(arch.name, lang)), f"<i>{tr(arch.line, lang)}</i>", "", SEP, ""]
+    for key in profiles.ranked(test.key, scales):
+        scale = test.scales[key]
+        percent = scales[key]
+        level = level_of(percent)
+        lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b> — {t('lvl_' + level, lang)}")
         lines.append(f"<code>{bar(percent)}</code> {pct(percent, lang)}")
-        lines.append(tr(scale.levels[level_of(percent)], lang))
-        lines += insight_lines(test.key, key, lang)
+        lines.append(tr(scale.levels[level], lang))
+        item = INSIGHTS.get(test.key, {}).get(key)
+        if item is not None:
+            lines.append(t("res_everyday", lang, text=tr(item.everyday, lang)))
+        lines.append(t("res_step", lang, text=content.get("bigfive", "action", key, level, lang=lang)))
         lines.append("")
+
+    order = profiles.ranked(test.key, scales)
+    top, lowest = order[0], order[-1]
+    lines += [SEP, "", f"💪 <b>{t('res_strengths', lang)}</b>"]
+    for key in order[:2]:
+        scale = test.scales[key]
+        lines.append(f"• {scale.emoji} {tr(scale.name, lang)} — {pct(scales[key], lang)}")
+    risks = []
+    for key in order:
+        level = level_of(scales[key])
+        if level in ("high", "low"):
+            scale = test.scales[key]
+            risks.append(f"• {scale.emoji} {content.get('bigfive', 'risk', key, level, lang=lang)}")
+    if risks:
+        lines += ["", f"⚠️ <b>{t('res_risks', lang)}</b>", *risks[:3]]
+    lines += ["", f"🏢 <b>{t('res_env', lang)}</b>", content.get("bigfive", "environment", top, lang=lang)]
+    lines += ["", f"🔁 <b>{t('res_habit', lang)}</b>",
+              f"{test.scales[lowest].emoji} {content.get('bigfive', 'habit', lowest, lang=lang)}"]
     return "\n".join(lines).rstrip()
 
 
@@ -164,30 +196,48 @@ def _render_index(
         lines += ["", compared]
     lines += ["", SEP, ""]
 
+    child = test.subject == "child"
     for key in result["ranked"]:
         scale = test.scales[key]
         percent = result["scales"][key]
+        level = level_of(percent)
         lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b>")
         lines.append(f"<code>{bar(percent)}</code> {pct(percent, lang)}")
-        lines += insight_lines(test.key, key, lang)
+        if child:
+            # Ota-onaga: shu yo'nalish va daraja uchun amaliy maslahat.
+            lines.append(t("res_tip", lang, text=content.get("child", key, level, lang=lang)))
+        else:
+            item = INSIGHTS.get(test.key, {}).get(key)
+            if item is not None:
+                lines.append(t("res_everyday", lang, text=tr(item.everyday, lang)))
+            lines.append(t("res_research", lang, text=content.get("future", key, "research", lang=lang)))
         lines.append("")
     lines.pop()
 
+    strong = [key for key in result["ranked"][:2] if profiles.is_strong(result["scales"][key])]
     lines += ["", SEP, "", f"✅ <b>{t('res_strengths', lang)}</b>", ""]
-    for key in result["top"]:
-        scale = test.scales[key]
-        lines.append(
-            f"{scale.emoji} <b>{tr(scale.name, lang)}</b> — "
-            f"{tr(scale.levels['high'], lang)}"
-        )
-        lines.append("")
+    if strong:
+        for key in strong:
+            scale = test.scales[key]
+            lines.append(
+                f"{scale.emoji} <b>{tr(scale.name, lang)}</b> — "
+                f"{tr(scale.levels['high'], lang)}"
+            )
+            lines.append("")
+    else:
+        lines += [t("res_none_strong", lang), ""]
 
-    lines += [SEP, "", f"🎯 <b>{t('res_growth', lang)}</b>", ""]
-    for key in result["bottom"]:
-        scale = test.scales[key]
-        lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b>")
-        lines.append(tr(scale.levels["low"], lang))
-        lines.append("")
+    if not child:
+        lines += [SEP, "", f"🎯 <b>{t('res_work_on', lang)}</b>", ""]
+        for key in list(reversed(result["ranked"]))[:3]:
+            scale = test.scales[key]
+            level = level_of(result["scales"][key])
+            lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b> — {pct(result['scales'][key], lang)}")
+            explained = level_text(scale, level, lang)
+            if explained:
+                lines.append(explained)
+            lines.append(t("res_step", lang, text=content.get("future", key, level, lang=lang)))
+            lines.append("")
 
     if age_group in AGE_ADVICE:
         label = "res_advice_child" if test.subject == "child" else "res_advice"
@@ -225,6 +275,12 @@ def _render_interests(test: TestDef, result: dict, lang: str) -> str:
         lines += insight_lines(test.key, key, lang)
         lines.append("")
 
+    top, second = result["ranked"][0], result["ranked"][1]
+    lines += [SEP, "", f"💼 <b>{t('res_jobs', lang)}</b>"]
+    for key in (top, second):
+        lines.append(f"{test.scales[key].emoji} {content.get('career', 'jobs', key, lang=lang)}")
+    lines += ["", f"🎓 <b>{t('res_study', lang)}</b>", content.get("career", "study", top, lang=lang)]
+    lines += ["", f"🚀 <b>{t('res_next_month', lang)}</b>", content.get("career", "next", top, lang=lang)]
     return "\n".join(lines).rstrip()
 
 
@@ -244,9 +300,24 @@ def iq_scale(iq: int, low: int = 70, high: int = 145) -> str:
     return "".join("🔵" if i == position else "▫️" for i in range(cells))
 
 
+def iq_kinds_block(details: dict, lang: str) -> list[str]:
+    """To'liq IQ tahlili: 4 ta fikrlash turi — natija, nima ekani, mashq."""
+    lines = [f"📊 <b>{t('res_iq_kinds', lang)}</b>", ""]
+    for key, ok, n in profiles.iq_kinds(details):
+        if not n:
+            continue
+        kind = KINDS[key]
+        lines.append(t("res_iq_kind", lang, emoji=kind.emoji, name=tr(kind.name, lang), ok=ok, n=n))
+        lines.append(f"<code>{bar(ok / n * 100)}</code>")
+        lines.append(t("res_meaning", lang, text=content.get("iq", "kinds", key, "meaning", lang=lang)))
+        lines.append(t("res_exercise", lang, text=content.get("iq", "kinds", key, "train", lang=lang)))
+        lines.append("")
+    return lines
+
+
 def render_iq(correct: int, estimate: dict, seconds: int | None, lang: str,
-              comparison: dict | None = None) -> str:
-    """IQ natijasi. estimate — `psytests.iq.estimate_iq()` natijasi."""
+              comparison: dict | None = None, details: dict | None = None) -> str:
+    """IQ natijasi (to'liq). estimate — `psytests.iq.estimate_iq()` natijasi."""
     iq = estimate["iq"]
     level = level_for(iq)
     lines = [
@@ -268,7 +339,82 @@ def render_iq(correct: int, estimate: dict, seconds: int | None, lang: str,
         lines.append(t("iq_res_time", lang, duration=duration(seconds, lang)))
         if seconds < IQ_TOTAL * RUSHED_SECONDS_PER_PUZZLE:
             lines.append(t("iq_res_rushed", lang))
+    if details and details.get("kinds"):
+        lines += ["", SEP, "", *iq_kinds_block(details, lang)]
+        lines.pop()
     lines += ["", SEP, "", next_step(IQ_KEY, lang)]
+    return "\n".join(lines)
+
+
+# --- Bepul natija -----------------------------------------------------------
+
+
+def _bullets(test_key: str, lang: str) -> list[str]:
+    return [t("res_in_full", lang)] + [f"• {tr(b, lang)}" for b in content.items("tests", test_key, "bullets")]
+
+
+def render_free(test: TestDef, result: dict, lang: str) -> str:
+    """Bepul natija: eng kuchli tomon, qulflangan qatorlar va to'liq tahlilda nima borligi."""
+    scales = result["scales"]
+    order = profiles.ranked(test.key, scales)
+    top = order[0]
+    top_scale = test.scales[top]
+    top_pct = scales[top]
+    level = level_of(top_pct)
+    explained = level_text(top_scale, level, lang)
+    if explained is None:  # "o'rta" izohi yo'q — yo'nalish nimani anglatishini aytamiz
+        item = INSIGHTS.get(test.key, {}).get(top)
+        explained = tr(item.everyday, lang) if item else ""
+    first_sentence = explained.split(". ")[0].rstrip(".") + "." if explained else ""
+    lines = [t("res_done", lang), ""]
+
+    if test.kind == "traits":
+        arch = profiles.archetype(test.key, scales)
+        lines += [t("res_type", lang, name=tr(arch.name, lang)), f"<i>{tr(arch.line, lang)}</i>", ""]
+        key = "res_top_strong" if profiles.is_strong(top_pct) else "res_top_plain"
+        lines += [t(key, lang, emoji=top_scale.emoji, name=tr(top_scale.name, lang)), first_sentence, ""]
+        lines += [t("res_locked", lang, emoji=test.scales[k].emoji, name=tr(test.scales[k].name, lang))
+                  for k in order[1:]]
+    elif test.kind == "interests":
+        arch = profiles.archetype(test.key, scales)
+        key = "res_top_career" if profiles.is_strong(top_pct) else "res_top_plain"
+        lines += [t(key, lang, emoji=top_scale.emoji, name=tr(top_scale.name, lang))]
+        if profiles.is_strong(top_pct):
+            lines += [f"<b>{tr(arch.name, lang)}</b> — {tr(arch.line, lang)}"]
+        lines += ["", *[t("res_locked", lang, emoji=test.scales[k].emoji, name=tr(test.scales[k].name, lang))
+                        for k in order[1:]]]
+    else:
+        total = result.get("total") or 0
+        emoji, name, _ = _band(total)
+        score = f"{total:.0f} / 100" if round(total) > 0 else t("res_zero", lang)
+        lines += [t("res_index_line", lang, emoji=emoji, score=score, band=tr(name, lang)), ""]
+        child = test.subject == "child"
+        if profiles.is_strong(top_pct):
+            key = "res_top_child" if child else "res_top_strong"
+        else:
+            key = "res_top_plain"
+        lines += [t(key, lang, emoji=top_scale.emoji, name=tr(top_scale.name, lang)), first_sentence, ""]
+        lines.append(t("res_locked_more", lang, n=len(order) - 1))
+
+    lines += ["", *_bullets(test.key, lang)]
+    disclaimer = {"traits": "disclaimer_validated", "interests": "disclaimer_career"}.get(
+        test.kind, "disclaimer_composite")
+    lines += ["", f"<i>{t(disclaimer, lang)}</i>"]
+    return "\n".join(lines)
+
+
+def render_iq_free(correct: int, details: dict, lang: str) -> str:
+    """IQ bepul natijasi: to'g'ri javoblar va eng kuchli fikrlash turi."""
+    lines = [t("res_done", lang), "", t("iq_res_correct", lang, correct=correct, total=IQ_TOTAL), ""]
+    best = profiles.iq_best(details)
+    arch = profiles.archetype(IQ_KEY, details)
+    if best:
+        kind = KINDS[best]
+        lines += [t("res_top_strong", lang, emoji=kind.emoji, name=tr(kind.name, lang)),
+                  f"<b>{tr(arch.name, lang)}</b> — {tr(arch.line, lang)}", ""]
+    else:
+        lines += [f"<b>{tr(arch.name, lang)}</b> — {tr(arch.line, lang)}", ""]
+    lines += [t("res_iq_locked", lang), t("res_iq_locked_kinds", lang), "", *_bullets(IQ_KEY, lang)]
     return "\n".join(lines)
 
 

@@ -50,7 +50,8 @@ def menu(user_id: int):
 
 async def render(message: Message, user_id: int) -> None:
     bal = await wallet.balance(user_id)
-    products = await db.paid_products(user_id)
+    import access
+    products = await access.owned(user_id)
     lang = await db.get_lang(user_id) or "uz"
     rows = await db.recent_payments(50)
     user_rows = [r for r in rows if r["user_id"] == user_id][:5]

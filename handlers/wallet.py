@@ -17,7 +17,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 import wallet
-from config import MANUAL_CARD_HOLDER, MANUAL_CARD_NUMBER, MANUAL_RECEIPT_CHAT, is_admin
+from config import MANUAL_CARD_HOLDER, MANUAL_CARD_NUMBER, is_admin
 from locales import money
 
 router = Router()
@@ -166,10 +166,13 @@ async def topup_receipt(message: Message, state: FSMContext, lang: str, bot: Bot
         f"📅 {(message.date.isoformat())[:19]}\n\n"
         "⚠️ Admin tasdig‘idan keyin balansga tushadi."
     )
-    # Notify the configured Telegram review chat when it is a numeric chat ID.
-    if MANUAL_RECEIPT_CHAT:
+    # Adminlarga (ID bo'yicha) va sozlangan chatga (raqamli ID bo'lsa) yuboriladi.
+    # Avval faqat MANUAL_RECEIPT_CHAT ga ketardi — u @username bo'lsa, bot
+    # oddiy foydalanuvchiga birinchi bo'lib yoza olmaydi va chek yo'qolardi.
+    from handlers.reports import _receipt_targets
+    for target in _receipt_targets():
         try:
-            await bot.send_photo(MANUAL_RECEIPT_CHAT, receipt_id, caption=text, reply_markup=review_menu(payment_id))
+            await bot.send_photo(target, receipt_id, caption=text, reply_markup=review_menu(payment_id))
         except Exception:
             pass
     await message.answer(
@@ -183,25 +186,6 @@ async def topup_receipt(message: Message, state: FSMContext, lang: str, bot: Bot
 @router.message(TopUp.receipt)
 async def receipt_required(message: Message, lang: str) -> None:
     await message.answer(bi(lang, "Iltimos, chekni rasm sifatida yuboring.", "Пожалуйста, отправьте чек именно фотографией."))
-
-
-@router.callback_query(F.data.startswith("wallet:buy:"))
-async def buy_from_wallet(callback: CallbackQuery, lang: str) -> None:
-    product = callback.data.split(":", 2)[2]
-    from psytests import REGISTRY
-    from handlers.payment import price_for, product_title
-    if product != db.ALL_PRODUCTS and product not in REGISTRY:
-        await callback.answer()
-        return
-    amount = await price_for(product)
-    if await wallet.purchase(callback.from_user.id, product, amount):
-        await callback.message.answer(
-            bi(lang, f"✅ Xarid muvaffaqiyatli. {product_title(product, lang)} ochildi.",
-               f"✅ Покупка успешна. {product_title(product, lang)} открыто."),
-        )
-        await callback.answer()
-    else:
-        await callback.answer(bi(lang, "❌ Balans yetarli emas.", "❌ Недостаточно средств."), show_alert=True)
 
 
 @admin_router.callback_query(F.data == "adm:wallet")

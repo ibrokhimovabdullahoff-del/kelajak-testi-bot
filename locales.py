@@ -20,20 +20,33 @@ STRINGS: dict[str, dict[str, str]] = {
     ),
     # --- Bosh menyu --------------------------------------------------------
     "menu": L(
-        "🧠 <b>Psixologik testlar</b>\n\n"
-        "Jahon psixologiyasida qo‘llanadigan testlar — o‘zbek tilida.\n\n"
-        "✅ Har bir test qaysi ilmiy manbadan olingani ochiq yozilgan\n"
-        "⚡️ Natijani darhol olasiz\n"
-        "🔒 Javoblaringizni hech kim ko‘rmaydi\n\n"
+        "🧠 <b>Kelajak Testi</b>\n"
+        "Jahon psixologiyasidagi testlar — o‘zbek tilida.\n\n"
+        "✅ Testni topshirish — bepul\n"
+        "🎖 Qisqa natija va sertifikat — bepul\n"
+        "📊 To‘liq shaxsiy tahlil — {price} so‘mdan\n\n"
+        "🔒 Javoblaringizni hech kim ko‘rmaydi.\n\n"
         "Qaysi biridan boshlaymiz? 👇",
-        "🧠 <b>Психологические тесты</b>\n\n"
-        "Тесты, которые используют в мировой психологии — на русском.\n\n"
-        "✅ У каждого теста открыто указан научный источник\n"
-        "⚡️ Результат сразу после теста\n"
-        "🔒 Ваши ответы никто не увидит\n\n"
+        "🧠 <b>Kelajak Testi</b>\n"
+        "Тесты мировой психологии — на русском языке.\n\n"
+        "✅ Пройти тест — бесплатно\n"
+        "🎖 Краткий результат и сертификат — бесплатно\n"
+        "📊 Полный личный разбор — от {price} сум\n\n"
+        "🔒 Ваши ответы никто не увидит.\n\n"
         "С какого начнём? 👇",
     ),
-    "btn_results": L("📈 Mening natijalarim", "📈 Мои результаты"),
+    "menu_iq": L("🧩 IQ’ingiz qancha? · 10 daqiqa", "🧩 Какой у вас IQ? · 10 минут"),
+    "menu_bigfive": L("🧠 Siz qanday insonsiz? · Big Five", "🧠 Какой вы человек? · Big Five"),
+    "menu_career": L("🧭 Qaysi kasb sizga mos?", "🧭 Какая профессия вам подходит?"),
+    "menu_future": L("🎯 Kelajak salohiyatingiz", "🎯 Ваш потенциал будущего"),
+    "menu_child": L("👶 Farzandim uchun · ota-onalarga", "👶 Для моего ребёнка · родителям"),
+    "btn_resume": L(
+        "▶️ Testni davom ettirish ({done}/{total})",
+        "▶️ Продолжить тест ({done}/{total})",
+    ),
+    "btn_restart": L("🔄 Yangidan boshlash", "🔄 Начать заново"),
+    "btn_invite": L("🎁 Do‘stni taklif qilish", "🎁 Пригласить друга"),
+    "btn_results": L("📈 Natijalarim", "📈 Мои результаты"),
     "btn_about": L("ℹ️ Bot haqida", "ℹ️ О боте"),
     "btn_language": L("🌐 Til / Язык", "🌐 Til / Язык"),
     "btn_menu": L("🏠 Bosh menyu", "🏠 Главное меню"),
@@ -54,17 +67,54 @@ STRINGS: dict[str, dict[str, str]] = {
         "📝 Авторский опросник",
     ),
     "card": L(
-        "{emoji} <b>{title}</b>\n\n"
-        "{intro}\n\n"
-        "━━━━━━━━━━━━━━━━━━\n"
-        "{badge}\n"
-        "📊 {count} ta savol · ⏱ {minutes}",
-        "{emoji} <b>{title}</b>\n\n"
-        "{intro}\n\n"
-        "━━━━━━━━━━━━━━━━━━\n"
-        "{badge}\n"
-        "📊 {count} вопросов · ⏱ {minutes}",
+        "{emoji} <b>{title}</b>\n"
+        "{count} ta savol · ⏱ {minutes} · {badge}\n\n"
+        "{instruction}\n\n"
+        "🆓 <b>Bepul:</b> {free}\n"
+        "{paid_line}",
+        "{emoji} <b>{title}</b>\n"
+        "{count} вопросов · ⏱ {minutes} · {badge}\n\n"
+        "{instruction}\n\n"
+        "🆓 <b>Бесплатно:</b> {free}\n"
+        "{paid_line}",
     ),
+    "card_iq_count": L("{count} ta rasmli topshiriq", "{count} заданий с картинками"),
+    "card_iq": L(
+        "{emoji} <b>{title}</b>\n"
+        "{count} ta rasmli topshiriq · ⏱ {minutes}\n\n"
+        "{instruction}\n\n"
+        "🆓 <b>Bepul:</b> {free}\n"
+        "{paid_line}",
+        "{emoji} <b>{title}</b>\n"
+        "{count} заданий с картинками · ⏱ {minutes}\n\n"
+        "{instruction}\n\n"
+        "🆓 <b>Бесплатно:</b> {free}\n"
+        "{paid_line}",
+    ),
+    "card_paid": L("💎 <b>To‘liq tahlil — {price} so‘m:</b> {paid}", "💎 <b>Полный разбор — {price} сум:</b> {paid}"),
+    "card_owned": L("✅ <b>To‘liq tahlil sizda ochiq:</b> {paid}", "✅ <b>Полный разбор у вас открыт:</b> {paid}"),
+    "card_report_free": L("🎁 <b>To‘liq tahlil hozir bepul:</b> {paid}", "🎁 <b>Полный разбор сейчас бесплатно:</b> {paid}"),
+    "card_progress": L(
+        "\n\n⏸ Siz bu testni {done}-savolda to‘xtatgansiz.",
+        "\n\n⏸ Вы остановились на {done}-м вопросе.",
+    ),
+    "instr_self": L(
+        "To‘g‘ri yoki noto‘g‘ri javob yo‘q. Qanday ko‘rinmoqchi ekaningizni emas, aslida qandayligingizni belgilang.",
+        "Правильных и неправильных ответов нет. Отмечайте не то, каким хотите казаться, а то, какой вы есть.",
+    ),
+    "instr_career": L(
+        "Har bir mashg‘ulot sizga qanchalik qiziq ekanini belgilang. Qobiliyat emas — qiziqish muhim.",
+        "Отметьте, насколько вам интересно каждое занятие. Важны не способности, а интерес.",
+    ),
+    "instr_child": L(
+        "Farzandingizning odatiy xulqiga qarab javob bering — qanday bo‘lishini istaganingizga emas.",
+        "Отвечайте по обычному поведению ребёнка, а не по тому, каким вы хотите его видеть.",
+    ),
+    "instr_iq": L(
+        "Har bir rasmda qonuniyatni toping va «?» o‘rniga mos variantni tanlang. Shoshmang, lekin bitta savolda qotib qolmang.",
+        "В каждой картинке найдите закономерность и выберите вариант вместо «?». Не спешите, но и не застревайте на одном вопросе.",
+    ),
+    "iq_minutes": L("10–15 daqiqa", "10–15 минут"),
     "source_title": L("📚 <b>Manba va uslubiyot</b>", "📚 <b>Источник и методика</b>"),
     # --- Yosh --------------------------------------------------------------
     "choose_age_self": L(
@@ -79,6 +129,21 @@ STRINGS: dict[str, dict[str, str]] = {
     "question": L(
         "❓ <b>Savol {index} / {total}</b>\n<code>{bar}</code>\n\n<b>{text}</b>",
         "❓ <b>Вопрос {index} / {total}</b>\n<code>{bar}</code>\n\n<b>{text}</b>",
+    ),
+    "ms_25": L("🔥 Chorak yo‘l bosildi — davom eting", "🔥 Четверть пути позади — продолжайте"),
+    "ms_50": L("🔥 Yarmidan o‘tdingiz — natijangiz shakllanyapti", "🔥 Вы прошли половину — результат складывается"),
+    "ms_75": L("🏁 Oz qoldi — natija tayyor bo‘lyapti", "🏁 Осталось чуть-чуть — результат почти готов"),
+    "cancel_confirm": L(
+        "⏸ <b>Testni to‘xtatasizmi?</b>\n\n"
+        "Javoblaringiz saqlanadi — keyin /start orqali shu joydan davom ettirasiz.",
+        "⏸ <b>Остановить тест?</b>\n\n"
+        "Ответы сохранятся — потом продолжите с этого места через /start.",
+    ),
+    "btn_quit_yes": L("⏸ Ha, to‘xtatish", "⏸ Да, остановить"),
+    "btn_quit_no": L("▶️ Davom etish", "▶️ Продолжить"),
+    "test_paused": L(
+        "⏸ Test to‘xtatildi. Javoblaringiz saqlandi — /start orqali davom ettirasiz.",
+        "⏸ Тест остановлен. Ответы сохранены — продолжите через /start.",
     ),
     "already_answered": L(
         "Bu savolga javob berilgan.",
@@ -330,6 +395,15 @@ STRINGS: dict[str, dict[str, str]] = {
         "Верно решено {correct} из {total}\u00a0заданий.",
     ),
     "card_holland": L("Holland kodi: {code}", "Код Холланда: {code}"),
+    "card_label_parent": L("Farzandim uchun", "Для моего ребёнка"),
+    "card_parent_name": L("G‘amxo‘r ota-ona", "Заботливый родитель"),
+    "card_parent_line": L(
+        "Farzandimning kuchli tomonlarini bilish uchun test topshirdim.",
+        "Я прошёл тест, чтобы узнать сильные стороны своего ребёнка.",
+    ),
+    "card_parent_line2": L("Bola o‘sishi e’tibordan boshlanadi.", "Рост ребёнка начинается с внимания."),
+    "btn_card_hide": L("🙈 Ballni yashirish", "🙈 Скрыть балл"),
+    "btn_card_show": L("👁 Ballni ko‘rsatish", "👁 Показать балл"),
     "card_fallback_line": L(
         "Bir haftadan keyin qayta topshirib, o‘zgarishni ko‘ring.",
         "Пройдите тест снова через неделю и увидите разницу.",
@@ -347,6 +421,152 @@ STRINGS: dict[str, dict[str, str]] = {
     ),
     "card_file_caption": L("📥 Sertifikat — to‘liq sifatda", "📥 Сертификат — в полном качестве"),
     "btn_card_download": L("📥 Yuklab olish (to‘liq sifat)", "📥 Скачать (полное качество)"),
+    # --- To'lov: to'liq tahlil ---------------------------------------------
+    "btn_unlock": L("🔓 To‘liq tahlilni ochish — {price} so‘m", "🔓 Открыть полный разбор — {price} сум"),
+    "btn_bundle": L("📦 5 ta testning to‘liq tahlili — {price} so‘m", "📦 Полный разбор всех 5 тестов — {price} сум"),
+    "btn_ref_unlock": L("🎁 Do‘st taklif qilib bepul ochish", "🎁 Открыть бесплатно — пригласить друга"),
+    "btn_open_report": L("📊 To‘liq tahlilni ko‘rish", "📊 Смотреть полный разбор"),
+    "pay_screen": L(
+        "🔓 <b>{title} — to‘liq tahlil</b>\n"
+        "💳 Narxi: <b>{price} so‘m</b>\n\n"
+        "Click orqali to‘lasangiz, tahlil shu yerda darhol ochiladi.\n"
+        "Karta orqali — chek yuborasiz, odatda 15 daqiqada tasdiqlanadi.",
+        "🔓 <b>{title} — полный разбор</b>\n"
+        "💳 Цена: <b>{price} сум</b>\n\n"
+        "При оплате через Click разбор откроется здесь сразу.\n"
+        "Картой — отправите чек, обычно его подтверждают за 15 минут.",
+    ),
+    "pay_screen_bundle": L(
+        "📦 <b>5 ta testning to‘liq tahlili</b>\n"
+        "💳 Narxi: <b>{price} so‘m</b> (alohida olinsa — {full} so‘m)\n\n"
+        "Hammasi bir yo‘la ochiladi — topshirgan va keyin topshiradigan testlaringiz uchun.\n"
+        "Click orqali to‘lasangiz, darhol ochiladi. Karta orqali — chek yuborasiz.",
+        "📦 <b>Полный разбор всех 5 тестов</b>\n"
+        "💳 Цена: <b>{price} сум</b> (по отдельности — {full} сум)\n\n"
+        "Открывается сразу всё — для пройденных и будущих тестов.\n"
+        "Через Click — откроется сразу. Картой — отправите чек.",
+    ),
+    "btn_pay_click": L("💳 Click orqali to‘lash — {price} so‘m", "💳 Оплатить через Click — {price} сум"),
+    "btn_pay_card": L("🏦 Karta orqali (UZCARD/HUMO)", "🏦 Картой (UZCARD/HUMO)"),
+    "btn_pay_wallet": L("💰 Balansdan to‘lash ({balance} so‘m)", "💰 Оплатить с баланса ({balance} сум)"),
+    "pay_card": L(
+        "💳 <b>{price} so‘m o‘tkazing</b>\n"
+        "<code>{card}</code>\n"
+        "👤 {holder}\n\n"
+        "📸 To‘lagach, chek rasmini shu chatga yuboring.",
+        "💳 <b>Переведите {price} сум</b>\n"
+        "<code>{card}</code>\n"
+        "👤 {holder}\n\n"
+        "📸 После оплаты отправьте фото чека в этот чат.",
+    ),
+    "receipt_ok": L(
+        "✅ Chek qabul qilindi. Odatda 15 daqiqa ichida tasdiqlanadi.\n\n"
+        "Kutayotganda boshqa testni bepul topshiring 👇",
+        "✅ Чек принят. Обычно его подтверждают в течение 15 минут.\n\n"
+        "Пока ждёте — пройдите другой тест бесплатно 👇",
+    ),
+    "receipt_ok_open": L(
+        "✅ Chek qabul qilindi — to‘liq tahlil ochildi 👇\nAdmin chekni tez orada tekshiradi.",
+        "✅ Чек принят — полный разбор открыт 👇\nАдминистратор скоро проверит чек.",
+    ),
+    "receipt_photo_only": L(
+        "📸 Iltimos, chekni rasm (skrinshot) sifatida yuboring.",
+        "📸 Пожалуйста, отправьте чек фотографией (скриншотом).",
+    ),
+    "receipt_approved": L(
+        "✅ To‘lov tasdiqlandi — {title} to‘liq tahlili ochildi 👇",
+        "✅ Оплата подтверждена — полный разбор «{title}» открыт 👇",
+    ),
+    "receipt_rejected": L(
+        "❌ Chek tasdiqlanmadi. Summa va karta raqamini tekshirib, qayta urinib ko‘ring yoki Click orqali to‘lang.",
+        "❌ Чек не подтверждён. Проверьте сумму и номер карты и попробуйте снова или оплатите через Click.",
+    ),
+    "receipt_rejected_open": L(
+        "❌ Chek tasdiqlanmadi, shuning uchun to‘liq tahlil yopildi. Qayta urinib ko‘ring yoki Click orqali to‘lang.",
+        "❌ Чек не подтверждён, поэтому полный разбор закрыт. Попробуйте снова или оплатите через Click.",
+    ),
+    "btn_retry_pay": L("🔄 Qayta urinish", "🔄 Попробовать снова"),
+    "pay_report_ok": L(
+        "✅ <b>To‘lov qabul qilindi!</b>\n{title} — to‘liq tahlil ochildi 👇",
+        "✅ <b>Оплата принята!</b>\n{title} — полный разбор открыт 👇",
+    ),
+    "pay_bundle_ok": L(
+        "✅ <b>To‘lov qabul qilindi!</b>\n5 ta testning to‘liq tahlili ochildi — har bir test natijasida darhol ko‘rasiz.",
+        "✅ <b>Оплата принята!</b>\nПолный разбор всех 5 тестов открыт — увидите его сразу в результате каждого теста.",
+    ),
+    "pay_no_result": L(
+        "Bu testni hali topshirmagansiz. Topshirishingiz bilan to‘liq tahlil darhol ochiladi 👇",
+        "Вы ещё не проходили этот тест. Как только пройдёте — полный разбор откроется сразу 👇",
+    ),
+    "pay_failed": L(
+        "❌ To‘lov o‘tmadi yoki bekor qilindi. Pulingiz yechilmagan bo‘lsa, qayta urinib ko‘ring 👇",
+        "❌ Оплата не прошла или отменена. Если деньги не списались — попробуйте снова 👇",
+    ),
+    "btn_check_again": L("🔄 Qayta tekshirish", "🔄 Проверить ещё раз"),
+    "wallet_low": L("❌ Balans yetarli emas.", "❌ Недостаточно средств на балансе."),
+    "report_already": L("✅ Bu test uchun to‘liq tahlil sizda allaqachon ochiq.", "✅ Полный разбор этого теста у вас уже открыт."),
+    "topup_ok": L(
+        "✅ Balans to‘ldirildi: <b>+{amount} so‘m</b>.\n💰 Yangi balans: <b>{balance} so‘m</b>",
+        "✅ Баланс пополнен: <b>+{amount} сум</b>.\n💰 Новый баланс: <b>{balance} сум</b>",
+    ),
+    "history_hint": L("Natijani ochish uchun tugmani bosing 👇", "Нажмите, чтобы открыть результат 👇"),
+    "history_balance": L("💰 Balans: <b>{balance} so‘m</b>", "💰 Баланс: <b>{balance} сум</b>"),
+    "btn_wallet": L("💰 Balans", "💰 Баланс"),
+    # --- Bepul natija va to'liq tahlil ------------------------------------
+    "res_done": L("✅ <b>Test yakunlandi!</b>", "✅ <b>Тест завершён!</b>"),
+    "res_type": L("Shaxsiyat turingiz: <b>{name}</b>", "Ваш тип личности: <b>{name}</b>"),
+    "res_top_strong": L(
+        "Eng kuchli tomoningiz: {emoji} <b>{name}</b>",
+        "Ваша сильная сторона: {emoji} <b>{name}</b>",
+    ),
+    "res_top_plain": L(
+        "Eng yuqori natijangiz: {emoji} <b>{name}</b>",
+        "Самый высокий результат: {emoji} <b>{name}</b>",
+    ),
+    "res_top_child": L(
+        "Farzandingizning eng kuchli tomoni: {emoji} <b>{name}</b>",
+        "Самая сильная сторона ребёнка: {emoji} <b>{name}</b>",
+    ),
+    "res_top_career": L(
+        "Sizga eng yaqin yo‘nalish: {emoji} <b>{name}</b>",
+        "Самое близкое вам направление: {emoji} <b>{name}</b>",
+    ),
+    "res_locked": L("{emoji} {name} — ░░░░░ 🔒", "{emoji} {name} — ░░░░░ 🔒"),
+    "res_locked_more": L(
+        "🔒 Yana {n} ta yo‘nalish — to‘liq tahlilda",
+        "🔒 Ещё {n} направлений — в полном разборе",
+    ),
+    "res_in_full": L("📊 <b>To‘liq tahlilda:</b>", "📊 <b>В полном разборе:</b>"),
+    "res_index_line": L(
+        "{emoji} Umumiy indeks: <b>{score} — {band}</b>",
+        "{emoji} Общий индекс: <b>{score} — {band}</b>",
+    ),
+    "res_iq_locked": L("🧠 Taxminiy IQ — ░░░░░ 🔒", "🧠 Примерный IQ — ░░░░░ 🔒"),
+    "res_iq_locked_kinds": L(
+        "📊 4 ta fikrlash turi bo‘yicha natija — ░░░░░ 🔒",
+        "📊 Результат по 4 типам мышления — ░░░░░ 🔒",
+    ),
+    "res_full_badge": L("🔓 <b>To‘liq tahlil</b>", "🔓 <b>Полный разбор</b>"),
+    "res_step": L("✅ <i>Qadam:</i> {text}", "✅ <i>Шаг:</i> {text}"),
+    "res_research": L("🔬 <i>Tadqiqotlar:</i> {text}", "🔬 <i>Исследования:</i> {text}"),
+    "res_tip": L("👪 <i>Maslahat:</i> {text}", "👪 <i>Совет:</i> {text}"),
+    "res_meaning": L("💡 <i>Bu nima:</i> {text}", "💡 <i>Что это:</i> {text}"),
+    "res_risks": L("XAVF ZONALARI", "ЗОНЫ РИСКА"),
+    "res_env": L("SIZGA MOS MUHIT", "ПОДХОДЯЩАЯ ВАМ СРЕДА"),
+    "res_habit": L(
+        "NATIJANI ENG KO‘P O‘ZGARTIRADIGAN ODAT",
+        "ПРИВЫЧКА, КОТОРАЯ ИЗМЕНИТ БОЛЬШЕ ВСЕГО",
+    ),
+    "res_work_on": L("USTIDA ISHLASH KERAK BO‘LGAN 3 YO‘NALISH", "3 НАПРАВЛЕНИЯ ДЛЯ РАБОТЫ"),
+    "res_jobs": L("MOS KASBLAR", "ПОДХОДЯЩИЕ ПРОФЕССИИ"),
+    "res_study": L("QAYERDA O‘QISH MUMKIN", "ГДЕ УЧИТЬСЯ"),
+    "res_next_month": L("KEYINGI OYDA NIMANI SINAB KO‘RISH KERAK", "ЧТО ПОПРОБОВАТЬ В БЛИЖАЙШИЙ МЕСЯЦ"),
+    "res_iq_kinds": L("FIKRLASH TURLARI", "ТИПЫ МЫШЛЕНИЯ"),
+    "res_iq_kind": L("{emoji} <b>{name}</b> — {ok} / {n}", "{emoji} <b>{name}</b> — {ok} / {n}"),
+    "res_none_strong": L(
+        "Hozircha biror yo‘nalish ajralib turmadi — bu ham ma’lumot: o‘sish uchun joy ko‘p.",
+        "Пока ни одно направление не выделяется — это тоже информация: есть куда расти.",
+    ),
     # --- Hisobot: qo'shimchalar -------------------------------------------
     "res_percentile": L(
         "📊 Siz bu testni topshirganlarning <b>{pct} foizi</b>dan yaxshiroq javob berdingiz ({n} kishi).",
@@ -393,6 +613,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "Я прошёл IQ-тест в этом боте 🧠 Попробуй и ты:",
     ),
     "btn_ref_share": L("📤 Do‘stga yuborish", "📤 Отправить другу"),
+    "invite_plain": L(
+        "🎁 <b>Do‘stni taklif qilish</b>\n\n"
+        "Testlar bepul — do‘stlaringiz ham o‘zini sinab ko‘rsin. Shaxsiy havolangiz:\n\n{link}",
+        "🎁 <b>Пригласить друга</b>\n\n"
+        "Тесты бесплатные — пусть друзья тоже проверят себя. Ваша личная ссылка:\n\n{link}",
+    ),
+    "invite_share_text": L(
+        "Psixologik testlar bepul — o‘zingizni sinab ko‘ring 👇",
+        "Психологические тесты бесплатно — проверьте себя 👇",
+    ),
     "iq_share_text": L(
         "Mening taxminiy IQ im — {iq} ({correct}/{total}). Sen ham sinab ko‘r:",
         "Мой примерный IQ — {iq} ({correct}/{total}). Попробуй и ты:",

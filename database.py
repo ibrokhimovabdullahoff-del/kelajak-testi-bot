@@ -100,8 +100,9 @@ CREATE TABLE IF NOT EXISTS payments (
     amount        INTEGER NOT NULL,
     -- "click" | "manual" (admin qo'lda ochgan)
     method        TEXT NOT NULL,
-    -- "pending" (havola berildi) | "prepared" (Click tasdiqlashni boshladi)
-    -- | "paid" | "cancelled" | "revoked"
+    -- "pending" (havola berildi / chek admin ko'rishini kutyapti)
+    -- | "awaiting" (karta ekrani ochildi, chek hali kelmadi)
+    -- | "prepared" (Click tasdiqlashni boshladi) | "paid" | "cancelled" | "revoked"
     status        TEXT NOT NULL,
     click_trans_id   TEXT,
     click_prepare_id INTEGER,
@@ -209,6 +210,11 @@ async def init() -> None:
     # Yangi o'zgarishlar faqat migratsiya orqali (migrations.py).
     import migrations
     await migrations.run(db)
+    # Balans va do'st taklifi jadvallari ham doim bo'lsin (sinov skriptlarida ham).
+    import referrals
+    import wallet
+    await referrals.init()
+    await wallet.init()
 
 
 # --- Foydalanuvchilar -------------------------------------------------------
@@ -667,6 +673,63 @@ async def open_payment(user_id: int, product: str, amount: int) -> dict | None:
     )
     rows = await _dicts(cursor)
     return rows[0] if rows else None
+
+
+async def set_payment_note(payment_id: int, note: str) -> None:
+    """To'lov qaysi natijadan boshlangani (ctx=<natija id>) — keyin o'sha ochiladi."""
+    db = await connect()
+    await db.execute(
+        "UPDATE payments SET note = ? WHERE id = ? AND status IN ('pending', 'awaiting')",
+        (note, payment_id),
+    )
+    await db.commit()
+
+
+async def awaiting_card_payment(user_id: int, product: str, amount: int) -> int:
+    """Karta ekrani ochildi: chek kutilayotgan buyurtma (bor bo'lsa — o'sha, vaqti yangilanadi)."""
+    db = await connect()
+    since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(timespec="seconds")
+    cursor = await db.execute(
+        "SELECT id FROM payments WHERE user_id = ? AND product = ? AND amount = ? "
+        "AND method = 'manual_card' AND status = 'awaiting' AND created_at >= ? ORDER BY id DESC LIMIT 1",
+        (user_id, product, amount, since),
+    )
+    row = await cursor.fetchone()
+    if row:
+        await db.execute("UPDATE payments SET created_at = ? WHERE id = ?", (_now(), row[0]))
+        await db.commit()
+        return int(row[0])
+    cursor = await db.execute(
+        "INSERT INTO payments (user_id, product, amount, method, status, created_at) "
+        "VALUES (?, ?, ?, 'manual_card', 'awaiting', ?)",
+        (user_id, product, amount, _now()),
+    )
+    await db.commit()
+    return int(cursor.lastrowid)
+
+
+async def awaiting_receipt(user_id: int, minutes: int = 60) -> dict | None:
+    """Shu foydalanuvchidan chek kutilyaptimi (karta ekrani yaqinda ochilgan)."""
+    since = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat(timespec="seconds")
+    db = await connect()
+    cursor = await db.execute(
+        "SELECT * FROM payments WHERE user_id = ? AND method = 'manual_card' AND status = 'awaiting' "
+        "AND created_at >= ? ORDER BY id DESC LIMIT 1",
+        (user_id, since),
+    )
+    rows = await _dicts(cursor)
+    return rows[0] if rows else None
+
+
+async def attach_receipt(payment_id: int, file_id: str, caption: str = "") -> None:
+    """Chek keldi: buyurtma admin ko'rishini kutadi."""
+    db = await connect()
+    await db.execute(
+        "UPDATE payments SET status = 'pending', "
+        "note = COALESCE(note, '') || ? WHERE id = ? AND status = 'awaiting'",
+        (f"\nreceipt_file_id={file_id}\n{caption[:300]}", payment_id),
+    )
+    await db.commit()
 
 
 async def get_payment(payment_id: int) -> dict | None:
