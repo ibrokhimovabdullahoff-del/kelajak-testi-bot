@@ -6,17 +6,19 @@ import logging
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 import database as db
 import keyboards as kb
+import peers
 import report
 from locales import LANGS, money, t, tr
 from psytests import REGISTRY, score
 
+from . import growth
 from . import payment as pay
 
 log = logging.getLogger(__name__)
@@ -158,9 +160,13 @@ async def start_quiz(
 
 @router.message(CommandStart())
 async def cmd_start(
-    message: Message, state: FSMContext, lang: str, lang_known: bool
+    message: Message, state: FSMContext, lang: str, lang_known: bool,
+    command: CommandObject, is_new_user: bool = False,
 ) -> None:
     await state.clear()
+    # /start ref_<id> — do'st havolasi. Til so'ralishidan oldin yoziladi:
+    # "yangi odam" belgisi faqat shu birinchi xabarda to'g'ri.
+    await growth.handle_start(message, command.args, is_new_user)
     if not lang_known:
         await message.answer(t("choose_language", lang), reply_markup=kb.language_menu())
         return
@@ -441,15 +447,20 @@ async def finish(
 
     test = REGISTRY[test_key]
     result = score(test, answers)
+    user_id = callback.from_user.id
     await db.save_result(
-        callback.from_user.id, test_key, lang, age_group,
+        user_id, test_key, lang, age_group,
         result.get("total"), result["scales"],
     )
+    saved = await db.latest_result(user_id, test_key)
+    comparison = await peers.compare(test_key, user_id, result.get("total"))
 
     await safe_edit(callback.message, t("finished", lang))
+    # Avval sertifikat (ulashish uchun), keyin batafsil matnli natija.
+    await growth.send_certificate(callback.message, callback.from_user, saved)
     await send_chunked(
         callback.message,
-        report.render(test, result, lang, age_group),
+        report.render(test, result, lang, age_group, comparison),
         reply_markup=kb.result_menu(test_key, lang),
     )
 

@@ -9,6 +9,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import BOT_USERNAME, IQ_EMOJI, IQ_KEY
 from locales import LANGS, money, t, tr
 from psytests import AGE_GROUPS, ORDER, REGISTRY
+from report import next_test_title
 
 
 def language_menu() -> InlineKeyboardMarkup:
@@ -83,8 +84,18 @@ def answer_menu(test_key: str, index: int, lang: str) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def next_test_button(builder: InlineKeyboardBuilder, test_key: str, lang: str) -> None:
+    """Hisobot oxirida taklif qilingan boshqa test (report.next_step bilan bir xil)."""
+    other = next_test_title(test_key, lang)
+    if other:
+        key, title = other
+        data = "iq:card" if key == IQ_KEY else f"test:{key}"
+        builder.button(text=t("btn_next_test", lang, title=title), callback_data=data)
+
+
 def result_menu(test_key: str, lang: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    next_test_button(builder, test_key, lang)
     builder.button(text=t("btn_retake", lang), callback_data=f"go:{test_key}")
     builder.button(text=t("btn_other_tests", lang), callback_data="nav:menu")
     if BOT_USERNAME:

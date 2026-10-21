@@ -32,3 +32,4 @@ jobs:
       - run: python migrationtest.py
       - run: python contenttest.py
       - run: python iqtest.py
+      - run: python growthtest.py

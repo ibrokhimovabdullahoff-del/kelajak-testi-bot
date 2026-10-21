@@ -1,7 +1,12 @@
 """Natija matnini yig'ish.
 
-Qoida: natija bitta ekranga sig'sin. Uzun tushuntirish emas — ko'rsatkich,
-ikkita kuchli tomon, ikkita aniq qadam.
+Har bir yo'nalish uchun: ko'rsatkich, u hayotda nimani anglatadi va uni
+o'stiradigan bitta aniq mashq. Oxirida — keyingi qadam: bir haftadan keyin
+qayta topshirib solishtirish va botdagi boshqa test.
+
+0 foiz hech qachon raqam bilan ko'rsatilmaydi — o'rniga "o'sish nuqtasi".
+Boshqalar bilan solishtirish (foiz) faqat bazadagi haqiqiy natijalardan
+keladi: `peers.compare()` uni hisoblaydi va bu yerga tayyor holda beradi.
 """
 from __future__ import annotations
 
@@ -9,8 +14,10 @@ import json
 
 from config import IQ_EMOJI, IQ_KEY
 from locales import t, tr
-from psytests import AGE_ADVICE, AGE_LABELS, TestDef, level_of
+from psytests import AGE_ADVICE, AGE_LABELS, REGISTRY, TestDef, level_of
 from psytests.base import L
+from psytests.insights import INSIGHTS, NEXT_TEST
+from psytests.iq import RUSHED_SECONDS_PER_PUZZLE, TOTAL as IQ_TOTAL, level_for
 
 BAR_LEN = 10
 SEP = "━━━━━━━━━━━━━━━━━━"
@@ -50,6 +57,11 @@ BANDS = [
 ]
 
 
+def pct(percent: float, lang: str) -> str:
+    """Foiz matni. 0 foiz o'rniga yumshoq yorliq — "0%" odamni tushkunlikka soladi."""
+    return t("res_zero", lang) if round(percent) <= 0 else f"{percent:.0f}%"
+
+
 def bar(percent: float) -> str:
     filled = max(0, min(BAR_LEN, round(percent / 100 * BAR_LEN)))
     return "█" * filled + "░" * (BAR_LEN - filled)
@@ -62,7 +74,9 @@ def _band(total: float):
     return BANDS[-1][1], BANDS[-1][2], BANDS[-1][3]
 
 
-def render(test: TestDef, result: dict, lang: str, age_group: str | None) -> str:
+def render(test: TestDef, result: dict, lang: str, age_group: str | None,
+           comparison: dict | None = None) -> str:
+    """comparison — `peers.compare()` natijasi (odam kam bo'lsa None)."""
     if test.kind == "traits":
         body = _render_traits(test, result, lang)
         disclaimer = t("disclaimer_validated", lang)
@@ -70,11 +84,48 @@ def render(test: TestDef, result: dict, lang: str, age_group: str | None) -> str
         body = _render_interests(test, result, lang)
         disclaimer = t("disclaimer_career", lang)
     else:
-        body = _render_index(test, result, lang, age_group)
+        body = _render_index(test, result, lang, age_group, comparison)
         disclaimer = t("disclaimer_composite", lang)
 
     head = f"{test.emoji} <b>{tr(test.title, lang)}</b>"
-    return f"{head}\n\n{body}\n\n{SEP}\n<i>{disclaimer}</i>"
+    return (f"{head}\n\n{body}\n\n{SEP}\n<i>{disclaimer}</i>\n\n"
+            f"{next_step(test.key, lang)}")
+
+
+def comparison_line(comparison: dict | None, lang: str) -> str | None:
+    """"Siz ... X foizidan yaxshiroq javob berdingiz" yoki None."""
+    if not comparison:
+        return None
+    if comparison["low"]:
+        return t("res_percentile_low", lang, n=comparison["n"])
+    return t("res_percentile", lang, pct=comparison["percent"], n=comparison["n"])
+
+
+def insight_lines(test_key: str, scale_key: str, lang: str) -> list[str]:
+    """Yo'nalish hayotda nimani anglatadi + bitta mashq."""
+    item = INSIGHTS.get(test_key, {}).get(scale_key)
+    if item is None:
+        return []
+    return [t("res_everyday", lang, text=tr(item.everyday, lang)),
+            t("res_exercise", lang, text=tr(item.exercise, lang))]
+
+
+def next_test_title(test_key: str, lang: str) -> tuple[str, str] | None:
+    """(kalit, nom) — hisobot oxirida taklif qilinadigan test."""
+    other = NEXT_TEST.get(test_key)
+    if other == IQ_KEY:
+        return other, t("iq_title", lang)
+    if other in REGISTRY:
+        return other, tr(REGISTRY[other].title, lang)
+    return None
+
+
+def next_step(test_key: str, lang: str) -> str:
+    lines = [f"🚀 <b>{t('res_next_title', lang)}</b>", "", t("res_next_retake", lang)]
+    other = next_test_title(test_key, lang)
+    if other:
+        lines.append(t("res_next_other", lang, title=other[1]))
+    return "\n".join(lines)
 
 
 # --- Big Five: profil -------------------------------------------------------
@@ -86,8 +137,9 @@ def _render_traits(test: TestDef, result: dict, lang: str) -> str:
         percent = result["scales"][key]
         level = t("lvl_" + level_of(percent), lang)
         lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b> — {level}")
-        lines.append(f"<code>{bar(percent)}</code> {percent:.0f}%")
+        lines.append(f"<code>{bar(percent)}</code> {pct(percent, lang)}")
         lines.append(tr(scale.levels[level_of(percent)], lang))
+        lines += insight_lines(test.key, key, lang)
         lines.append("")
     return "\n".join(lines).rstrip()
 
@@ -96,24 +148,30 @@ def _render_traits(test: TestDef, result: dict, lang: str) -> str:
 
 
 def _render_index(
-    test: TestDef, result: dict, lang: str, age_group: str | None
+    test: TestDef, result: dict, lang: str, age_group: str | None,
+    comparison: dict | None = None,
 ) -> str:
     total = result["total"]
     emoji, name, note = _band(total)
+    score = f"{total:.0f} / 100" if round(total) > 0 else t("res_zero", lang)
 
     lines = [
-        f"{emoji} <b>{total:.0f} / 100 — {tr(name, lang)}</b>",
+        f"{emoji} <b>{score} — {tr(name, lang)}</b>",
         tr(note, lang),
-        "",
-        SEP,
-        "",
     ]
+    compared = comparison_line(comparison, lang)
+    if compared:
+        lines += ["", compared]
+    lines += ["", SEP, ""]
 
     for key in result["ranked"]:
         scale = test.scales[key]
         percent = result["scales"][key]
         lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b>")
-        lines.append(f"<code>{bar(percent)}</code> {percent:.0f}%")
+        lines.append(f"<code>{bar(percent)}</code> {pct(percent, lang)}")
+        lines += insight_lines(test.key, key, lang)
+        lines.append("")
+    lines.pop()
 
     lines += ["", SEP, "", f"✅ <b>{t('res_strengths', lang)}</b>", ""]
     for key in result["top"]:
@@ -153,7 +211,7 @@ def _render_interests(test: TestDef, result: dict, lang: str) -> str:
         scale = test.scales[key]
         lines.append(
             f"{scale.emoji} <b>{tr(scale.name, lang)}</b> — "
-            f"{result['scales'][key]:.0f}%"
+            f"{pct(result['scales'][key], lang)}"
         )
         lines.append(tr(scale.levels["high"], lang))
         lines.append("")
@@ -163,9 +221,62 @@ def _render_interests(test: TestDef, result: dict, lang: str) -> str:
         scale = test.scales[key]
         percent = result["scales"][key]
         lines.append(f"{scale.emoji} <b>{tr(scale.name, lang)}</b>")
-        lines.append(f"<code>{bar(percent)}</code> {percent:.0f}%")
+        lines.append(f"<code>{bar(percent)}</code> {pct(percent, lang)}")
+        lines += insight_lines(test.key, key, lang)
+        lines.append("")
 
     return "\n".join(lines).rstrip()
+
+
+# --- IQ ---------------------------------------------------------------------
+
+
+def duration(seconds: int, lang: str) -> str:
+    minutes, sec = divmod(max(0, seconds), 60)
+    return (t("dur_min_sec", lang, m=minutes, s=sec) if minutes
+            else t("dur_sec", lang, s=sec))
+
+
+def iq_scale(iq: int, low: int = 70, high: int = 145) -> str:
+    """70 dan 145 gacha shkalada natija qayerda turgani."""
+    cells = 12
+    position = round((iq - low) / (high - low) * (cells - 1))
+    return "".join("🔵" if i == position else "▫️" for i in range(cells))
+
+
+def render_iq(correct: int, estimate: dict, seconds: int | None, lang: str,
+              comparison: dict | None = None) -> str:
+    """IQ natijasi. estimate — `psytests.iq.estimate_iq()` natijasi."""
+    iq = estimate["iq"]
+    level = level_for(iq)
+    lines = [
+        t("iq_res_title", lang),
+        "",
+        t("iq_res_estimate", lang, iq=iq),
+        t("iq_res_range", lang, low=estimate["low"], high=estimate["high"]),
+        f"70 {iq_scale(iq)} 145",
+        "",
+        t("iq_res_level", lang, emoji=level.emoji, name=tr(level.name, lang)),
+        tr(level.note, lang),
+        "",
+        t("iq_res_correct", lang, correct=correct, total=IQ_TOTAL),
+    ]
+    compared = comparison_line(comparison, lang)
+    if compared:
+        lines.append(compared)
+    if seconds is not None:
+        lines.append(t("iq_res_time", lang, duration=duration(seconds, lang)))
+        if seconds < IQ_TOTAL * RUSHED_SECONDS_PER_PUZZLE:
+            lines.append(t("iq_res_rushed", lang))
+    lines += ["", SEP, "", next_step(IQ_KEY, lang)]
+    return "\n".join(lines)
+
+
+def review_caption(position: int, count: int, number: int, yours: str, correct: str,
+                   why: str, lang: str) -> str:
+    """Xatolar tahlilidagi bitta rasm ostidagi matn."""
+    return t("review_caption", lang, pos=position, count=count, num=number,
+             yours=yours, correct=correct, why=why)
 
 
 # --- Tarix ------------------------------------------------------------------

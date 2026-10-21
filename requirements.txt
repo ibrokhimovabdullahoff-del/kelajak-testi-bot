@@ -4,3 +4,5 @@ python-dotenv==1.2.2
 # aiogram bilan birga keladi, lekin biz uni Click serveri uchun
 # bevosita ishlatamiz — shuning uchun alohida yozib qo'yamiz.
 aiohttp>=3.9
+# Natija sertifikatini (1080×1920 PNG) chizish uchun — result_image.py
+Pillow==11.3.0

@@ -2,10 +2,11 @@
 
 Oqim: kartochka (/iq yoki menyu) → to'lov tekshiruvi → yosh (IQ tengdoshlarga
 nisbatan hisoblanadi) → 20 ta rasm bitta xabarning o'zida almashib turadi
-(chat to'lib ketmaydi) → taxminiy IQ bilan natija.
+(chat to'lib ketmaydi) → natija: sertifikat rasmi → xatolar tahlili taklifi →
+taxminiy IQ bilan matnli natija.
 
-To'g'ri javoblar foydalanuvchiga hech qayerda ko'rsatilmaydi: test pullik va
-javoblar tarqalib ketsa, natijalar ma'nosini yo'qotadi.
+To'g'ri javoblar faqat xatolar tahlilida ko'rinadi, u ham faqat do'stini
+taklif qilgan odamga (referrals.py) va faqat o'zi xato qilgan 3–4 savol uchun.
 
 Rasmlar Telegram'ga bir marta yuklanadi: qaytgan file_id bazada saqlanadi va
 keyingi hamma foydalanuvchiga shu id yuboriladi — server rasmni qayta-qayta
@@ -14,6 +15,7 @@ yubormaydi, rasm esa darhol ochiladi.
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 import time
 from urllib.parse import quote
@@ -23,18 +25,25 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message
+from aiogram.types import (
+    CallbackQuery, FSInputFile, InputMediaPhoto, LinkPreviewOptions, Message,
+)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
-from config import BOT_USERNAME, IQ_EMOJI, IQ_KEY, is_admin
+import keyboards as kb
+import peers
+import referrals
+import report
+from config import IQ_EMOJI, IQ_KEY, is_admin
+from handlers import growth
 from handlers import payment as pay
-from locales import money
+from locales import money, t
 from psytests.iq import (
-    AGE_CODES, AGE_GROUPS, DEFAULT_AGE, IQ_MAX, IQ_MIN, LETTERS, PUZZLES,
-    RUSHED_SECONDS_PER_PUZZLE, TOTAL, Puzzle, answer_key, estimate_iq, grade, level_for,
-    percentile,
+    AGE_CODES, AGE_GROUPS, DEFAULT_AGE, LETTERS, PUZZLES, TOTAL, Puzzle, answer_key,
+    estimate_iq, explanations, grade, pick_mistakes,
 )
+from result_image import IQ_NUMBER_MIN
 
 log = logging.getLogger(__name__)
 router = Router()
@@ -405,71 +414,48 @@ async def _peer_scores(user_id: int, age_group: str) -> list[float]:
     return [total for uid, total in await cursor.fetchall() if not is_admin(uid)]
 
 
-def _duration(seconds: int, lang: str) -> str:
-    minutes, sec = divmod(max(0, seconds), 60)
-    if lang == "uz":
-        return f"{minutes} daqiqa {sec} soniya" if minutes else f"{sec} soniya"
-    return f"{minutes} мин {sec} сек" if minutes else f"{sec} сек"
+def _share_url(url: str, text: str) -> str:
+    return f"https://t.me/share/url?url={quote(url, safe='')}&text={quote(text)}"
 
 
-def iq_scale(iq: int) -> str:
-    """70 dan 145 gacha shkalada natija qayerda turgani."""
-    cells = 12
-    pos = round((iq - IQ_MIN) / (IQ_MAX - IQ_MIN) * (cells - 1))
-    return "".join("🔵" if i == pos else "▫️" for i in range(cells))
-
-
-def render(result: dict, lang: str, seconds: int | None, estimate: dict,
-           peers: list[float]) -> str:
-    correct = result["correct"]
-    iq = estimate["iq"]
-    level = level_for(iq)
-    lines = [
-        f"{IQ_EMOJI} <b>{bi(lang, 'PREMIUM IQ TESTI — NATIJA', 'ПРЕМИУМ IQ-ТЕСТ — РЕЗУЛЬТАТ')}</b>",
-        "",
-        f"🧠 {bi(lang, 'Taxminiy IQ', 'Примерный IQ')}: <b>≈ {iq}</b>",
-        bi(lang, f"<i>ehtimoliy oraliq: {estimate['low']}–{estimate['high']}</i>",
-           f"<i>вероятный диапазон: {estimate['low']}–{estimate['high']}</i>"),
-        f"{IQ_MIN} {iq_scale(iq)} {IQ_MAX}",
-        "",
-        f"{level.emoji} {bi(lang, 'Daraja', 'Уровень')}: <b>{tr(level.name, lang)}</b>",
-        tr(level.note, lang),
-        "",
-        f"🎯 {bi(lang, 'To‘g‘ri javoblar', 'Правильных ответов')}: <b>{correct} / {TOTAL}</b>",
-    ]
-    pct = percentile(correct, peers)
-    if pct is not None:
-        lines.append(bi(
-            lang,
-            f"📊 Tengdoshlaringizning <b>{pct} foizi</b>dan yuqori (ishtirokchilar: {len(peers)}).",
-            f"📊 Выше, чем у <b>{pct}%</b> ваших сверстников (участников: {len(peers)}).",
-        ))
-    if seconds is not None:
-        lines.append(f"⏱ {bi(lang, 'Sarflangan vaqt', 'Затраченное время')}: {_duration(seconds, lang)}")
-        if seconds < TOTAL * RUSHED_SECONDS_PER_PUZZLE:
-            lines.append(bi(
-                lang,
-                "⚠️ Juda tez yechdingiz — ba’zi javoblar tavakkal belgilangan bo‘lishi mumkin.",
-                "⚠️ Вы ответили очень быстро — часть ответов могла быть наугад.",
-            ))
-
-    return "\n".join(lines)
-
-
-def result_markup(result: dict, iq: int, lang: str):
+def result_markup(result: dict, iq: int, user_id: int, lang: str):
     b = InlineKeyboardBuilder()
-    if BOT_USERNAME:
-        share = quote(bi(
-            lang,
-            f"Mening taxminiy IQ im — {iq} ({result['correct']}/{TOTAL}). Sen ham sinab ko‘r:",
-            f"Мой примерный IQ — {iq} ({result['correct']}/{TOTAL}). Попробуй и ты:",
-        ))
-        b.button(text=bi(lang, "📤 Natijani ulashish", "📤 Поделиться результатом"),
-                 url=f"https://t.me/share/url?url=https://t.me/{BOT_USERNAME}&text={share}")
-    b.button(text=bi(lang, "🔄 Qayta topshirish", "🔄 Пройти снова"), callback_data="iq:card")
-    b.button(text=bi(lang, "🧠 Boshqa testlar", "🧠 Другие тесты"), callback_data="nav:menu")
+    if growth.bot_username():
+        # Ulashish havolasi — foydalanuvchining shaxsiy taklif havolasi:
+        # do'sti shu orqali kelsa, xatolar tahlili ochiladi.
+        link = referrals.link(growth.bot_username(), user_id)
+        text = (t("iq_share_text", lang, iq=iq, correct=result["correct"], total=TOTAL)
+                if iq >= IQ_NUMBER_MIN else t("ref_share_text", lang))
+        b.button(text=t("btn_share", lang), url=_share_url(link, text))
+    kb.next_test_button(b, IQ_KEY, lang)
+    b.button(text=t("btn_retake", lang), callback_data="iq:card")
+    b.button(text=t("btn_other_tests", lang), callback_data="nav:menu")
     b.adjust(1)
     return b.as_markup()
+
+
+async def _offer_review(message: Message, user_id: int, row: dict | None,
+                        mistakes: int, lang: str) -> None:
+    """Sertifikatdan keyin: xatolar tahlili — ochiq bo'lsa tugma, bo'lmasa taklif havolasi."""
+    if row is None or mistakes == 0:
+        return
+    if explanations() is None:
+        log.error("IQ_EXPLANATIONS o'rnatilmagan yoki to'liq emas — xatolar tahlili taklif qilinmadi")
+        return
+    b = InlineKeyboardBuilder()
+    if await referrals.is_unlocked(user_id):
+        b.button(text=t("btn_review", lang), callback_data=f"iqrev:{row['id']}:0")
+        await message.answer(t("ref_offer_unlocked", lang), reply_markup=b.as_markup())
+        return
+    await _send_invite(message, user_id, lang)
+
+
+async def _send_invite(message: Message, user_id: int, lang: str) -> None:
+    link = referrals.link(growth.bot_username(), user_id)
+    b = InlineKeyboardBuilder()
+    b.button(text=t("btn_ref_share", lang), url=_share_url(link, t("ref_share_text", lang)))
+    await message.answer(t("ref_offer", lang, link=link), reply_markup=b.as_markup(),
+                         link_preview_options=LinkPreviewOptions(is_disabled=True))
 
 
 async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
@@ -485,8 +471,7 @@ async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
     age = age if age in AGE_CODES else DEFAULT_AGE
     result = grade(answers, key)
     seconds = int(time.time() - started) if started else None
-    peers = await _peer_scores(user_id, age)
-    estimate = estimate_iq(result["correct"], age, peers)
+    estimate = estimate_iq(result["correct"], age, await _peer_scores(user_id, age))
     await db.save_result(user_id, IQ_KEY, lang, age, float(result["correct"]), {
         "version": RESULT_VERSION,
         "correct": result["correct"],
@@ -499,9 +484,72 @@ async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
         "kinds": result["kinds"],
         "seconds": seconds,
     })
+    saved = await db.latest_result(user_id, IQ_KEY)
+    comparison = await peers.compare(IQ_KEY, user_id, result["correct"])
     try:
         await callback.message.delete()
     except TelegramBadRequest:
         await _retire(callback.message)
-    await callback.message.answer(render(result, lang, seconds, estimate, peers),
-                                  reply_markup=result_markup(result, estimate["iq"], lang))
+    # Tartib: sertifikat → xatolar tahlili taklifi → batafsil natija.
+    await growth.send_certificate(callback.message, callback.from_user, saved)
+    await _offer_review(callback.message, user_id, saved, len(result["mistakes"]), lang)
+    await callback.message.answer(
+        report.render_iq(result["correct"], estimate, seconds, lang, comparison),
+        reply_markup=result_markup(result, estimate["iq"], user_id, lang),
+    )
+
+
+# --- Xatolar tahlili ------------------------------------------------------------
+
+
+@router.callback_query(F.data == "iqrev:close")
+async def review_close(callback: CallbackQuery) -> None:
+    try:
+        await callback.message.delete()
+    except TelegramBadRequest:
+        await _retire(callback.message)
+
+
+@router.callback_query(F.data.startswith("iqrev:"))
+async def review(callback: CallbackQuery, lang: str) -> None:
+    """Xato qilingan 3–4 savol: rasm, sizning javobingiz, to'g'ri javob, sababi."""
+    parts = callback.data.split(":")
+    if len(parts) != 3 or not parts[1].isdigit() or not parts[2].isdigit():
+        return
+    user_id = callback.from_user.id
+    row = await db.get_result(int(parts[1]))
+    if (row is None or row["user_id"] != user_id or row["test_key"] != IQ_KEY
+            or row["scales"].get("version") != RESULT_VERSION
+            or len(row["scales"].get("answers") or []) != TOTAL):
+        await callback.message.answer(t("review_missing", lang))
+        return
+    if not await referrals.is_unlocked(user_id):
+        await _send_invite(callback.message, user_id, lang)
+        return
+    key, texts = answer_key(), explanations()
+    if key is None or texts is None:
+        await callback.message.answer(t("review_unavailable", lang))
+        return
+    answers = row["scales"]["answers"]
+    mistakes = pick_mistakes(answers, key)
+    if not mistakes:
+        await callback.message.answer(t("review_none", lang))
+        return
+    position = min(int(parts[2]), len(mistakes) - 1)
+    index = mistakes[position]
+    puzzle = PUZZLES[index]
+    why = texts[puzzle.file].get(lang) or texts[puzzle.file]["uz"]
+    caption = report.review_caption(position + 1, len(mistakes), index + 1, answers[index],
+                                    key[index], html.escape(why), lang)
+    b = InlineKeyboardBuilder()
+    nav = 0
+    if position > 0:
+        b.button(text="⬅️", callback_data=f"iqrev:{row['id']}:{position - 1}")
+        nav += 1
+    if position < len(mistakes) - 1:
+        b.button(text="➡️", callback_data=f"iqrev:{row['id']}:{position + 1}")
+        nav += 1
+    b.button(text=t("btn_close", lang), callback_data="iqrev:close")
+    b.adjust(*([nav] if nav else []), 1)
+    await _send_puzzle(callback.message, puzzle, caption, b.as_markup(),
+                       edit=bool(callback.message.photo))

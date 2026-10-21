@@ -1,0 +1,12 @@
+# railway up bilan serverga yuborilmaydi
+.git/
+venv/
+.venv/
+__pycache__/
+*.db
+*.db-journal
+.env
+*.pdf
+iq_private.json
+IQ_JAVOBLAR.md
+.DS_Store

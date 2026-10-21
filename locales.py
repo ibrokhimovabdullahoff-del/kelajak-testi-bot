@@ -306,6 +306,147 @@ STRINGS: dict[str, dict[str, str]] = {
         "Men psixologik test topshirdim 🧠 Sen ham sinab ko‘r",
         "Я прошёл психологический тест 🧠 Попробуй и ты",
     ),
+    # --- Natija sertifikati (rasm) ----------------------------------------
+    "iq_title": L("Premium IQ testi", "Премиум IQ-тест"),
+    "card_kicker": L("NATIJA SERTIFIKATI", "СЕРТИФИКАТ РЕЗУЛЬТАТА"),
+    "card_label_iq": L("Taxminiy IQ", "Примерный IQ"),
+    "card_label_strength": L("Eng kuchli tomoningiz", "Ваша сильная сторона"),
+    "card_label_type": L("Shaxsiyat turingiz", "Ваш тип личности"),
+    "card_label_child": L("Farzandingizning kuchli tomoni", "Сильная сторона ребёнка"),
+    "card_label_career": L("Kasb yo‘nalishingiz", "Ваше направление"),
+    "card_second": L("Yana bir kuchli tomoningiz: {name}", "Ещё одна сильная сторона: {name}"),
+    "card_second_child": L("Yana bir kuchli tomoni: {name}", "Ещё одна сильная сторона: {name}"),
+    "card_career_more": L("Sizga yaqin yo‘nalishlar: {first}, {second}", "Вам также близко: {first}, {second}"),
+    "card_iq_best": L("Eng kuchli tomoningiz: {name}", "Сильнее всего: {name}"),
+    "card_iq_generic": L(
+        "Rasmli mantiq topshiriqlarida kuchingizni sinab ko‘rdingiz.",
+        "Вы проверили свою силу в логических задачах в картинках.",
+    ),
+    "card_index": L("{score} / 100 ball", "{score} / 100 баллов"),
+    "card_label_correct": L("To‘g‘ri javoblar", "Правильных ответов"),
+    "card_score": L("{correct} / {total}", "{correct} / {total}"),
+    "card_score_line": L(
+        "{total}\u00a0ta topshiriqdan {correct}\u00a0tasini to‘g‘ri yechdingiz.",
+        "Верно решено {correct} из {total}\u00a0заданий.",
+    ),
+    "card_holland": L("Holland kodi: {code}", "Код Холланда: {code}"),
+    "card_fallback_line": L(
+        "Bir haftadan keyin qayta topshirib, o‘zgarishni ko‘ring.",
+        "Пройдите тест снова через неделю и увидите разницу.",
+    ),
+    "card_challenge": L(
+        "Siz bundan ham yaxshiroq qila olasizmi?",
+        "Ты сможешь лучше?",
+    ),
+    "card_cta": L("Testni Telegram’da topshiring", "Пройди тест в Telegram"),
+    "card_caption": L(
+        "🏅 <b>Sizning natija sertifikatingiz</b>\n\n"
+        "Stories’ga joylang va do‘stlaringizni ham sinab ko‘ring 👇",
+        "🏅 <b>Ваш сертификат результата</b>\n\n"
+        "Выложите в сторис и бросьте вызов друзьям 👇",
+    ),
+    "card_file_caption": L("📥 Sertifikat — to‘liq sifatda", "📥 Сертификат — в полном качестве"),
+    "btn_card_download": L("📥 Yuklab olish (to‘liq sifat)", "📥 Скачать (полное качество)"),
+    # --- Hisobot: qo'shimchalar -------------------------------------------
+    "res_percentile": L(
+        "📊 Siz bu testni topshirganlarning <b>{pct} foizi</b>dan yaxshiroq javob berdingiz ({n} kishi).",
+        "📊 Вы ответили лучше, чем <b>{pct}%</b> людей, прошедших этот тест ({n} чел.).",
+    ),
+    "res_percentile_low": L(
+        "📊 Bu testni allaqachon {n} kishi topshirgan. Bir haftadan keyin qayta topshirib, natijangizni oshiring.",
+        "📊 Этот тест уже прошли {n} чел. Пройдите его снова через неделю и улучшите результат.",
+    ),
+    "res_everyday": L("💡 <i>Hayotda:</i> {text}", "💡 <i>В жизни:</i> {text}"),
+    "res_exercise": L("✍️ <i>Mashq:</i> {text}", "✍️ <i>Упражнение:</i> {text}"),
+    "res_zero": L("🌱 o‘sish nuqtasi", "🌱 точка роста"),
+    "res_next_title": L("KEYINGI QADAM", "СЛЕДУЮЩИЙ ШАГ"),
+    "res_next_retake": L(
+        "📅 Bir haftadan keyin testni qayta topshiring va natijani bugungisi bilan "
+        "solishtiring — ikkalasi ham «📈 Mening natijalarim» bo‘limida saqlanadi.",
+        "📅 Пройдите тест снова через неделю и сравните с сегодняшним результатом — "
+        "оба сохранятся в разделе «📈 Мои результаты».",
+    ),
+    "res_next_other": L(
+        "👉 Keyingi test: <b>{title}</b> — pastdagi tugma orqali oching.",
+        "👉 Следующий тест: <b>{title}</b> — откройте кнопкой ниже.",
+    ),
+    "btn_next_test": L("👉 {title}", "👉 {title}"),
+    # --- IQ hisoboti ------------------------------------------------------
+    "iq_res_title": L("🧠 <b>PREMIUM IQ TESTI — NATIJA</b>", "🧠 <b>ПРЕМИУМ IQ-ТЕСТ — РЕЗУЛЬТАТ</b>"),
+    "iq_res_estimate": L("🧠 Taxminiy IQ: <b>≈ {iq}</b>", "🧠 Примерный IQ: <b>≈ {iq}</b>"),
+    "iq_res_range": L("<i>ehtimoliy oraliq: {low}–{high}</i>", "<i>вероятный диапазон: {low}–{high}</i>"),
+    "iq_res_level": L("{emoji} Daraja: <b>{name}</b>", "{emoji} Уровень: <b>{name}</b>"),
+    "iq_res_correct": L(
+        "🎯 To‘g‘ri javoblar: <b>{correct} / {total}</b>",
+        "🎯 Правильных ответов: <b>{correct} / {total}</b>",
+    ),
+    "iq_res_time": L("⏱ Sarflangan vaqt: {duration}", "⏱ Затраченное время: {duration}"),
+    "iq_res_rushed": L(
+        "⚠️ Juda tez yechdingiz — ba’zi javoblar tavakkal belgilangan bo‘lishi mumkin.",
+        "⚠️ Вы ответили очень быстро — часть ответов могла быть наугад.",
+    ),
+    "dur_min_sec": L("{m} daqiqa {s} soniya", "{m} мин {s} сек"),
+    "dur_sec": L("{s} soniya", "{s} сек"),
+    # --- Do'st taklifi va xatolar tahlili ---------------------------------
+    "ref_offer": L(
+        "🔍 <b>Xatolaringizning batafsil tahlili tayyor!</b>\n\n"
+        "Qaysi savollarda adashganingiz, to‘g‘ri javob va nima uchun aynan u "
+        "to‘g‘ri ekani.\n\n"
+        "🎁 Ochish uchun <b>1 ta do‘stingizni</b> taklif qiling. U shu havola "
+        "orqali botni ishga tushirishi bilan tahlil siz uchun <b>butunlay</b> "
+        "ochiladi:\n\n{link}",
+        "🔍 <b>Подробный разбор ваших ошибок готов!</b>\n\n"
+        "В каких вопросах вы ошиблись, правильный ответ и почему именно он "
+        "верный.\n\n"
+        "🎁 Чтобы открыть, пригласите <b>1 друга</b>. Как только он запустит "
+        "бота по этой ссылке, разбор откроется для вас <b>навсегда</b>:\n\n{link}",
+    ),
+    "ref_offer_unlocked": L(
+        "🔍 <b>Xatolaringiz tahlili siz uchun ochiq.</b>\n\n"
+        "Qaysi savollarda adashganingizni va to‘g‘ri javobni ko‘ring.",
+        "🔍 <b>Разбор ошибок для вас открыт.</b>\n\n"
+        "Посмотрите, где вы ошиблись и какой ответ правильный.",
+    ),
+    "ref_share_text": L(
+        "Men bu botda IQ testini topshirdim 🧠 Sen ham sinab ko‘r:",
+        "Я прошёл IQ-тест в этом боте 🧠 Попробуй и ты:",
+    ),
+    "btn_ref_share": L("📤 Do‘stga yuborish", "📤 Отправить другу"),
+    "iq_share_text": L(
+        "Mening taxminiy IQ im — {iq} ({correct}/{total}). Sen ham sinab ko‘r:",
+        "Мой примерный IQ — {iq} ({correct}/{total}). Попробуй и ты:",
+    ),
+    "btn_review": L("🔍 Xatolarni ko‘rish", "🔍 Разбор ошибок"),
+    "ref_unlocked_notify": L(
+        "🎉 <b>Do‘stingiz botga qo‘shildi!</b>\n\n"
+        "Xatolaringizning batafsil tahlili endi siz uchun <b>butunlay ochiq</b>.",
+        "🎉 <b>Ваш друг присоединился к боту!</b>\n\n"
+        "Подробный разбор ошибок теперь открыт для вас <b>навсегда</b>.",
+    ),
+    "review_caption": L(
+        "🔍 <b>Xato {pos} / {count}</b> · {num}-savol\n\n"
+        "❌ Sizning javobingiz: <b>{yours}</b>\n"
+        "✅ To‘g‘ri javob: <b>{correct}</b>\n\n"
+        "💡 {why}",
+        "🔍 <b>Ошибка {pos} / {count}</b> · вопрос {num}\n\n"
+        "❌ Ваш ответ: <b>{yours}</b>\n"
+        "✅ Правильный ответ: <b>{correct}</b>\n\n"
+        "💡 {why}",
+    ),
+    "review_none": L(
+        "🎉 Bu testda birorta ham xato qilmadingiz — ko‘rib chiqadigan narsa yo‘q!",
+        "🎉 В этом тесте у вас нет ни одной ошибки — разбирать нечего!",
+    ),
+    "review_locked": L(
+        "🔒 Tahlilni ochish uchun 1 ta do‘stingizni taklif qiling.",
+        "🔒 Чтобы открыть разбор, пригласите 1 друга.",
+    ),
+    "review_missing": L("Bu natija topilmadi.", "Результат не найден."),
+    "review_unavailable": L(
+        "⏳ Tahlil vaqtincha mavjud emas. Birozdan keyin urinib ko‘ring.",
+        "⏳ Разбор временно недоступен. Попробуйте чуть позже.",
+    ),
+    "btn_close": L("✖️ Yopish", "✖️ Закрыть"),
 }
 
 

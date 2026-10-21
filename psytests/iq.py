@@ -27,6 +27,7 @@ bilan ko'rsatiladi (±IQ_MARGIN) va "taxminiy" deb aytiladi.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -244,3 +245,40 @@ def estimate_iq(correct: int, age_group: str | None, peers: list[float]) -> dict
         "high": min(IQ_MAX, iq + IQ_MARGIN),
         "source": source,
     }
+
+
+# --- Xatolar tahlili -------------------------------------------------------
+
+#: Har bir topshiriqning bir jumlali tushuntirishi ham kodda emas: u javobni
+#: ochib beradi, repozitoriy esa ochiq. Serverda JSON ko'rinishida turadi:
+#: {"07.png": {"uz": "...", "ru": "..."}, ...} — hamma 20 ta rasm uchun.
+#: Asl nusxasi egasidagi maxfiy iq_private.json faylida.
+EXPLANATIONS_ENV = "IQ_EXPLANATIONS"
+#: Tahlilda ko'pi bilan shuncha xato ko'rsatiladi.
+REVIEW_LIMIT = 4
+
+
+def explanations() -> dict[str, dict[str, str]] | None:
+    """Muhitdan tushuntirishlar. Birortasi yetishmasa — None (tahlil yopiq)."""
+    try:
+        data = json.loads(os.getenv(EXPLANATIONS_ENV, "") or "null")
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    for puzzle in PUZZLES:
+        item = data.get(puzzle.file)
+        if not isinstance(item, dict) or not item.get("uz") or not item.get("ru"):
+            return None
+    return data
+
+
+def pick_mistakes(answers: list[str], key: list[str], limit: int = REVIEW_LIMIT) -> list[int]:
+    """Tahlil uchun xato qilingan savollar (0 dan boshlangan tartib raqami).
+
+    Topshiriqlar oddiydan murakkabga tartiblangan, shuning uchun eng oson
+    xatolar birinchi keladi: ularning qoidasini tushunish eng oson va
+    keyingi safar natijani eng tez oshiradi.
+    """
+    wrong = [i for i, (answer, correct) in enumerate(zip(answers, key)) if answer != correct]
+    return wrong[:limit]

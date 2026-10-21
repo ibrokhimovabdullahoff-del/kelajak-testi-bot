@@ -8,3 +8,9 @@ venv/
 .DS_Store
 # IQ javoblar kaliti — maxfiy
 IQ_JAVOBLAR.md
+
+# Maxfiy: IQ javoblari bor hujjatlar va fayllar
+SAVOLLAR_VA_JAVOBLAR.pdf
+*.pdf
+iq_private.json
+IQ_JAVOBLAR.md

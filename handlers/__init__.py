@@ -3,7 +3,7 @@ from aiogram import Router
 import locales_patch  # noqa: F401
 import database_attempts_patch  # noqa: F401  # one paid purchase = one completed attempt
 
-from . import admin_cms, admin, admin_premium, admin_users, iq, payment, shop, user, user_cms_patch, wallet, wallet_admin, wallet_click
+from . import admin_cms, admin, admin_premium, admin_users, growth, iq, payment, shop, user, user_cms_patch, wallet, wallet_admin, wallet_click
 from .middleware import UserContext
 
 
@@ -22,6 +22,7 @@ def build_router() -> Router:
     router.include_router(payment.router)
     router.include_router(wallet.router)
     router.include_router(shop.router)
+    router.include_router(growth.router)
     router.include_router(iq.router)
     router.include_router(user.router)
     return router

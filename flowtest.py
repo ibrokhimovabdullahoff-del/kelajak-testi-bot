@@ -133,6 +133,8 @@ async def main() -> int:
     from handlers import build_router  # config o'qilgandan keyin
 
     await db.init()
+    import referrals  # main.py dagi ishga tushish tartibi bilan bir xil
+    await referrals.init()
     # Server qanday ishga tushsa, shunday: savollar CMS bazasidan o'qiladi.
     # Avval bu qadam yo'q edi va bazadan kelgan chala tugmalar ("Ha,")
     # tekshiruvdan o'tib ketgan.
@@ -143,6 +145,9 @@ async def main() -> int:
               default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(build_router())
+    # main.py kabi: sertifikat va havolalar botning getMe() dagi nomi bilan.
+    from handlers.growth import set_bot_username
+    set_bot_username((await bot.get_me()).username)
 
     as_user(TEST_USER)
 
@@ -179,6 +184,12 @@ async def main() -> int:
         n in result for n in ("Ekstraversiya", "Kelishuvchanlik", "Vijdonlilik",
                               "Hissiy barqarorlik", "Ochiqlik")))
     check("ogohlantirish bor", "tashxis emas" in result)
+    photos = [i for i, (n, m) in enumerate(CALLS) if n == "SendPhoto" and "sertifikat" in (m.caption or "")]
+    texts = [i for i, (n, m) in enumerate(CALLS) if n == "SendMessage" and "Ekstraversiya" in (m.text or "")]
+    check("avval sertifikat, keyin matnli natija", photos and texts and photos[0] < texts[0],
+          f"{photos} {texts}")
+    check("natija ostida keyingi test tugmasi (Kasb yo‘nalishi)",
+          any(b.callback_data == "test:career" for b in buttons()), str([b.callback_data for b in buttons()]))
     history = await db.user_history(TEST_USER)
     check("natija saqlandi", len(history) == 1 and history[0]["test_key"] == "bigfive")
     check("Big Five uchun umumiy ball saqlanmadi", history[0]["total"] is None)

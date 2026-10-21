@@ -23,6 +23,7 @@ os.environ.setdefault("BOT_TOKEN", "0:selftest")
 import report
 from locales import LANGS, STRINGS
 from psytests import AGE_ADVICE, AGE_GROUPS, ORDER, REGISTRY, score
+from psytests import insights
 from psytests.base import LANGS as ITEM_LANGS
 
 FAILURES: list[str] = []
@@ -60,6 +61,7 @@ def bilingual_strings():
     for _, _, name, note in report.BANDS:
         yield "band.name", name
         yield "band.note", note
+    yield from insights.all_texts()
 
 
 def check_translations() -> None:
@@ -124,8 +126,13 @@ BANNED_UZ = {
 
 #: Bitta daraja izohi shundan uzun bo'lmasin (belgi).
 MAX_LEVEL_LEN = 300
-#: Butun natija shundan uzun bo'lmasin (belgi) — bitta ekranga sig'sin.
-MAX_RESULT_LEN = 1900
+#: Telegram bitta xabarga shuncha belgi sig'diradi (send_chunked chegarasi).
+TELEGRAM_CHUNK = 3800
+#: Har bir yo'nalishga hayotiy izoh va mashq qo'shilgach, natija bitta
+#: ekranga sig'maydi — lekin ko'pi bilan ikki xabar bo'lsin.
+MAX_RESULT_LEN = 2 * TELEGRAM_CHUNK
+#: Hayotiy izoh va mashq — bittadan qisqa jumla.
+MAX_INSIGHT_LEN = 170
 
 
 def check_plain_language() -> None:
@@ -150,6 +157,18 @@ def check_lengths() -> None:
                         )
     check(f"daraja izohlari {MAX_LEVEL_LEN} belgidan qisqa", not long_ones,
           ", ".join(long_ones[:4]))
+    long_insights = [
+        f"{path}[{lang}]={len(text[lang])}"
+        for path, text in insights.all_texts() for lang in ITEM_LANGS
+        if len(text[lang]) > MAX_INSIGHT_LEN
+    ]
+    check(f"hayotiy izoh va mashqlar {MAX_INSIGHT_LEN} belgidan qisqa", not long_insights,
+          ", ".join(long_insights[:4]))
+    multi = [
+        path for path, text in insights.all_texts() if path.startswith("insights.")
+        for lang in ITEM_LANGS if text[lang].rstrip(".!?»").count(". ") > 0
+    ]
+    check("hayotiy izoh va mashq — bittadan jumla", not multi, ", ".join(multi[:4]))
 
 
 def check_answers() -> None:
@@ -193,6 +212,17 @@ def tr_uz(value: dict) -> str:
 def check_structure() -> None:
     check("menyu tartibi reyestrga mos", set(ORDER) == set(REGISTRY),
           f"{set(ORDER) ^ set(REGISTRY)}")
+    for key in ORDER:
+        scales = set(REGISTRY[key].scales)
+        check(f"{key}: har bir yo'nalishda hayotiy izoh va mashq bor",
+              set(insights.INSIGHTS.get(key, {})) == scales,
+              str(scales ^ set(insights.INSIGHTS.get(key, {}))))
+        check(f"{key}: har bir yo'nalishda sertifikat sarlavhasi bor",
+              set(insights.ARCHETYPES.get(key, {})) == scales,
+              str(scales ^ set(insights.ARCHETYPES.get(key, {}))))
+    check("keyingi test har bir testda bor va mavjud",
+          all(insights.NEXT_TEST.get(k) in set(REGISTRY) | {"iq"} and insights.NEXT_TEST[k] != k
+              for k in ORDER))
 
     for key in ORDER:
         test = REGISTRY[key]
@@ -277,9 +307,22 @@ def check_reports() -> None:
                     depth == 0, f"depth={depth}",
                 )
                 check(
-                    f"{key}/{lang}/{pattern_name}: natija qisqa "
+                    f"{key}/{lang}/{pattern_name}: natija ko‘pi bilan 2 xabar "
                     f"({MAX_RESULT_LEN} belgidan kam)",
                     len(text) <= MAX_RESULT_LEN, f"{len(text)} belgi",
+                )
+                biggest = max(len(block) for block in text.split("\n\n"))
+                check(
+                    f"{key}/{lang}/{pattern_name}: har bir bo‘lak bitta xabarga sig‘adi",
+                    biggest <= TELEGRAM_CHUNK, f"{biggest} belgi",
+                )
+                check(
+                    f"{key}/{lang}/{pattern_name}: «0%» ko‘rsatilmaydi",
+                    not re.search(r"(?<!\d)0%", text), "0% topildi",
+                )
+                check(
+                    f"{key}/{lang}/{pattern_name}: keyingi qadam oxirida",
+                    text.rstrip().endswith(report.next_step(key, lang)),
                 )
                 if pattern_name == "o‘rta":
                     print(f"  ℹ️  {key}/{lang}: natija {len(text)} belgi")

@@ -11,10 +11,12 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 import content_cms as cms
 import database as db
 import payments
+import referrals
 import wallet
 from config import BOT_TOKEN, CLICK_ENABLED, LOG_LEVEL, PUBLIC_URL
 from handlers import build_router
 from handlers.autostart_runtime import notify_paid, set_runtime
+from handlers.growth import set_bot_username
 from handlers.payment import set_bot
 
 COMMANDS = {
@@ -42,6 +44,7 @@ async def set_commands(bot: Bot) -> None:
 async def main() -> None:
     logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)-8s %(name)s: %(message)s")
     await db.init()
+    await referrals.init()
     await wallet.init()
     await cms.init()
     await cms.apply_all()
@@ -56,12 +59,17 @@ async def main() -> None:
     # Payment webhooks run in the same process, so give the autostart bridge
     # access to the exact FSM storage used by Dispatcher.
     set_runtime(me.id, storage)
+    # Sertifikat va taklif havolalari botning haqiqiy nomi bilan yasaladi.
+    set_bot_username(me.username)
 
     logging.info("Ishga tushdi: @%s (id=%s)", me.username, me.id)
 
-    from psytests.iq import ANSWER_KEY_ENV, answer_key
+    from psytests.iq import ANSWER_KEY_ENV, EXPLANATIONS_ENV, answer_key, explanations
     if answer_key() is None:
         logging.error("%s o‘rnatilmagan yoki noto‘g‘ri — IQ testi yopiq bo‘ladi.", ANSWER_KEY_ENV)
+    if explanations() is None:
+        logging.error("%s o‘rnatilmagan yoki to‘liq emas — IQ xatolar tahlili yopiq bo‘ladi.",
+                      EXPLANATIONS_ENV)
 
     runner = await payments.run_server(on_paid=notify_paid)
     if CLICK_ENABLED:

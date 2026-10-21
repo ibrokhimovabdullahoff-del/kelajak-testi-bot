@@ -10,7 +10,6 @@ Ishlatish:  ./venv/bin/python iqtest.py
 import asyncio
 import json
 import os
-import re
 import sys
 import tempfile
 from datetime import datetime
@@ -36,8 +35,13 @@ from aiogram.types import (CallbackQuery, Chat, FSInputFile, Message, PhotoSize,
                            Update, User)
 
 import database as db
+from psytests.iq import EXPLANATIONS_ENV
 from psytests.iq import (AGE_GROUPS, IQ_MARGIN, IQ_MAX, IQ_MIN, KINDS, LETTERS, MIN_PEERS,
                          PUZZLES, TOTAL, answer_key, estimate_iq, grade, level_for, percentile)
+
+# Soxta tushuntirishlar (haqiqiylari faqat serverda).
+os.environ[EXPLANATIONS_ENV] = json.dumps(
+    {p.file: {"uz": f"Sabab {p.file}.", "ru": f"Причина {p.file}."} for p in PUZZLES})
 
 CALLS: list = []
 FAILURES: list[str] = []
@@ -197,6 +201,8 @@ async def main() -> int:
     from handlers import autostart_runtime
 
     await db.init()
+    import referrals  # main.py dagi ishga tushish tartibi bilan bir xil
+    await referrals.init()
     await cms.init()
     await cms.apply_all()
     bot = Bot("0:test", session=FakeSession(), default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -280,13 +286,24 @@ async def main() -> int:
     check("fikrlash turlari ko‘rsatilmadi", not any(k.name["uz"] in result for k in KINDS.values()))
     check("vaqt ko‘rsatildi", "Sarflangan vaqt" in result)
     check("tez yechilgani haqida ogohlantirish", "Juda tez" in result)
-    check("pastki izoh bloki yo‘q", "IQ taxminiy" not in result and "━" not in result, result[-200:])
+    check("«rasmiy IQ emas» izohi yo‘q", "IQ taxminiy" not in result and "rasmiy" not in result, result[-200:])
+    check("oxirida keyingi qadam", "KEYINGI QADAM" in result and result.rstrip().endswith("oching."), result[-200:])
     check("HTML teglar yopilgan", result.count("<b>") == result.count("</b>") and result.count("<i>") == result.count("</i>"))
     check("natija 4096 belgidan qisqa", len(result) < 4096, str(len(result)))
+    order = [(n, getattr(m, "caption", None) or getattr(m, "text", "") or "") for n, m in CALLS
+             if n in ("SendPhoto", "SendMessage")]
+    cert = next((i for i, (n, text) in enumerate(order) if n == "SendPhoto" and "sertifikat" in text), None)
+    offer = next((i for i, (n, text) in enumerate(order) if "start=ref_777" in text), None)
+    check("tartib: sertifikat → tahlil taklifi → natija",
+          cert is not None and offer is not None and cert < offer < len(order) - 1
+          and "TAXMINIY IQ" in order[-1][1].upper(), str([(n, t[:30]) for n, t in order]))
+    cert_markup = next(m.reply_markup for n, m in CALLS if n == "SendPhoto" and "sertifikat" in (m.caption or ""))
+    check("sertifikat ostida «yuklab olish» tugmasi",
+          any((b.callback_data or "").startswith("card:") for row in cert_markup.inline_keyboard for b in row))
     rbuttons = [b for b in text_buttons()]
-    check("xatolar / to‘g‘ri javoblarni ko‘rish tugmasi yo‘q",
-          not any("iqrev" in (b.callback_data or "") or "Xato" in b.text for b in rbuttons),
-          str([b.text for b in rbuttons]))
+    check("ulashish — shaxsiy taklif havolasi bilan",
+          any(b.url and "start%3Dref_777" in b.url for b in rbuttons), str([b.url for b in rbuttons]))
+    check("keyingi test tugmasi (Kasb yo‘nalishi)", any(b.callback_data == "test:career" for b in rbuttons))
     check("ulashish tugmasi", any(b.url and "t.me/share" in b.url for b in rbuttons))
     check("savol rasmi o‘chirildi", bool(calls("DeleteMessage")))
     history = await db.user_history(user)
@@ -305,8 +322,11 @@ async def main() -> int:
           not any(w in everything for w in ("Noto‘g‘ri", "To‘g‘ri!", "✅ To‘g‘ri", "Неверно", "Верно!")))
     check("«To‘g‘ri javob» degan matn yo‘q", "To‘g‘ri javob:" not in everything)
     CALLS.clear()
-    await press(dp, bot, "iqrev:1:0")
-    check("eski «iqrev» tugmasi hech narsa ochmaydi", not calls("SendPhoto") and not calls("SendMessage"))
+    result_id = (await db.latest_result(user, "iq"))["id"]
+    await press(dp, bot, f"iqrev:{result_id}:0")
+    check("qulflangan: tahlil o‘rniga taklif havolasi, to‘g‘ri javob yo‘q",
+          not calls("SendPhoto") and "start=ref_777" in last_text() and "To‘g‘ri javob:" not in last_text(),
+          last_text()[:80])
 
     print("7. Tugagandan keyin")
     CALLS.clear()
@@ -370,9 +390,10 @@ async def main() -> int:
     await solve(dp, bot, list(KEY))
     result = last_text()
     check("rus tilida natija", "Правильных ответов" in result and "20 / 20" in result, result[:120])
-    # 60 ta qo'shilgan + 5-bo'limda testni tugatgan 777 (xuddi shu yosh); 10–13 yoshdagilar hisoblanmaydi.
-    check("foiz faqat tengdoshlar orasida",
-          re.search(rf"Выше, чем у <b>\d+%</b> ваших сверстников \(участников: {MIN_PEERS + 11}\)", result) is not None,
+    # Hamma ishtirokchi bilan solishtiriladi (yoshidan qat'i nazar), har kimdan birinchi
+    # urinish: 60 ta (0–19), 60 ta (20) va 777 (18). 20 dan qat'iy past: 61 / 121 = 50%.
+    check("hamma ishtirokchi bilan solishtirish (tenglar «yaxshiroq» emas)",
+          "Вы ответили лучше, чем <b>50%</b> людей, прошедших этот тест (121 чел.)" in result,
           result[:400])
     check("rus tilida taxminiy IQ", "Примерный IQ" in result, result[:200])
     saved = json.loads((await db.user_history(other))[0]["scales"])
@@ -403,6 +424,61 @@ async def main() -> int:
     await press(dp, bot, "iqage:i_10_13")
     caption, _, _ = last_photo()
     check("yoshdan keyin 1-rasm keldi", "1 / 20" in caption, caption)
+
+    print("12. Do‘st taklifi → tahlil ochiladi")
+    import referrals
+    friend = 4444
+    as_user(friend)
+    CALLS.clear()
+    await send(dp, bot, "/start ref_777")
+    notify = [m for n, m in CALLS if n == "SendMessage" and m.chat_id == 777]
+    check("yangi do‘st keldi → taklif qilganga darhol xabar", notify and "qo‘shildi" in notify[0].text,
+          str([(n, getattr(m, "chat_id", None)) for n, m in CALLS]))
+    review_btn = notify[0].reply_markup.inline_keyboard[0][0].callback_data if notify else ""
+    check("xabarda «xatolarni ko‘rish» tugmasi", review_btn.startswith("iqrev:"), review_btn)
+    check("tahlil ochildi", await referrals.is_unlocked(777))
+    CALLS.clear()
+    await send(dp, bot, "/start ref_777")
+    check("o‘sha do‘st qayta bossa — xabar yo‘q", not [m for n, m in CALLS if n == "SendMessage" and m.chat_id == 777])
+    as_user(other)  # botni avval ishlatgan
+    await send(dp, bot, "/start ref_777")
+    check("eski foydalanuvchi hisoblanmaydi", await referrals.invited_count(777) == 1)
+    as_user(777)
+    await send(dp, bot, "/start ref_777")
+    check("o‘zini taklif qilish hisoblanmaydi", await referrals.invited_count(777) == 1)
+
+    CALLS.clear()
+    await press(dp, bot, review_btn)
+    caption, markup, _ = last_photo()
+    check("tahlil: 1-xato rasmi, sizning javob, to‘g‘ri javob, sabab",
+          "Xato 1 / 2" in caption and "4-savol" in caption and f"To‘g‘ri javob: <b>{KEY[3]}</b>" in caption
+          and "Sabab 04.png." in caption, caption)
+    nxt = next(b.callback_data for row in markup.inline_keyboard for b in row if b.text == "➡️")
+    CALLS.clear()
+    await press(dp, bot, nxt, on_photo=True)
+    caption, _, _ = last_photo()
+    check("➡️ — 2-xato o‘sha xabarda", "Xato 2 / 2" in caption and bool(calls("EditMessageMedia")), caption[:40])
+    CALLS.clear()
+    await press(dp, bot, "iqrev:close", on_photo=True)
+    check("yopish", bool(calls("DeleteMessage")))
+    as_user(friend)
+    CALLS.clear()
+    await press(dp, bot, review_btn)
+    check("boshqa odam birovning tahlilini ocha olmaydi", not calls("SendPhoto") and "topilmadi" in last_text(),
+          last_text()[:60])
+
+    print("13. Sertifikatni yuklab olish")
+    as_user(777)
+    CALLS.clear()
+    await press(dp, bot, f"card:{result_id}")
+    docs = calls("SendDocument")
+    check("to‘liq sifatli PNG hujjat yuborildi",
+          docs and docs[0].document.filename.endswith(".png") and "sifatda" in (docs[0].caption or ""),
+          str(docs[:1]))
+    as_user(friend)
+    CALLS.clear()
+    await press(dp, bot, f"card:{result_id}")
+    check("birovning sertifikati yuklab olinmaydi", not calls("SendDocument"))
 
     await bot.session.close()
     await db.close()

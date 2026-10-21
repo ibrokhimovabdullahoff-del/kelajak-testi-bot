@@ -211,35 +211,41 @@ async def init() -> None:
 
 async def upsert_user(
     user_id: int, username: str | None, full_name: str, force: bool = False
-) -> None:
-    """Foydalanuvchini saqlaydi.
+) -> bool:
+    """Foydalanuvchini saqlaydi. True — bu odam botga BIRINCHI marta keldi.
 
     Har bir tugma bosishda yozish shart emas: agar shu foydalanuvchi oxirgi
     soat ichida yozilgan bo'lsa, yozuv o'tkazib yuboriladi. Bu tugma
     bosishdagi bazaga murojaatni deyarli nolga tushiradi.
+
+    "Yangi" belgisi do'st taklifida kerak: faqat haqiqatan yangi odam
+    taklif qilganga hisoblanadi.
     """
     stamp = datetime.now(timezone.utc)
     if not force:
         last = _seen.get(user_id)
         if last is not None and stamp - last < _SEEN_TTL:
-            return
+            return False
     _seen[user_id] = stamp
 
     now = _now()
     db = await connect()
-    await db.execute(
-        """
-        INSERT INTO users (user_id, username, full_name, created_at, last_seen)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            username   = excluded.username,
-            full_name  = excluded.full_name,
-            last_seen  = excluded.last_seen,
-            is_blocked = 0
-        """,
+    cursor = await db.execute(
+        "INSERT OR IGNORE INTO users (user_id, username, full_name, created_at, last_seen) "
+        "VALUES (?, ?, ?, ?, ?)",
         (user_id, username, full_name, now, now),
     )
+    created = cursor.rowcount == 1
+    if not created:
+        await db.execute(
+            """
+            UPDATE users SET username = ?, full_name = ?, last_seen = ?, is_blocked = 0
+            WHERE user_id = ?
+            """,
+            (username, full_name, now, user_id),
+        )
     await db.commit()
+    return created
 
 
 async def get_lang(user_id: int) -> str | None:
@@ -325,6 +331,36 @@ async def user_history(user_id: int, limit: int = 10) -> list[dict]:
         (user_id, limit),
     )
     return await _dicts(cursor)
+
+
+async def get_result(result_id: int) -> dict | None:
+    """Bitta natija — `scales` JSON dan ochilgan holda."""
+    db = await connect()
+    cursor = await db.execute(
+        "SELECT id, user_id, test_key, lang, age_group, total, scales, created_at "
+        "FROM results WHERE id = ?",
+        (result_id,),
+    )
+    rows = await _dicts(cursor)
+    if not rows:
+        return None
+    row = rows[0]
+    try:
+        row["scales"] = json.loads(row["scales"] or "{}")
+    except (TypeError, ValueError):
+        row["scales"] = {}
+    return row
+
+
+async def latest_result(user_id: int, test_key: str) -> dict | None:
+    """Foydalanuvchining shu testdagi eng oxirgi natijasi."""
+    db = await connect()
+    cursor = await db.execute(
+        "SELECT MAX(id) FROM results WHERE user_id = ? AND test_key = ?",
+        (user_id, test_key),
+    )
+    row = await cursor.fetchone()
+    return await get_result(row[0]) if row and row[0] else None
 
 
 # --- Statistika -------------------------------------------------------------
