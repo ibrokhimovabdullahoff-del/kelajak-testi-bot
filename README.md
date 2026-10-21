@@ -145,6 +145,14 @@ faqat birinchisi saqlanadi), voronka hodisalari va test ichidagi 25/50/75 %
 bosqichlar, to‘lov hodisasi bir marta, bloklash/qaytish, bitta tugma
 bosishga bitta javob, `/stats` va `/perf`.
 
+**`phase2test.py`** — o‘sish halqalari: do‘st mukofoti (faqat yangi odam,
+bir marta, oylik chegara, o‘chirsa bo‘ladi) va bepul tahlilni ishlatish,
+do‘st bilan solishtirish (faqat havolani bosganga, foizlarsiz), promo kodlar
+(admin yaratadi; limit, muddat, chegirma bitta to‘lovga), sertifikat ostidagi
+ulashish matni (Farzand testida bolaning natijasi yo‘q), bir martalik e’lon
+(bloklaganlar o‘tkaziladi, ikki marta ketmaydi), eslatmalar (3 soat / 24 soat,
+7 kunda 2 ta, 23:00–08:00 jim, «kerak emas») va `/stats`.
+
 **`tools/speedbench.py`** — har bir handler foydalanuvchini qancha kutdirishi
 (Telegram o‘rnida har so‘rovga 40 ms kechikishli soxta sessiya).
 
@@ -181,6 +189,14 @@ turgan botga chiqib ketgan edi.
 | `stats.py` | `/stats`: manbalar, voronka, tushum, bloklar (60 s kesh) |
 | `perf.py` | tezlik o‘lchovi: har update uchun `perf` qatori, `/perf`, tugma javobi fonda |
 | `handlers/admin_stats.py` | `/stats` va `/perf` ekranlari |
+| `handlers/admin_growth.py` | admin «🚀 O‘sish»: do‘st mukofoti, eslatmalar, promo kodlar, bir martalik e’lon |
+| `handlers/loops.py` | bepul tahlil, do‘st bilan solishtirish, promo kod, eslatmani o‘chirish tugmalari |
+| `referral_rewards.py` | do‘st mukofoti qoidalari (yangi odam testni tugatsa — 1 ta bepul tahlil, oyiga chegara) |
+| `credits.py` | bepul ochish huquqi («1 ta to‘liq tahlil — o‘zingiz tanlaysiz») |
+| `compare.py` | do‘st bilan solishtirish (Big Five, IQ) — foizlarsiz |
+| `promo.py` | promo kodlar: bepul tahlil yoki chegirma, limit, muddat |
+| `reminders.py` | avtomatik eslatmalar va ularning chegaralari |
+| `broadcast.py` | ko‘pchilikka yuborish: bloklaganlar o‘tkaziladi, natija bazaga va log’ga |
 | `handlers/lifecycle.py` | botni bloklash/qaytish, zararsiz «message is not modified» xatosi |
 | `handlers/middleware.py` | foydalanuvchi va tilni aniqlash |
 | `handlers/user.py` | menyu, test oqimi, natija |
@@ -217,6 +233,9 @@ Faqat tegishli `psytests/*.py` faylini tahrirlang. Ikkala tilni ham yozing —
   bazada va Telegram'da o‘tgan vaqt
 - 📣 **Xabar yuborish** — hammaga, faqat o‘zbekchaga yoki faqat ruschaga.
   Tasdiqlash so‘raladi, bloklaganlar avtomatik belgilanadi
+- 🚀 **O‘sish** — do‘st mukofoti (yoqish/o‘chirish, oylik chegara), eslatmalar
+  (yoqish/o‘chirish), 🎟 promo kodlar (yaratish, havolasi, o‘chirish) va
+  📣 bir martalik yangilik e’loni (oldin ko‘rinishi va oluvchilar soni)
 - 💳 **To‘lovlar** — tushum, oxirgi to‘lovlar, to‘liq tahlil narxlari (va
   to‘plam), to‘liq tahlilni vaqtincha bepul qilish, qo‘lda ochish, «Chekdan
   oldin ochish» (odatda o‘chiq), **Click to‘ldirishlarini tekshirish** (eski
@@ -249,6 +268,37 @@ ularni ham tekshiradi (apostroflar, kitobiy so‘zlar).
 
 ---
 
+## O‘sish halqalari (2-bosqich)
+
+- **Do‘st taklifi.** Har kimning havolasi `?start=ref_<id>`. Shu havola orqali
+  botga **birinchi marta** kelgan odam birorta testni oxirigacha topshirsa,
+  taklif qilganga **1 ta bepul to‘liq tahlil** (qaysi test — o‘zi tanlaydi).
+  Har bir yangi odam uchun bir marta, oyiga ko‘pi bilan 10 ta (admin
+  panelda o‘zgaradi). O‘zini taklif qilish va eski foydalanuvchilar
+  hisoblanmaydi. Taklif qilganga bir marta xabar boradi.
+- **Do‘st bilan solishtirish** (Big Five va IQ). Natija ostida «👥 Do‘stingiz
+  bilan solishtiring» → `?start=cmp_<test>_<id>`. Do‘st testni bepul
+  topshirgach, **faqat unga** qisqa solishtirish chiqadi: kimda qaysi
+  xususiyat ko‘proq — **foiz va ballsiz**. To‘liq tahlil pullik bo‘lib qoladi.
+- **Promo kodlar** (hamkorlar: o‘quv markazlar, maktablar, blogerlar). Bepul
+  to‘liq tahlil (tanlangan testlar) yoki chegirma % (keyingi bitta to‘lovga),
+  nechta odam, necha kun, izoh. Odam kodni havola (`?start=promo_KOD`) yoki
+  `/promo KOD` bilan kiritadi. `/stats` da har bir kod alohida.
+- **Ulashish matni** sertifikat ostida, odamning tilida va shaxsiy taklif
+  havolasi bilan: «Men «Qonuniyat ovchisi» chiqdim. Siz-chi? 👉». Farzand
+  testida faqat test nomi — bolaning natijasi hech qayerga chiqmaydi.
+- **Bir martalik e’lon** (admin bosadi): bloklaganlarga yuborilmaydi, Telegram
+  cheklovi hisobga olinadi, natija (yetdi / bloklagan / xato) yoziladi, ikki
+  marta ketmaydi. Oddiy «📣 Xabar yuborish» ham shu yo‘l bilan ishlaydi.
+- **Eslatmalar** (admin panelda o‘chiriladi): tashlab ketilgan test — ~3 soatdan
+  keyin bitta; ochilmagan to‘liq tahlil — ~24 soatdan keyin bitta (bosimsiz).
+  Bitta odamga 7 kunda 2 tadan ko‘p emas, 23:00–08:00 (Toshkent) jim, har bir
+  xabarda «🔕 Eslatma kerak emas».
+
+Bazadagi o‘zgarishlar — migratsiya 6 (faqat yangi jadvallar qo‘shiladi).
+
+---
+
 ## Reklama havolalari (manba)
 
 Har bir reklama uchun alohida havola bering — `/stats` qaysi biri odam
@@ -259,7 +309,8 @@ https://t.me/kelajak_testi_bot?start=src_instagram
 https://t.me/kelajak_testi_bot?start=src_youtube
 https://t.me/kelajak_testi_bot?start=src_tgads_<kanal>
 https://t.me/kelajak_testi_bot?start=ref_<user_id>      (do‘st taklifi)
-https://t.me/kelajak_testi_bot?start=promo_<kod>        (hamkor kodi)
+https://t.me/kelajak_testi_bot?start=promo_<kod>        (hamkor kodi → manba promo_<kod>)
+https://t.me/kelajak_testi_bot?start=cmp_bigfive_<id>   (do‘st bilan solishtirish → manba cmp)
 ```
 
 Foydalanuvchining **birinchi** manbasi saqlanadi va keyin o‘zgarmaydi.

@@ -2,7 +2,7 @@ from aiogram import Router
 
 import locales_patch  # noqa: F401
 
-from . import admin_cms, admin, admin_premium, admin_stats, admin_users, autostart_runtime, growth, iq, lifecycle, payment, reports, shop, user, user_cms_patch, wallet, wallet_admin, wallet_click  # noqa: F401
+from . import admin_cms, admin, admin_growth, admin_premium, admin_stats, admin_users, autostart_runtime, growth, iq, lifecycle, loops, payment, reports, shop, user, user_cms_patch, wallet, wallet_admin, wallet_click  # noqa: F401
 from .middleware import UserContext
 
 
@@ -16,6 +16,7 @@ def build_router() -> Router:
     router.include_router(admin_stats.router)
     router.include_router(admin_cms.router)
     router.include_router(wallet_admin.router)
+    router.include_router(admin_growth.router)
     router.include_router(admin.router)
     router.include_router(admin_premium.router)
     router.include_router(admin_users.router)
@@ -24,6 +25,8 @@ def build_router() -> Router:
     router.include_router(payment.router)
     router.include_router(wallet.router)
     router.include_router(shop.router)
+    # Promo kod kutilayotganda matn chek filtriga tushib qolmasin — reports'dan oldin.
+    router.include_router(loops.router)
     router.include_router(reports.router)
     router.include_router(growth.router)
     router.include_router(iq.router)

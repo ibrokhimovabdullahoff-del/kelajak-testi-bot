@@ -34,3 +34,4 @@ jobs:
       - run: python growthtest.py
       - run: python phase0test.py
       - run: python phase1test.py
+      - run: python phase2test.py

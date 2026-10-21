@@ -150,12 +150,112 @@ async def m5_keep_paid_access(conn: aiosqlite.Connection) -> None:
     )
 
 
+async def m6_growth(conn: aiosqlite.Connection) -> None:
+    """2-bosqich: do'st mukofoti, promo kodlar, solishtirish, eslatmalar, e'lonlar."""
+    await conn.executescript(
+        """
+        -- Bepul ochish huquqi ("1 ta to'liq tahlil — o'zingiz tanlaysiz").
+        -- Ishlatilganda used_test/used_at to'ladi; yozuv o'chirilmaydi.
+        --   source: referral | promo | admin
+        CREATE TABLE IF NOT EXISTS unlock_credits (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            source      TEXT NOT NULL,
+            ref         TEXT NOT NULL,
+            created_at  TEXT NOT NULL,
+            used_test   TEXT,
+            used_at     TEXT,
+            UNIQUE (source, ref)
+        );
+        CREATE INDEX IF NOT EXISTS idx_credits_user ON unlock_credits(user_id, used_at);
+
+        -- Taklif qilingan odam testni tugatdi: mukofot bir marta (referred_id PK).
+        --   status: rewarded | capped (oylik chegara to'lgan) | off (o'chirilgan edi)
+        CREATE TABLE IF NOT EXISTS referral_rewards (
+            referred_id INTEGER PRIMARY KEY,
+            referrer_id INTEGER NOT NULL,
+            test_key    TEXT NOT NULL,
+            month       TEXT NOT NULL,
+            status      TEXT NOT NULL,
+            created_at  TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_ref_rewards_referrer ON referral_rewards(referrer_id, month, status);
+
+        -- Hamkorlar uchun promo kod. kind: discount (percent %) | free (tests).
+        -- max_uses = 0 — cheksiz; expires_at NULL — muddatsiz.
+        CREATE TABLE IF NOT EXISTS promo_codes (
+            code        TEXT PRIMARY KEY,
+            label       TEXT NOT NULL DEFAULT '',
+            kind        TEXT NOT NULL,
+            percent     INTEGER NOT NULL DEFAULT 0,
+            tests       TEXT NOT NULL DEFAULT '',
+            max_uses    INTEGER NOT NULL DEFAULT 0,
+            uses        INTEGER NOT NULL DEFAULT 0,
+            expires_at  TEXT,
+            active      INTEGER NOT NULL DEFAULT 1,
+            created_by  INTEGER,
+            created_at  TEXT NOT NULL
+        );
+
+        -- Kim qaysi kodni ishlatdi (bitta odam — bitta kod bir marta).
+        -- Chegirma keyingi to'lovda ishlatiladi: payment_id/used_at shunda to'ladi.
+        CREATE TABLE IF NOT EXISTS promo_redemptions (
+            code        TEXT NOT NULL,
+            user_id     INTEGER NOT NULL,
+            created_at  TEXT NOT NULL,
+            payment_id  INTEGER,
+            used_at     TEXT,
+            PRIMARY KEY (code, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_promo_red_user ON promo_redemptions(user_id, used_at);
+
+        -- "Do'stingiz bilan solishtiring" havolasi orqali kelgan odam.
+        -- Solishtirish faqat shu odamga (havolani bosganga) ko'rsatiladi.
+        CREATE TABLE IF NOT EXISTS compare_invites (
+            friend_id   INTEGER NOT NULL,
+            test_key    TEXT NOT NULL,
+            inviter_id  INTEGER NOT NULL,
+            created_at  TEXT NOT NULL,
+            shown_at    TEXT,
+            PRIMARY KEY (friend_id, test_key)
+        );
+
+        -- Avtomatik xabarlar (eslatmalar): 7 kunda 2 tadan oshmasligi shu yerdan sanaladi.
+        CREATE TABLE IF NOT EXISTS auto_messages (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            kind        TEXT NOT NULL,
+            ref         TEXT NOT NULL,
+            sent_at     TEXT NOT NULL,
+            ok          INTEGER NOT NULL DEFAULT 1,
+            UNIQUE (user_id, kind, ref)
+        );
+        CREATE INDEX IF NOT EXISTS idx_auto_user_time ON auto_messages(user_id, sent_at);
+
+        -- Admin yuborgan har bir xabar: nechtasi yetdi, nechtasi bloklagan.
+        CREATE TABLE IF NOT EXISTS broadcasts (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind        TEXT NOT NULL,
+            admin_id    INTEGER,
+            target      TEXT,
+            started_at  TEXT NOT NULL,
+            finished_at TEXT,
+            total       INTEGER NOT NULL DEFAULT 0,
+            sent        INTEGER NOT NULL DEFAULT 0,
+            blocked     INTEGER NOT NULL DEFAULT 0,
+            failed      INTEGER NOT NULL DEFAULT 0
+        );
+        """
+    )
+
+
 MIGRATIONS = [
     (1, "events table", m1_events),
     (2, "users: source, source_at, blocked_at", m2_user_source_and_blocks),
     (3, "indexes for /stats", m3_stats_indexes),
     (4, "report_access, progress, optimistic_blocked", m4_reports_and_progress),
     (5, "keep full-report access for everyone who already paid", m5_keep_paid_access),
+    (6, "growth: credits, referral rewards, promo codes, compare, reminders, broadcasts", m6_growth),
 ]
 
 

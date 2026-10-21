@@ -11,6 +11,7 @@ Hamma son — ODAM soni (bitta odam testni ikki marta ochsa ham bitta).
 """
 from __future__ import annotations
 
+import html
 import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -117,9 +118,13 @@ async def compute(period: str) -> dict:
 
     events_count = dict(await _rows(
         "SELECT event, COUNT(*) FROM events WHERE created_at >= ? "
-        "AND event IN ('referral_joined', 'referral_rewarded', 'report_unlocked', 'certificate_sent') "
+        "AND event IN ('referral_joined', 'referral_rewarded', 'report_unlocked', 'certificate_sent', "
+        "'promo_used', 'compare_shown', 'reminder_sent') "
         "GROUP BY event", (since,)))
     data["events"] = {k: int(v) for k, v in events_count.items()}
+    import promo
+    data["promo"] = await promo.usage(since)
+    data["credits_used"] = int(await _one("SELECT COUNT(*) FROM unlock_credits WHERE used_at >= ?", (since,)))
 
     data["users_total"] = int(await _one("SELECT COUNT(*) FROM users"))
     data["langs"] = dict(await _rows("SELECT COALESCE(lang, '?'), COUNT(*) FROM users GROUP BY 1", ()))
@@ -193,7 +198,14 @@ def render(data: dict) -> str:
     ev = data["events"]
     lines += ["", f"🎁 Taklif: qo‘shildi <b>{ev.get('referral_joined', 0)}</b> · "
               f"mukofot <b>{ev.get('referral_rewarded', 0)}</b> · "
+              f"bepul ochildi <b>{data.get('credits_used', 0)}</b> · "
               f"🏅 sertifikat <b>{ev.get('certificate_sent', 0)}</b>"]
+    if data.get("promo"):
+        codes = " · ".join(f"{code.upper()} {n}" + (f" ({html.escape(label)})" if label else "")
+                           for code, label, n in data["promo"])
+        lines.append(f"🎟 Promo kodlar: {codes}")
+    lines.append(f"👥 Solishtirish: <b>{ev.get('compare_shown', 0)}</b> · "
+                 f"🔔 eslatma: <b>{ev.get('reminder_sent', 0)}</b>")
 
     rate = _pct(data["blocked_total"], data["users_total"])
     lines += [f"🚫 Bloklagan: <b>{data['blocked_total']}</b> / {data['users_total']} ({rate})"

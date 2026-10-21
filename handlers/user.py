@@ -23,6 +23,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import access
 import content
+import credits
 import database as db
 import events
 import keyboards as kb
@@ -195,6 +196,11 @@ async def cmd_start(
         await db.set_first_source(message.from_user.id, source or "direct")
     events.track(message.from_user.id, "start", new=is_new_user, **({"src": source} if source else {}))
     await growth.handle_start(message, command.args, is_new_user)
+    from . import loops
+    if source and source.startswith("promo_"):
+        await loops.redeem_and_reply(message, message.from_user.id, command.args[6:], lang)
+    elif source == "cmp" and await loops.compare_start(message, command.args, lang):
+        return
     await show_menu(message, lang, message.from_user.id, edit=False)
 
 
@@ -238,10 +244,15 @@ async def history_screen(user_id: int, lang: str) -> tuple[str, object]:
         for row in await _recent_results(user_id):
             title = reports.test_title(row["test_key"], lang)
             b.button(text=f"{title} · {(row['created_at'] or '')[:10]}", callback_data=f"rep:open:{row['id']}")
+    have = await credits.available(user_id)
+    if have:
+        text += "\n\n" + t("history_credits", lang, n=have)
+        b.button(text=t("btn_credit_use", lang, n=have), callback_data="cred:menu")
     balance = await wallet.balance(user_id)
     if balance > 0:
         text += "\n\n" + t("history_balance", lang, balance=money(balance))
         b.button(text=t("btn_wallet", lang), callback_data="wallet:open")
+    b.button(text=t("btn_promo", lang), callback_data="promo:ask")
     b.button(text=t("btn_menu", lang), callback_data="nav:menu")
     b.adjust(1)
     return text, b.as_markup()
@@ -500,6 +511,7 @@ async def finish(
     await growth.send_certificate(callback.message, callback.from_user, saved, full=full)
     if saved:
         await reports.deliver(callback.bot, user_id, saved, lang)
+    await growth.after_test(callback.bot, user_id, test_key, lang)
 
 
 # --- Oxirgi tayanch ---------------------------------------------------------

@@ -32,6 +32,7 @@ from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import access
+import compare
 import content
 import database as db
 import events
@@ -477,6 +478,7 @@ def result_markup(result: dict, iq: int, user_id: int, lang: str):
         text = (t("iq_share_text", lang, iq=iq, correct=result["correct"], total=TOTAL)
                 if iq >= IQ_NUMBER_MIN else t("ref_share_text", lang))
         b.button(text=t("btn_share", lang), url=_share_url(link, text))
+    compare.add_button(b, IQ_KEY, lang)
     kb.next_test_button(b, IQ_KEY, lang)
     b.button(text=t("btn_retake", lang), callback_data="iq:card")
     b.button(text=t("btn_other_tests", lang), callback_data="nav:menu")
@@ -523,6 +525,7 @@ async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
     await growth.send_certificate(callback.message, callback.from_user, saved, full=full)
     if saved:
         await reports.deliver(callback.bot, user_id, saved, lang)
+    await growth.after_test(callback.bot, user_id, IQ_KEY, lang)
 
 
 # --- Eski tugmalar -------------------------------------------------------------

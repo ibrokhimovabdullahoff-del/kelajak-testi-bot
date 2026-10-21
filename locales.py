@@ -370,7 +370,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "card_free": L("\n🎁 <b>Bepul</b>", "\n🎁 <b>Бесплатно</b>"),
     "share_text": L(
         "Men psixologik test topshirdim 🧠 Sen ham sinab ko‘r",
-        "Я прошёл психологический тест 🧠 Попробуй и ты",
+        "Психологические тесты на узбекском и русском 🧠 Попробуй и ты",
     ),
     # --- Natija sertifikati (rasm) ----------------------------------------
     "iq_title": L("Premium IQ testi", "Премиум IQ-тест"),
@@ -611,7 +611,7 @@ STRINGS: dict[str, dict[str, str]] = {
     # --- Do'st taklifi -------------------------------------------------------
     "ref_share_text": L(
         "Men bu botda IQ testini topshirdim 🧠 Sen ham sinab ko‘r:",
-        "Я прошёл IQ-тест в этом боте 🧠 Попробуй и ты:",
+        "IQ-тест с картинками в этом боте 🧠 Попробуй и ты:",
     ),
     "btn_ref_share": L("📤 Do‘stga yuborish", "📤 Отправить другу"),
     "invite_plain": L(
@@ -634,6 +634,150 @@ STRINGS: dict[str, dict[str, str]] = {
         "Этот раздел больше недоступен.",
     ),
     "btn_close": L("✖️ Yopish", "✖️ Закрыть"),
+    # --- 2-bosqich: do'st mukofoti -----------------------------------------
+    "ref_menu": L(
+        "🎁 <b>Do‘stni taklif qilish</b>\n\n"
+        "Do‘stingiz shu havola orqali botga kelib, birorta testni oxirigacha topshirsa — "
+        "sizga <b>1 ta to‘liq tahlil bepul</b> (qaysi test ekanini o‘zingiz tanlaysiz).\n"
+        "Botga birinchi marta kelgan do‘stlar hisoblanadi, oyiga {cap} tagacha.\n\n"
+        "Sizning havolangiz:\n{link}\n\n"
+        "👥 Taklif qilganlaringiz: <b>{invited}</b> · testni tugatgan: <b>{done}</b>\n"
+        "🎁 Bepul tahlil: <b>{credits} ta</b>",
+        "🎁 <b>Пригласить друга</b>\n\n"
+        "Если друг придёт по этой ссылке и пройдёт любой тест до конца — "
+        "вы получите <b>1 полный разбор бесплатно</b> (какой тест — выбираете сами).\n"
+        "Считаются друзья, которые открыли бота впервые, до {cap} в месяц.\n\n"
+        "Ваша ссылка:\n{link}\n\n"
+        "👥 Приглашено: <b>{invited}</b> · прошли тест: <b>{done}</b>\n"
+        "🎁 Бесплатных разборов: <b>{credits}</b>",
+    ),
+    "ref_rewarded": L(
+        "🎉 <b>Do‘stingiz testni tugatdi!</b>\n"
+        "Sizga 1 ta to‘liq tahlil bepul berildi — qaysi test ekanini o‘zingiz tanlaysiz.",
+        "🎉 <b>Ваш друг прошёл тест!</b>\n"
+        "Вам начислен 1 полный разбор бесплатно — какой тест, выбираете сами.",
+    ),
+    "btn_credit_pick": L("🔓 Tahlilni tanlash", "🔓 Выбрать разбор"),
+    "btn_credit_use": L("🔓 Bepul tahlilni ochish ({n})", "🔓 Открыть бесплатный разбор ({n})"),
+    "btn_credit_paywall": L("🎁 Bepul ochish (sizda {n} ta)", "🎁 Открыть бесплатно (у вас {n})"),
+    "credit_menu": L(
+        "🎁 <b>Bepul to‘liq tahlil</b>\n\nSizda: <b>{n} ta</b>. Qaysi testning to‘liq tahlilini ochamiz?",
+        "🎁 <b>Бесплатный полный разбор</b>\n\nУ вас: <b>{n}</b>. Разбор какого теста открыть?",
+    ),
+    "credit_none": L("Bepul tahlil qolmagan.", "Бесплатных разборов не осталось."),
+    "credit_all_open": L(
+        "Hamma testlarning to‘liq tahlili sizda allaqachon ochiq ✅",
+        "У вас уже открыты полные разборы всех тестов ✅",
+    ),
+    "credit_used": L("✅ {title} — to‘liq tahlil ochildi (bepul).", "✅ {title} — полный разбор открыт (бесплатно)."),
+    "credit_used_take": L(
+        "✅ {title} — to‘liq tahlil ochildi.\nTestni topshiring — natijangiz darhol to‘liq chiqadi.",
+        "✅ {title} — полный разбор открыт.\nПройдите тест — результат сразу будет полным.",
+    ),
+    "history_credits": L("🎁 Bepul to‘liq tahlil: <b>{n} ta</b>", "🎁 Бесплатных полных разборов: <b>{n}</b>"),
+    # --- 2-bosqich: do'st bilan solishtirish -----------------------------------
+    "btn_compare": L("👥 Do‘stingiz bilan solishtiring", "👥 Сравниться с другом"),
+    "btn_compare_own": L("👥 O‘z do‘stlaringiz bilan solishtiring", "👥 Сравниться со своими друзьями"),
+    "btn_compare_send": L("📤 Havolani yuborish", "📤 Отправить ссылку"),
+    "cmp_share_screen": L(
+        "👥 <b>Do‘stingiz bilan solishtiring</b>\n\n"
+        "Havolani do‘stingizga yuboring. U testni bepul topshirgach, natijalaringiz yonma-yon "
+        "ko‘rsatiladi — faqat unga va foizlarsiz. Sizning to‘liq tahlilingiz va raqamlaringiz yopiq qoladi.",
+        "👥 <b>Сравнитесь с другом</b>\n\n"
+        "Отправьте ссылку другу. Когда он бесплатно пройдёт тест, ваши результаты покажутся рядом — "
+        "только ему и без процентов. Ваш полный разбор и цифры останутся закрытыми.",
+    ),
+    "cmp_share_bigfive": L(
+        "Big Five: qaysi tomonlarimiz o‘xshash? Testni topshir — natijalarimizni solishtiramiz 👇",
+        "Big Five: в чём мы похожи? Пройди тест — сравним результаты 👇",
+    ),
+    "cmp_share_iq": L(
+        "IQ topshiriqlari: kim qaysi turda kuchliroq? Sinab ko‘r — solishtiramiz 👇",
+        "IQ-задания: кто в чём сильнее? Попробуй — сравним 👇",
+    ),
+    "cmp_intro": L(
+        "👥 <b>{name} sizni solishtirishga taklif qildi</b>\n\n"
+        "{test} testini bepul topshiring — keyin ikkalangizning natijangiz yonma-yon chiqadi (foizlarsiz).",
+        "👥 <b>{name} приглашает вас сравниться</b>\n\n"
+        "Пройдите тест «{test}» бесплатно — потом ваши результаты покажутся рядом (без процентов).",
+    ),
+    "cmp_need_result": L("Avval testni o‘zingiz topshiring.", "Сначала пройдите тест сами."),
+    "cmp_friend": L("do‘stingiz", "друг"),
+    "cmp_title": L("👥 <b>Siz va {name} — {test}</b>", "👥 <b>Вы и {name} — {test}</b>"),
+    "cmp_tie": L("taxminan teng", "примерно поровну"),
+    "cmp_more_you": L("siz ko‘proq", "у вас выше"),
+    "cmp_more_them": L("{name} ko‘proq", "у {name} выше"),
+    "cmp_iq_total": L("🧩 Umumiy natija: {who}", "🧩 В целом: {who}"),
+    "cmp_closest": L("🔗 Eng o‘xshash tomoningiz: {trait}", "🔗 Больше всего вы похожи: {trait}"),
+    "cmp_farthest": L("⚡️ Eng katta farq: {trait}", "⚡️ Самое большое различие: {trait}"),
+    "cmp_footer": L(
+        "<i>Qisqa solishtirish: foiz va ballar ko‘rsatilmaydi, har kimning to‘liq tahlili o‘ziga. Bu tashxis emas.</i>",
+        "<i>Короткое сравнение: проценты и баллы не показываются, полный разбор у каждого свой. Это не диагноз.</i>",
+    ),
+    # --- 2-bosqich: sertifikat ostidagi ulashish matni -------------------------
+    "cert_share": L("Men «{name}» chiqdim. Siz-chi? 👉", "У меня вышло «{name}». А у вас? 👉"),
+    "cert_share_child": L(
+        "«{title}» — ota-onalar uchun foydali test. Sinab ko‘ring 👉",
+        "«{title}» — полезный тест для родителей. Попробуйте 👉",
+    ),
+    "cert_share_plain": L(
+        "Kelajak Testida o‘zimni sinab ko‘rdim. Siz ham sinab ko‘ring 👉",
+        "Бесплатные психологические тесты Kelajak Testi — попробуйте 👉",
+    ),
+    # --- 2-bosqich: promo kod ----------------------------------------------
+    "btn_promo": L("🎟 Promo kod", "🎟 Промокод"),
+    "promo_ask": L(
+        "🎟 Promo kodni yuboring (masalan: <code>MAKTAB5</code>).\nBekor qilish: /bekor",
+        "🎟 Отправьте промокод (например: <code>MAKTAB5</code>).\nОтмена: /bekor",
+    ),
+    "promo_ok_free": L(
+        "🎟 <b>Promo kod qabul qilindi!</b>\nTo‘liq tahlil siz uchun ochildi: {tests}\n\n"
+        "Testni topshiring — natijangiz darhol to‘liq chiqadi.",
+        "🎟 <b>Промокод принят!</b>\nДля вас открыт полный разбор: {tests}\n\n"
+        "Пройдите тест — результат сразу будет полным.",
+    ),
+    "promo_ok_discount": L(
+        "🎟 <b>Promo kod qabul qilindi!</b>\n"
+        "Keyingi to‘liq tahlilga <b>{pct}% chegirma</b> — narx to‘lov oynasida o‘zi kamayadi.",
+        "🎟 <b>Промокод принят!</b>\n"
+        "Скидка <b>{pct}%</b> на следующий полный разбор — цена уменьшится сама в окне оплаты.",
+    ),
+    "promo_not_found": L("Bunday promo kod topilmadi.", "Такой промокод не найден."),
+    "promo_inactive": L("Bu promo kod hozir ishlamaydi.", "Этот промокод сейчас не действует."),
+    "promo_expired": L("Bu promo kodning muddati tugagan.", "Срок действия этого промокода истёк."),
+    "promo_used_up": L("Bu promo kod limiti tugagan.", "Лимит этого промокода исчерпан."),
+    "promo_already": L("Siz bu promo kodni allaqachon ishlatgansiz.", "Вы уже использовали этот промокод."),
+    "pay_discount_line": L(
+        "\n🎟 Promo kod <b>{code}</b>: −{pct}% — {full} o‘rniga <b>{price} so‘m</b>",
+        "\n🎟 Промокод <b>{code}</b>: −{pct}% — <b>{price} сум</b> вместо {full}",
+    ),
+    # --- 2-bosqich: eslatmalar ---------------------------------------------
+    "rem_unfinished": L(
+        "⏸ {title}: testni {n}-savolda to‘xtatdingiz. Davom etasizmi?",
+        "⏸ {title}: вы остановились на {n}-м вопросе. Продолжим?",
+    ),
+    "rem_paywall": L(
+        "📊 {title}: to‘liq tahlilingiz tayyor. Xohlasangiz, shu yerda ochishingiz mumkin.",
+        "📊 {title}: ваш полный разбор готов. Если захотите — его можно открыть здесь.",
+    ),
+    "btn_continue": L("▶️ Davom ettirish", "▶️ Продолжить"),
+    "btn_see_result": L("📊 Natijani ko‘rish", "📊 Посмотреть результат"),
+    "btn_rem_off": L("🔕 Eslatma kerak emas", "🔕 Не напоминать"),
+    "rem_off_ok": L(
+        "🔕 Boshqa eslatma yubormaymiz. Testlar menyusi doim /start da.",
+        "🔕 Больше не будем напоминать. Меню тестов всегда в /start.",
+    ),
+    # --- 2-bosqich: bir martalik yangilik e'loni ------------------------------
+    "announce_text": L(
+        "Assalomu alaykum! 👋\n"
+        "Kelajak Testida yangilik: endi barcha testlarni bepul topshirish mumkin.\n"
+        "Qisqa natija va sertifikat ham bepul. To‘liq tahlil — xohlasangiz.\n\n"
+        "🧩 IQ’ingiz qancha? 20 ta topshiriq, 10 daqiqa.",
+        "Здравствуйте! 👋\n"
+        "Новость в Kelajak Testi: теперь все тесты можно пройти бесплатно.\n"
+        "Краткий результат и сертификат — тоже бесплатно. Полный разбор — по желанию.\n\n"
+        "🧩 Какой у вас IQ? 20 заданий, 10 минут.",
+    ),
 }
 
 

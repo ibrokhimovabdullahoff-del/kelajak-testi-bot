@@ -1,13 +1,11 @@
 """Admin paneli: statistics, payments, broadcasts and product controls."""
 from __future__ import annotations
 
-import asyncio
 import csv
 import io
 import logging
 
 from aiogram import Bot, F, Router
-from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import BaseFilter, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -105,20 +103,15 @@ async def do_broadcast(callback: CallbackQuery, state: FSMContext, bot: Bot) -> 
     if not from_chat_id or not message_id:
         await callback.message.edit_text("Xabar topilmadi.", reply_markup=kb.admin_menu()); return
     await callback.message.edit_text("📤 Yuborilmoqda…")
-    sent = failed = blocked = 0
-    for user_id in await db.all_user_ids(lang=None if target == "all" else target):
-        try:
-            await bot.copy_message(user_id, from_chat_id, message_id); sent += 1
-        except TelegramRetryAfter as exc:
-            await asyncio.sleep(exc.retry_after)
-            try: await bot.copy_message(user_id, from_chat_id, message_id); sent += 1
-            except Exception: failed += 1
-        except TelegramForbiddenError:
-            await db.mark_blocked(user_id); blocked += 1
-        except Exception as exc:
-            log.warning("broadcast %s ga yuborilmadi: %s", user_id, exc); failed += 1
-        await asyncio.sleep(0.05)
-    await callback.message.answer("✅ <b>Yuborish tugadi</b>\n\n" f"Yuborildi: <b>{sent}</b>\n" f"Bloklagan: <b>{blocked}</b>\n" f"Xatolik: <b>{failed}</b>", reply_markup=kb.admin_menu())
+    import broadcast
+
+    async def send_one(user_id: int) -> None:
+        await bot.copy_message(user_id, from_chat_id, message_id)
+
+    # Bloklaganlar o'tkaziladi, Telegram cheklovi hisobga olinadi, natija log'ga va bazaga yoziladi.
+    counts = await broadcast.send_all(await db.all_user_ids(lang=None if target == "all" else target), send_one,
+                                      kind="admin", admin_id=callback.from_user.id, target=target)
+    await callback.message.answer("✅ <b>Yuborish tugadi</b>\n\n" f"Yuborildi: <b>{counts['sent']}</b>\n" f"Bloklagan: <b>{counts['blocked']}</b>\n" f"Xatolik: <b>{counts['failed']}</b>", reply_markup=kb.admin_menu())
 
 
 @router.callback_query(F.data == "adm:home")

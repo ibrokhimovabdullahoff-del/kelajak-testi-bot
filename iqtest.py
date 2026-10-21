@@ -276,8 +276,11 @@ async def main() -> int:
     check("taxminiy IQ qulflangan (raqam yo‘q)", "Taxminiy IQ — ░░░░░ 🔒" in result
           and f"≈ {expected['iq']}" not in result, result)
     cert_photo = next(m for n, m in CALLS if n == "SendPhoto" and "sertifikat" in (m.caption or ""))
-    cert_buttons = [b.callback_data for row in cert_photo.reply_markup.inline_keyboard for b in row]
+    cert_buttons = [b.callback_data or "" for row in cert_photo.reply_markup.inline_keyboard for b in row]
     check("sertifikatda «Ballni yashirish» tugmasi", any(c.startswith("cardsc:") for c in cert_buttons), str(cert_buttons))
+    share = [b.url for row in cert_photo.reply_markup.inline_keyboard for b in row if b.url]
+    check("sertifikat ostida ulashish: shaxsiy taklif havolasi bilan",
+          bool(share) and "start%3Dref_" in share[0], str(share))
     unlock = next((b.callback_data for b in text_buttons() if (b.callback_data or "").startswith("rep:buy:")), "")
     check("«To‘liq tahlilni ochish — 5 000 so‘m»", bool(unlock) and "5 000" in text_buttons()[0].text,
           str([b.text for b in text_buttons()]))

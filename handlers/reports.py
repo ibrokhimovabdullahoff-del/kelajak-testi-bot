@@ -24,11 +24,14 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import access
+import compare
+import credits
 import database as db
 import events
 import keyboards as kb
 import peers
 import profiles
+import promo
 import report
 import wallet
 from config import (ADMINS, BUNDLE_KEY, CLICK_ENABLED, IQ_EMOJI, IQ_KEY, MANUAL_CARD_HOLDER,
@@ -44,6 +47,7 @@ router = Router()
 
 TELEGRAM_LIMIT = 3800
 _CTX = re.compile(r"ctx=(\d+)")
+_PROMO = re.compile(r"promo=([a-z0-9_]+)")
 
 
 # --- Matn ---------------------------------------------------------------------
@@ -125,23 +129,34 @@ async def bundle_offer(user_id: int) -> tuple[int, int] | None:
 
 
 async def referral_unlock_enabled() -> bool:
-    """Do'st taklifi orqali bepul ochish (2-bosqichda yoqiladi)."""
-    try:
-        import referral_rewards
-    except ImportError:
-        return False
+    """Do'st taklifi orqali bepul ochish (admin panelda o'chirsa bo'ladi)."""
+    import referral_rewards
     return await referral_rewards.enabled()
+
+
+async def price_for_user(user_id: int, product: str) -> tuple[int, int, dict | None]:
+    """(to'lanadigan narx, asl narx, chegirma) — promo kod chegirmasi bo'lsa, hisobga olingan."""
+    full = await pay.price_for(product)
+    discount = await promo.active_discount(user_id) if full > 0 else None
+    if discount is None:
+        return full, full, None
+    return promo.apply(full, discount["percent"]), full, discount
 
 
 async def paywall_markup(user_id: int, row: dict, lang: str):
     key, rid = row["test_key"], row["id"]
     b = InlineKeyboardBuilder()
-    b.button(text=t("btn_unlock", lang, price=money(await pay.price_for(key))), callback_data=f"rep:buy:{rid}")
+    price, _, _ = await price_for_user(user_id, key)
+    b.button(text=t("btn_unlock", lang, price=money(price)), callback_data=f"rep:buy:{rid}")
     offer = await bundle_offer(user_id)
     if offer:
         b.button(text=t("btn_bundle", lang, price=money(offer[0])), callback_data=f"rep:bundle:{rid}")
-    if await referral_unlock_enabled():
+    have = await credits.available(user_id)
+    if have:
+        b.button(text=t("btn_credit_paywall", lang, n=have), callback_data=f"cred:use:{key}:{rid}")
+    elif await referral_unlock_enabled():
         b.button(text=t("btn_ref_unlock", lang), callback_data="ref:menu")
+    compare.add_button(b, key, lang)
     b.button(text=t("btn_other_tests", lang), callback_data="nav:menu")
     b.adjust(1)
     return b.as_markup()
@@ -153,7 +168,9 @@ def full_markup(row: dict, user_id: int, lang: str):
         details = row["scales"]
         return iq.result_markup({"correct": int(details.get("correct") or 0)},
                                 int(details.get("iq") or 0), user_id, lang)
-    return kb.result_menu(row["test_key"], lang)
+    from . import growth
+    share = growth.share_url(user_id, growth.share_text(row)) if growth.bot_username() else None
+    return kb.result_menu(row["test_key"], lang, share_url=share)
 
 
 # --- Natijani yetkazish --------------------------------------------------------
@@ -194,27 +211,37 @@ def product_title(product: str, lang: str) -> str:
     return test_title(product, lang)
 
 
-async def _ctx_payment(user_id: int, product: str, price: int, rid: int) -> int:
+def _note(rid: int | str, discount: dict | None) -> str:
+    """To'lov izohi: qaysi natijadan boshlangani va (bo'lsa) promo kod."""
+    return f"ctx={rid}" + (f";promo={discount['code']}" if discount else "")
+
+
+async def _ctx_payment(user_id: int, product: str, price: int, rid: int, discount: dict | None = None) -> int:
     """Click uchun buyurtma: tegilmagan eskisi bo'lsa — o'sha, natija raqami yoziladi."""
     existing = await db.open_payment(user_id, product, price)
     payment_id = existing["id"] if existing else await db.create_payment(user_id, product, price, "click")
-    await db.set_payment_note(payment_id, f"ctx={rid}")
+    await db.set_payment_note(payment_id, _note(rid, discount))
     return payment_id
 
 
 async def payment_screen(message: Message, user_id: int, product: str, rid: int, lang: str,
                          edit: bool = True) -> None:
-    price = await pay.price_for(product)
+    price, list_price, discount = await price_for_user(user_id, product)
     if product == BUNDLE_KEY:
         offer = await bundle_offer(user_id)
-        full = offer[1] if offer else price
+        full = offer[1] if offer else list_price
         text = t("pay_screen_bundle", lang, price=money(price), full=money(full))
     else:
         text = t("pay_screen", lang, title=test_title(product, lang), price=money(price))
+    if discount:
+        # Narx qatoridan keyin (birinchi bo'sh qatordan oldin).
+        head, gap, rest = text.partition("\n\n")
+        text = head + t("pay_discount_line", lang, code=discount["code"].upper(), pct=discount["percent"],
+                        full=money(list_price), price=money(price)) + gap + rest
     b = InlineKeyboardBuilder()
     payment_id = None
     if CLICK_ENABLED:
-        payment_id = await _ctx_payment(user_id, product, price, rid)
+        payment_id = await _ctx_payment(user_id, product, price, rid, discount)
         b.button(text=t("btn_pay_click", lang, price=money(price)), url=click.payment_url(payment_id, price))
     b.button(text=t("btn_pay_card", lang), callback_data=f"rep:card:{product}:{rid}")
     balance = await wallet.balance(user_id)
@@ -267,14 +294,14 @@ async def wallet_buy(callback: CallbackQuery, product: str, raw: str, lang: str)
     if product != BUNDLE_KEY and await access.has(callback.from_user.id, product):
         await callback.answer(t("report_already", lang), show_alert=True)
         return
-    price = await pay.price_for(product)
+    price, _, discount = await price_for_user(callback.from_user.id, product)
     events.track(callback.from_user.id, "pay_clicked", product, method="wallet", amount=price)
     payment_id = await wallet.purchase(callback.from_user.id, product, price)
     if not payment_id:
         await callback.answer(t("wallet_low", lang), show_alert=True)
         return
     await callback.answer()
-    await db.set_payment_note(payment_id, f"ctx={raw}")
+    await db.set_payment_note(payment_id, _note(raw, discount))
     await after_payment(payment_id, source="wallet")
 
 
@@ -286,9 +313,9 @@ async def pay_by_card(callback: CallbackQuery, lang: str) -> None:
     _, _, product, raw = callback.data.split(":")
     if product != BUNDLE_KEY and product not in access.TESTS:
         return
-    price = await pay.price_for(product)
+    price, _, discount = await price_for_user(callback.from_user.id, product)
     payment_id = await db.awaiting_card_payment(callback.from_user.id, product, price)
-    await db.set_payment_note(payment_id, f"ctx={raw}")
+    await db.set_payment_note(payment_id, _note(raw, discount))
     events.track(callback.from_user.id, "pay_clicked", product, method="card", amount=price)
     back = f"rep:bundle:{raw}" if product == BUNDLE_KEY else f"rep:buy:{raw}"
     b = InlineKeyboardBuilder()
@@ -412,6 +439,10 @@ async def review_receipt(callback: CallbackQuery, bot: Bot) -> None:
         if not await access.confirm_optimistic(payment_id):
             await after_payment(payment_id, source="card", announce=t("receipt_approved", lang,
                                 title=product_title(row["product"], lang)))
+        else:
+            used = _PROMO.search(row.get("note") or "")
+            if used:
+                await promo.consume(user_id, used.group(1), payment_id)
         return
     revoked = await access.revoke_optimistic(user_id, payment_id) if await _was_optimistic(payment_id) else 0
     ctx = _ctx_of(row)
@@ -485,6 +516,9 @@ async def after_payment(payment_id: int, source: str = "click", announce: str | 
         return
     grant_source = "bundle" if product in (BUNDLE_KEY, "all") else source
     await access.grant(user_id, tests, grant_source, payment_id)
+    used = _PROMO.search(payment.get("note") or "")
+    if used:
+        await promo.consume(user_id, used.group(1), payment_id)
     if bot is None:
         return
     try:

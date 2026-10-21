@@ -117,14 +117,20 @@ def next_test_button(builder: InlineKeyboardBuilder, test_key: str, lang: str) -
         builder.button(text=t("btn_next_test", lang, title=title), callback_data=data)
 
 
-def result_menu(test_key: str, lang: str) -> InlineKeyboardMarkup:
+def result_menu(test_key: str, lang: str, share_url: str | None = None) -> InlineKeyboardMarkup:
+    """To'liq tahlil ostidagi tugmalar. share_url — foydalanuvchining taklif havolasi bilan."""
+    import compare
+
     builder = InlineKeyboardBuilder()
+    if share_url:
+        builder.button(text=t("btn_share", lang), url=share_url)
+    elif BOT_USERNAME:
+        share = quote(t("share_text", lang))
+        builder.button(text=t("btn_share", lang), url=f"https://t.me/share/url?url=https://t.me/{BOT_USERNAME}&text={share}")
+    compare.add_button(builder, test_key, lang)
     next_test_button(builder, test_key, lang)
     builder.button(text=t("btn_retake", lang), callback_data=f"go:{test_key}")
     builder.button(text=t("btn_other_tests", lang), callback_data="nav:menu")
-    if BOT_USERNAME:
-        share = quote(t("share_text", lang))
-        builder.button(text=t("btn_share", lang), url=f"https://t.me/share/url?url=https://t.me/{BOT_USERNAME}&text={share}")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -158,9 +164,10 @@ def admin_menu() -> InlineKeyboardMarkup:
         ("💰 Wallet / manual to‘lovlar", "adm:wallet"),
         ("👤 User / wallet boshqaruvi", "admuser:home"),
         ("🧠 IQ / premium sozlamalari", "admiq:home"),
+        ("🚀 O‘sish: taklif, promo, eslatma", "grow:home"),
     ]:
         builder.button(text=text, callback_data=data)
-    builder.adjust(2, 2, 2, 1, 1, 1, 1, 1)
+    builder.adjust(2, 2, 2, 1, 1, 1, 1, 1, 1)
     return builder.as_markup()
 
 

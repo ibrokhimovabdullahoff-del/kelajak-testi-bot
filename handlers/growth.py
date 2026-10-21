@@ -21,12 +21,16 @@ from aiogram.types import (BufferedInputFile, CallbackQuery, InputMediaPhoto, Li
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import access
+import compare
 import database as db
 import events
+import profiles
 import referrals
 import result_image
 from config import BOT_USERNAME, IQ_KEY, TIMEZONE
-from locales import t
+from locales import t, tr
+from psytests import REGISTRY
+from psytests.insights import FALLBACK
 
 log = logging.getLogger(__name__)
 router = Router()
@@ -68,9 +72,33 @@ async def _png(row: dict, name: str | None, *, full: bool = False, show_score: b
                                    name, _local_date(row["created_at"]))
 
 
+def share_text(row: dict) -> str:
+    """Sertifikat ostidagi ulashish matni: "Men «Qonuniyat ovchisi» chiqdim. Siz-chi?".
+
+    Farzand testida bolaning natijasi aytilmaydi — faqat test nomi.
+    """
+    lang, key = row["lang"], row["test_key"]
+    if key == "child":
+        return t("cert_share_child", lang, title=tr(REGISTRY["child"].title, lang))
+    try:
+        found = profiles.archetype(key, row["scales"] or {})
+    except (KeyError, IndexError, TypeError):
+        found = FALLBACK
+    if found is FALLBACK:
+        return t("cert_share_plain", lang)
+    return t("cert_share", lang, name=tr(found.name, lang))
+
+
+def share_url(user_id: int, text: str) -> str:
+    """Telegram "ulashish" oynasi — foydalanuvchining shaxsiy taklif havolasi bilan."""
+    link = referrals.link(bot_username(), user_id)
+    return f"https://t.me/share/url?url={quote(link, safe='')}&text={quote(text)}"
+
+
 def _card_markup(row: dict, show_score: bool):
     markup = InlineKeyboardBuilder()
     flag = int(show_score)
+    markup.button(text=t("btn_share", row["lang"]), url=share_url(row["user_id"], share_text(row)))
     markup.button(text=t("btn_card_download", row["lang"]), callback_data=f"card:{row['id']}:{flag}")
     if row["test_key"] == IQ_KEY:
         # Ball kamtarroq bo'lsa ham kuchli tomonini ulasha olsin — raqamsiz.
@@ -165,8 +193,14 @@ async def invite_menu(callback: CallbackQuery, lang: str) -> None:
 
 
 async def handle_start(message: Message, payload: str | None, is_new_user: bool) -> str | None:
-    """/start ref_<id> — yangi odamni taklif qilganga yozadi. Natija: referrals.record() qiymati."""
-    referrer = referrals.parse(payload)
+    """/start ref_<id> yoki cmp_<test>_<id> — yangi odamni taklif qilganga yozadi.
+
+    Solishtirish havolasi ham taklif hisoblanadi: do'st yangi bo'lsa va
+    testni tugatsa, taklif qilgan odam mukofot oladi.
+    Natija: referrals.record() qiymati.
+    """
+    cmp = compare.parse(payload)
+    referrer = cmp[1] if cmp else referrals.parse(payload)
     if referrer is None:
         return None
     outcome = await referrals.record(referrer, message.from_user.id, is_new_user)
@@ -174,3 +208,16 @@ async def handle_start(message: Message, payload: str | None, is_new_user: bool)
     if outcome == referrals.COUNTED:
         events.track(message.from_user.id, "referral_joined", referrer=referrer)
     return outcome
+
+
+async def after_test(bot, user_id: int, test_key: str, lang: str) -> None:
+    """Test tugagach: taklif qilgan odamga mukofot va (kutilgan bo'lsa) do'st bilan solishtirish."""
+    try:
+        import referral_rewards
+        await referral_rewards.on_test_completed(bot, user_id, test_key)
+    except Exception:  # noqa: BLE001 — mukofot xatosi natijani buzmasin
+        log.exception("Referral mukofoti hisoblanmadi (%s)", user_id)
+    try:
+        await compare.on_test_completed(bot, user_id, test_key, lang)
+    except Exception:  # noqa: BLE001
+        log.exception("Solishtirish ko‘rsatilmadi (%s, %s)", user_id, test_key)

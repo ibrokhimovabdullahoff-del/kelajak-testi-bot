@@ -14,6 +14,7 @@ import events
 import payments
 import perf
 import referrals
+import reminders
 import wallet
 from config import BOT_TOKEN, CLICK_ENABLED, LOG_LEVEL, PUBLIC_URL
 from handlers import build_router
@@ -26,12 +27,14 @@ COMMANDS = {
     "uz": [
         ("start", "Testlar menyusi"), ("natijalar", "Natijalarim"),
         ("iq", "IQ testi (rasmli)"), ("til", "Tilni o‘zgartirish"),
-        ("haqida", "Bot va manbalar haqida"), ("bekor", "Testni to‘xtatish"),
+        ("haqida", "Bot va manbalar haqida"), ("promo", "Promo kod kiritish"),
+        ("bekor", "Testni to‘xtatish"),
     ],
     "ru": [
         ("start", "Меню тестов"), ("natijalar", "Мои результаты"),
         ("iq", "IQ-тест (с картинками)"), ("til", "Сменить язык"),
-        ("haqida", "О боте и источниках"), ("bekor", "Остановить тест"),
+        ("haqida", "О боте и источниках"), ("promo", "Ввести промокод"),
+        ("bekor", "Остановить тест"),
     ],
 }
 
@@ -81,9 +84,12 @@ async def main() -> None:
 
     await set_commands(bot)
     await bot.delete_webhook(drop_pending_updates=True)
+    # Avtomatik eslatmalar (qat'iy chegaralar bilan, admin panelda o'chiriladi).
+    reminder_task = reminders.start(bot)
     try:
         await dispatcher.start_polling(bot)
     finally:
+        reminder_task.cancel()
         await events.flush()
         await runner.cleanup()
         await bot.session.close()

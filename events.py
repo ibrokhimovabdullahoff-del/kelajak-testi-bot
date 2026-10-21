@@ -30,6 +30,8 @@ NAMES = {
     "free_result_shown", "certificate_sent", "certificate_shared", "paywall_shown",
     "pay_clicked", "payment_success", "payment_failed", "report_unlocked",
     "referral_joined", "referral_rewarded", "promo_used", "blocked",
+    # 2-bosqich
+    "compare_shown", "reminder_sent",
 }
 
 #: Test ichidagi bosqichlar: faqat shu foizlar yoziladi (har bir javob emas).
@@ -111,8 +113,12 @@ def parse_source(payload: str | None) -> tuple[str | None, dict]:
         src_instagram       → ("instagram", {})
         src_tgads_kanal     → ("tgads_kanal", {})
         ref_123             → ("ref", {"ref": 123})
-        promo_MAKTAB5       → ("promo", {"code": "maktab5"})
+        cmp_bigfive_123     → ("cmp", {"ref": 123, "test": "bigfive"})
+        promo_MAKTAB5       → ("promo_maktab5", {"code": "maktab5"})
         (bo'sh)             → (None, {})
+
+    Promo kod manbasi kod nomi bilan saqlanadi — /stats da har bir hamkor
+    qancha odam olib kelgani alohida ko'rinadi.
     """
     raw = (payload or "").strip()
     if not raw:
@@ -123,7 +129,11 @@ def parse_source(payload: str | None) -> tuple[str | None, dict]:
         return (name or "other"), {}
     if low.startswith("ref_") and low[4:].isdigit():
         return "ref", {"ref": int(low[4:])}
+    if low.startswith("cmp_"):
+        parts = low.split("_")
+        if len(parts) == 3 and parts[2].isdigit():
+            return "cmp", {"ref": int(parts[2]), "test": _SAFE.sub("", parts[1])}
     if low.startswith("promo_"):
-        code = _SAFE.sub("", low[6:])[:32]
-        return "promo", ({"code": code} if code else {})
+        code = _SAFE.sub("", low[6:])[:24]
+        return (f"promo_{code}", {"code": code}) if code else ("promo", {})
     return "other", {}
