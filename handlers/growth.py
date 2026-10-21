@@ -19,6 +19,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, Message, User
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
+import events
 import referrals
 import result_image
 from config import BOT_USERNAME, TIMEZONE
@@ -76,6 +77,7 @@ async def send_certificate(message: Message, user: User, row: dict | None) -> No
             caption=t("card_caption", row["lang"]),
             reply_markup=markup.as_markup(),
         )
+        events.track(user.id, "certificate_sent", row["test_key"])
     except Exception as exc:  # rasm chiqmasa ham matnli natija baribir kelishi shart
         log.warning("Sertifikat yuborilmadi (%s, %s): %s", user.id, row.get("test_key"), exc)
 
@@ -105,4 +107,6 @@ async def handle_start(message: Message, payload: str | None, is_new_user: bool)
         return None
     outcome = await referrals.record(referrer, message.from_user.id, is_new_user)
     log.info("Referral %s → %s: %s", referrer, message.from_user.id, outcome)
+    if outcome == referrals.COUNTED:
+        events.track(message.from_user.id, "referral_joined", referrer=referrer)
     return outcome

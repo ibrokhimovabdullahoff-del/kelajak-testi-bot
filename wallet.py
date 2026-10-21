@@ -159,6 +159,8 @@ async def purchase(user_id: int, product: str, amount: int) -> bool:
         await conn.commit()
         # Access is cached by database.py; refresh it after a wallet purchase.
         db._drop_access_cache(user_id)
+        import events
+        events.track(user_id, "payment_success", product, method="wallet", amount=amount)
         return True
     except Exception:
         await conn.rollback()
@@ -214,6 +216,9 @@ async def manual_review(payment_id: int, admin_id: int, approve: bool) -> bool:
                 (user_id, amount, "manual_topup", f"manual:{payment_id}", f"Approved by admin {admin_id}", now),
             )
         await conn.commit()
+        if approve:
+            import events
+            events.track(user_id, "payment_success", "wallet_topup", method="manual_card", amount=amount)
         return True
     except Exception:
         await conn.rollback()

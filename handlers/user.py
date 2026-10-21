@@ -12,6 +12,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 import database as db
+import events
 import keyboards as kb
 import peers
 import report
@@ -142,10 +143,11 @@ async def start_quiz(
     message: Message, state: FSMContext, test_key: str, lang: str,
     age_group: str | None,
 ) -> None:
-    await state.update_data(test_key=test_key, age_group=age_group, answers=[])
+    await state.update_data(test_key=test_key, age_group=age_group, answers=[], ms=[])
     await state.set_state(Quiz.answering)
     # Boshlanishni yozamiz — keyin nechtasi tugatgani bilan solishtiriladi.
     await db.log_start(message.chat.id, test_key)
+    events.track(message.chat.id, "test_started", test_key)
     await parallel(
         safe_edit(message, card_text(test_key, lang)),
         message.answer(
@@ -164,6 +166,12 @@ async def cmd_start(
     command: CommandObject, is_new_user: bool = False,
 ) -> None:
     await state.clear()
+    # Qayerdan keldi: /start src_instagram, ref_<id>, promo_<kod>. Faqat
+    # birinchi manba saqlanadi; eski foydalanuvchining manbasi o'zgarmaydi.
+    source, extra = events.parse_source(command.args)
+    if is_new_user:
+        await db.set_first_source(message.from_user.id, source or "direct")
+    events.track(message.from_user.id, "start", new=is_new_user, **({"src": source} if source else {}))
     # /start ref_<id> — do'st havolasi. Til so'ralishidan oldin yoziladi:
     # "yangi odam" belgisi faqat shu birinchi xabarda to'g'ri.
     await growth.handle_start(message, command.args, is_new_user)
@@ -221,6 +229,7 @@ async def pick_language(callback: CallbackQuery, state: FSMContext) -> None:
         return
     await state.clear()
     await db.set_lang(callback.from_user.id, code)
+    events.track(callback.from_user.id, "lang_set", lang=code)
     await callback.answer(t("language_set", code))
     await show_menu(callback.message, code, callback.from_user.id)
 
@@ -286,7 +295,9 @@ async def show_card(callback: CallbackQuery, state: FSMContext, lang: str) -> No
     await state.clear()
     locked = await pay.is_locked(callback.from_user.id, test_key)
     text = card_text(test_key, lang)
+    events.track(callback.from_user.id, "test_opened", test_key)
     if locked:
+        events.track(callback.from_user.id, "paywall_shown", test_key, where="card")
         text += t("card_price", lang, price=money(await pay.price_for(test_key)))
     elif test_key in await db.free_tests():
         text += t("card_free", lang)
@@ -393,9 +404,13 @@ async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
         return
 
     answers.append(value)
-    await state.update_data(answers=answers)
-
     test = REGISTRY[test_key]
+    reached = list(data.get("ms") or [])
+    for pct in events.crossed_milestones(len(answers), test.size, reached):
+        reached.append(pct)
+        events.track(callback.from_user.id, "q_answered", test_key, pct=pct)
+    await state.update_data(answers=answers, ms=reached)
+
     if len(answers) < test.size:
         # Ikkala so'rov Telegram'ga PARALLEL ketadi. Ketma-ket yuborilganda
         # har bosish ikki marta tarmoq kutardi (~340 ms); endi bittasi.
@@ -452,6 +467,7 @@ async def finish(
         user_id, test_key, lang, age_group,
         result.get("total"), result["scales"],
     )
+    events.track(user_id, "test_completed", test_key)
     saved = await db.latest_result(user_id, test_key)
     comparison = await peers.compare(test_key, user_id, result.get("total"))
 

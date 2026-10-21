@@ -46,10 +46,11 @@ async def connect() -> aiosqlite.Connection:
 
 
 async def close() -> None:
-    global _conn
+    global _conn, _settings
     if _conn is not None:
         await _conn.close()
         _conn = None
+    _settings = None
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
@@ -205,6 +206,10 @@ async def init() -> None:
     await db.executescript(_INDEXES)
     await db.commit()
 
+    # Yangi o'zgarishlar faqat migratsiya orqali (migrations.py).
+    import migrations
+    await migrations.run(db)
+
 
 # --- Foydalanuvchilar -------------------------------------------------------
 
@@ -239,7 +244,8 @@ async def upsert_user(
     if not created:
         await db.execute(
             """
-            UPDATE users SET username = ?, full_name = ?, last_seen = ?, is_blocked = 0
+            UPDATE users SET username = ?, full_name = ?, last_seen = ?, is_blocked = 0,
+                             blocked_at = NULL
             WHERE user_id = ?
             """,
             (username, full_name, now, user_id),
@@ -270,12 +276,36 @@ async def set_lang(user_id: int, lang: str) -> None:
     await db.commit()
 
 
-async def mark_blocked(user_id: int) -> None:
+async def mark_blocked(user_id: int) -> bool:
+    """Foydalanuvchi botni bloklagan. True — holat hozir o'zgardi (hodisa bir marta yoziladi)."""
+    _seen.pop(user_id, None)  # qaytib kelsa, birinchi bosishdayoq blok olib tashlansin
     db = await connect()
-    await db.execute(
-        "UPDATE users SET is_blocked = 1 WHERE user_id = ?", (user_id,)
+    cursor = await db.execute(
+        "UPDATE users SET is_blocked = 1, blocked_at = ? WHERE user_id = ? AND is_blocked = 0",
+        (_now(), user_id),
     )
     await db.commit()
+    return cursor.rowcount == 1
+
+
+async def mark_unblocked(user_id: int) -> None:
+    db = await connect()
+    await db.execute(
+        "UPDATE users SET is_blocked = 0, blocked_at = NULL WHERE user_id = ? AND is_blocked = 1",
+        (user_id,),
+    )
+    await db.commit()
+
+
+async def set_first_source(user_id: int, source: str) -> bool:
+    """Foydalanuvchi qayerdan kelgani — faqat BIRINCHI manba yoziladi, keyin o'zgarmaydi."""
+    db = await connect()
+    cursor = await db.execute(
+        "UPDATE users SET source = ?, source_at = ? WHERE user_id = ? AND source IS NULL",
+        (source, _now(), user_id),
+    )
+    await db.commit()
+    return cursor.rowcount == 1
 
 
 async def all_user_ids(
@@ -406,14 +436,27 @@ async def stats() -> dict:
 # --- Sozlamalar (admin boshqaruvi) ------------------------------------------
 
 
+#: Sozlamalar xotirada: menyu, narx, bepul testlar har bosishda bazadan
+#: o'qilmaydi. Bot bitta jarayon va sozlama faqat set_setting() orqali
+#: yoziladi, shuning uchun kesh har doim bazaga mos.
+_settings: dict[str, str] | None = None
+
+
+async def _all_settings() -> dict[str, str]:
+    global _settings
+    if _settings is None:
+        db = await connect()
+        cursor = await db.execute("SELECT key, value FROM settings")
+        _settings = {key: value for key, value in await cursor.fetchall()}
+    return _settings
+
+
 async def get_setting(key: str, default: str | None = None) -> str | None:
-    db = await connect()
-    cursor = await db.execute("SELECT value FROM settings WHERE key = ?", (key,))
-    row = await cursor.fetchone()
-    return row[0] if row else default
+    return (await _all_settings()).get(key, default)
 
 
 async def set_setting(key: str, value: str) -> None:
+    cache = await _all_settings()
     db = await connect()
     await db.execute(
         "INSERT INTO settings (key, value) VALUES (?, ?) "
@@ -421,6 +464,7 @@ async def set_setting(key: str, value: str) -> None:
         (key, value),
     )
     await db.commit()
+    cache[key] = value
 
 
 async def disabled_tests() -> set[str]:
@@ -658,6 +702,9 @@ async def mark_paid(
         row = await get_payment(payment_id)
         if row:
             _drop_access_cache(row["user_id"])
+            import events  # aylanma importdan qochish uchun shu yerda
+            events.track(row["user_id"], "payment_success", row["product"],
+                         method=row["method"], amount=row["amount"])
         return True
     return False
 

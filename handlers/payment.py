@@ -11,6 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 import database as db
+import events
 import keyboards as kb
 from config import CLICK_ENABLED, CLICK_INVOICE, DEFAULT_PRICE, IQ_PRICE_DEFAULT, IQ_EMOJI, IQ_KEY, is_admin
 from locales import money, t, tr
@@ -80,6 +81,7 @@ def product_title(product: str, lang: str) -> str:
 
 
 async def show_paywall(message: Message, user_id: int, test_key: str, lang: str) -> None:
+    events.track(user_id, "paywall_shown", test_key, where="paywall")
     price = await price_for(test_key)
     text = t("paywall", lang, title=product_title(test_key, lang), price=money(price))
     await _edit(message, text, kb.paywall(test_key, lang, price=price))
@@ -105,6 +107,7 @@ async def start_payment(callback: CallbackQuery, state: FSMContext, lang: str) -
 
     await state.clear()
     price = await price_for(product)
+    events.track(callback.from_user.id, "pay_clicked", product, method="click", amount=price)
     existing = await db.open_payment(callback.from_user.id, product, price)
     payment_id = existing["id"] if existing else await db.create_payment(
         callback.from_user.id, product, price, "click"

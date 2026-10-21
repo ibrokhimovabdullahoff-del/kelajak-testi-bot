@@ -3,7 +3,7 @@ from aiogram import Router
 import locales_patch  # noqa: F401
 import database_attempts_patch  # noqa: F401  # one paid purchase = one completed attempt
 
-from . import admin_cms, admin, admin_premium, admin_users, growth, iq, payment, shop, user, user_cms_patch, wallet, wallet_admin, wallet_click
+from . import admin_cms, admin, admin_premium, admin_stats, admin_users, growth, iq, lifecycle, payment, shop, user, user_cms_patch, wallet, wallet_admin, wallet_click
 from .middleware import UserContext
 
 
@@ -11,7 +11,10 @@ def build_router() -> Router:
     router = Router()
     router.message.middleware(UserContext())
     router.callback_query.middleware(UserContext())
+    # Bloklash/qaytish va zararsiz xatolar — hammasidan oldin.
+    router.include_router(lifecycle.router)
     # CMS and wallet admin states must run before the general admin handlers.
+    router.include_router(admin_stats.router)
     router.include_router(admin_cms.router)
     router.include_router(wallet_admin.router)
     router.include_router(admin.router)

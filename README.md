@@ -139,6 +139,15 @@ ishlaydi. Tekshiriladi: imzo, soxta imzo rad etilishi, noto‘g‘ri summa,
 mavjud bo‘lmagan buyurtma, takroriy Complete (huquq ikki marta berilmasligi)
 va bekor qilingan to‘lov.
 
+**`phase0test.py`** — tezlik o‘lchovi va analitika: migratsiyalar (ikki
+marta ishlaganda ham xatosiz, eski ma’lumot o‘zgarmaydi), manba (deep link —
+faqat birinchisi saqlanadi), voronka hodisalari va test ichidagi 25/50/75 %
+bosqichlar, to‘lov hodisasi bir marta, bloklash/qaytish, bitta tugma
+bosishga bitta javob, `/stats` va `/perf`.
+
+**`tools/speedbench.py`** — har bir handler foydalanuvchini qancha kutdirishi
+(Telegram o‘rnida har so‘rovga 40 ms kechikishli soxta sessiya).
+
 **`migrationtest.py`** — eski bazadan ko‘chishni sinaydi va **ko‘chgandan
 keyin yangi natija yozilishini** tekshiradi. Bu alohida skript, chunki
 qolgan ikkitasi doim toza bazadan boshlaydi va eski sxemadagi muammoni
@@ -167,6 +176,12 @@ turgan botga chiqib ketgan edi.
 | `report.py` | natija matnini yig‘ish |
 | `keyboards.py` | inline tugmalar |
 | `database.py` | SQLite + eski bazadan avtomatik ko‘chirish |
+| `migrations.py` | sxema o‘zgarishlari — raqamlangan, faqat qo‘shiladi, `schema_migrations` da qayd |
+| `events.py` | analitika hodisalari (fonda, partiya bilan yoziladi) va deep link manbasi |
+| `stats.py` | `/stats`: manbalar, voronka, tushum, bloklar (60 s kesh) |
+| `perf.py` | tezlik o‘lchovi: har update uchun `perf` qatori, `/perf`, tugma javobi fonda |
+| `handlers/admin_stats.py` | `/stats` va `/perf` ekranlari |
+| `handlers/lifecycle.py` | botni bloklash/qaytish, zararsiz «message is not modified» xatosi |
 | `handlers/middleware.py` | foydalanuvchi va tilni aniqlash |
 | `handlers/user.py` | menyu, test oqimi, natija |
 | `handlers/admin.py` | statistika, to‘lovlar va ommaviy xabar |
@@ -194,12 +209,35 @@ Faqat tegishli `psytests/*.py` faylini tahrirlang. Ikkala tilni ham yozing —
 
 `/admin` (faqat `ADMIN_ID` uchun):
 
-- 📊 **Statistika** — foydalanuvchilar, bugungi qo‘shilganlar, **til bo‘yicha
-  bo‘linish**, har bir test bo‘yicha soni va o‘rtacha ball
+- 📊 **Statistika** (`/stats`) — bugun / 7 kun / 30 kun: yangi foydalanuvchilar
+  **manba bo‘yicha**, har bir test voronkasi (ochdi → boshladi → tugatdi →
+  to‘lov oynasi → to‘ladi) va test ichida qayerda to‘xtashadi (25/50/75 %),
+  tushum, sertifikatlar, taklif qilinganlar, bloklaganlar ulushi
+- ⚡️ **Tezlik** (`/perf`) — har bir buyruq/tugma uchun p50/p95/max (ms),
+  bazada va Telegram'da o‘tgan vaqt
 - 📣 **Xabar yuborish** — hammaga, faqat o‘zbekchaga yoki faqat ruschaga.
   Tasdiqlash so‘raladi, bloklaganlar avtomatik belgilanadi
 - 💳 **To‘lovlar** — tushum, oxirgi to‘lovlar, narxlarni deploy qilmasdan
   o‘zgartirish, testni vaqtincha bepul qilish, huquqni qo‘lda ochish
+
+---
+
+## Reklama havolalari (manba)
+
+Har bir reklama uchun alohida havola bering — `/stats` qaysi biri odam
+olib kelganini ko‘rsatadi:
+
+```
+https://t.me/kelajak_testi_bot?start=src_instagram
+https://t.me/kelajak_testi_bot?start=src_youtube
+https://t.me/kelajak_testi_bot?start=src_tgads_<kanal>
+https://t.me/kelajak_testi_bot?start=ref_<user_id>      (do‘st taklifi)
+https://t.me/kelajak_testi_bot?start=promo_<kod>        (hamkor kodi)
+```
+
+Foydalanuvchining **birinchi** manbasi saqlanadi va keyin o‘zgarmaydi.
+Havolasiz kelgan yangi odam — `direct`; manba yozilishidan oldin kelganlar —
+`noma’lum`.
 
 ---
 

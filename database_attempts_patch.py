@@ -6,7 +6,6 @@ separately marking the paid attempt as consumed after a completed result.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
 
 import database as db
 from config import is_admin
@@ -63,7 +62,14 @@ async def _unconsumed_payment_id(user_id: int, test_key: str) -> int | None:
 
 
 async def paid_products(user_id: int) -> set[str]:
-    """Products with at least one unused paid attempt."""
+    """Products with at least one unused paid attempt.
+
+    Cached per user in `db._access_cache`; every place that changes access
+    (payment, grant, revoke, wallet purchase, consumed attempt) drops it.
+    """
+    cached = db._access_cache.get(user_id)
+    if cached is not None:
+        return cached
     await _ensure_schema()
     conn = await db.connect()
     cur = await conn.execute(
@@ -77,7 +83,9 @@ async def paid_products(user_id: int) -> set[str]:
         """,
         (user_id,),
     )
-    return {row[0] for row in await cur.fetchall()}
+    products = {row[0] for row in await cur.fetchall()}
+    db._access_cache[user_id] = products
+    return products
 
 
 async def save_result(
@@ -127,6 +135,7 @@ async def save_result(
                 (payment_id, user_id, test_key, now),
             )
         await conn.commit()
+        db._drop_access_cache(user_id)
 
 
 # Install immediately when imported. The table is still created lazily.

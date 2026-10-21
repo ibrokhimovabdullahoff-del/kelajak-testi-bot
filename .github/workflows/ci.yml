@@ -33,3 +33,4 @@ jobs:
       - run: python contenttest.py
       - run: python iqtest.py
       - run: python growthtest.py
+      - run: python phase0test.py

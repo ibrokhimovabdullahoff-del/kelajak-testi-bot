@@ -10,13 +10,16 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 
 import content_cms as cms
 import database as db
+import events
 import payments
+import perf
 import referrals
 import wallet
 from config import BOT_TOKEN, CLICK_ENABLED, LOG_LEVEL, PUBLIC_URL
 from handlers import build_router
 from handlers.autostart_runtime import notify_paid, set_runtime
 from handlers.growth import set_bot_username
+from handlers.lifecycle import record_blocked
 from handlers.payment import set_bot
 
 COMMANDS = {
@@ -54,6 +57,9 @@ async def main() -> None:
     dispatcher = Dispatcher(storage=storage)
     dispatcher.include_router(build_router())
     set_bot(bot)
+    # Tezlik o'lchovi (har update uchun bitta "perf" qatori) va bloklaganlarni aniqlash.
+    perf.install(dispatcher, bot, watch_loop=True)
+    perf.on_blocked = record_blocked
 
     me = await bot.get_me()
     # Payment webhooks run in the same process, so give the autostart bridge
@@ -80,6 +86,7 @@ async def main() -> None:
     try:
         await dispatcher.start_polling(bot)
     finally:
+        await events.flush()
         await runner.cleanup()
         await bot.session.close()
         await db.close()

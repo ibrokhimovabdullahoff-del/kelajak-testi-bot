@@ -143,6 +143,9 @@ async def complete(request: web.Request) -> web.Response:
     reported = _as_int(data.get("error", 0))
     if isinstance(reported, int) and reported < 0:
         await db.set_status(payment_id, "cancelled")
+        import events
+        events.track(payment["user_id"], "payment_failed", payment["product"],
+                     method="click", amount=payment["amount"], code=reported)
         return _reply(data, click.CANCELLED)
 
     if payment["status"] == "paid":

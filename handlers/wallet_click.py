@@ -139,6 +139,8 @@ async def _payment_text(amount: int, payment_id: int, lang: str) -> str:
 
 
 async def _send_click_payment(target, user_id: int, amount: int, lang: str) -> None:
+    import events
+    events.track(user_id, "pay_clicked", PRODUCT, method="click", amount=amount)
     existing = await db.open_payment(user_id, PRODUCT, amount)
     payment_id = existing["id"] if existing else await db.create_payment(user_id, PRODUCT, amount, "click")
     url = click.payment_url(payment_id, amount)
@@ -164,6 +166,8 @@ async def choose_topup_method(callback: CallbackQuery, state: FSMContext, lang: 
 @router.callback_query(F.data == "wallet:manual")
 async def manual_topup(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
     await callback.answer()
+    import events
+    events.track(callback.from_user.id, "pay_clicked", "wallet_topup", method="manual_card")
     await state.set_state(TopUp.amount)
     from config import MANUAL_CARD_HOLDER, MANUAL_CARD_NUMBER
     await callback.message.edit_text(

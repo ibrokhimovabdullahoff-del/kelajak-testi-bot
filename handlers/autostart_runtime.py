@@ -65,6 +65,8 @@ async def _wallet_buy(callback: CallbackQuery, product: str, lang: str) -> None:
         )
         return
     amount = await payment.price_for(product)
+    import events
+    events.track(callback.from_user.id, "pay_clicked", product, method="wallet", amount=amount)
     if not await wallet.purchase(callback.from_user.id, product, amount):
         await callback.answer(
             "❌ Balans yetarli emas. Balansni to‘ldiring."

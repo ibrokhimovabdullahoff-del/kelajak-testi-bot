@@ -28,6 +28,7 @@ from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
+import events
 import keyboards as kb
 import peers
 import referrals
@@ -176,12 +177,14 @@ def _unavailable_text(lang: str) -> str:
 async def card(message: Message, user_id: int, lang: str, edit: bool) -> None:
     locked = await pay.is_locked(user_id, IQ_KEY)
     text = intro(lang)
+    events.track(user_id, "test_opened", IQ_KEY)
     b = InlineKeyboardBuilder()
     if answer_key() is None:
         # Kalitsiz natijani hisoblab bo'lmaydi — pul olib, noto'g'ri baho berishdan ko'ra yopamiz.
         log.error("IQ_ANSWERS o'rnatilmagan yoki noto'g'ri — IQ testi yopiq")
         text += "\n\n" + _unavailable_text(lang)
     elif locked:
+        events.track(user_id, "paywall_shown", IQ_KEY, where="card")
         price = money(await pay.price_for(IQ_KEY))
         text += "\n\n" + bi(lang, f"🔒 Narxi: <b>{price} so‘m</b>", f"🔒 Цена: <b>{price} сум</b>")
         b.button(text=bi(lang, "💳 Click orqali to‘lash", "💳 Оплатить через Click"), callback_data=f"pay:{IQ_KEY}")
@@ -296,8 +299,9 @@ async def picked_age(callback: CallbackQuery, state: FSMContext, lang: str) -> N
         return
     await state.clear()
     await state.set_state(IQState.answering)
-    await state.update_data(iq_answers=[], iq_started=time.time(), iq_age=age)
+    await state.update_data(iq_answers=[], iq_started=time.time(), iq_age=age, iq_ms=[])
     await db.log_start(user_id, IQ_KEY)
+    events.track(user_id, "test_started", IQ_KEY)
     await _retire(callback.message, bi(lang, f"{IQ_EMOJI} IQ testi boshlandi. Omad!", f"{IQ_EMOJI} IQ-тест начался. Удачи!"))
     await _show(callback.message, 0, lang, edit=False)
 
@@ -333,7 +337,11 @@ async def answer(callback: CallbackQuery, state: FSMContext, lang: str) -> None:
             await callback.answer(bi(lang, "Javob qabul qilingan ✅", "Ответ уже принят ✅"))
             return
         answers.append(letter)
-        await state.update_data(iq_answers=answers)
+        reached = list(data.get("iq_ms") or [])
+        for pct in events.crossed_milestones(len(answers), TOTAL, reached):
+            reached.append(pct)
+            events.track(callback.from_user.id, "q_answered", IQ_KEY, pct=pct)
+        await state.update_data(iq_answers=answers, iq_ms=reached)
         await callback.answer()
         if len(answers) < TOTAL:
             await _show(callback.message, len(answers), lang, edit=True)
@@ -457,6 +465,7 @@ async def _finish(callback: CallbackQuery, state: FSMContext, lang: str,
         "kinds": result["kinds"],
         "seconds": seconds,
     })
+    events.track(user_id, "test_completed", IQ_KEY)
     saved = await db.latest_result(user_id, IQ_KEY)
     comparison = await peers.compare(IQ_KEY, user_id, result["correct"])
     try:
