@@ -97,6 +97,9 @@ def question_text(test_key: str, index: int, lang: str) -> str:
         bar=report.bar(index / test.size * 100),
         text=tr(test.items[index].text, lang),
     )
+    if test.kind == "interests":
+        # Har ekranda faqat mashg'ulot nomi turadi — savolning o'zi ham ko'rinsin.
+        text += f"\n<i>{t('interest_prompt', lang)}</i>"
     line = milestone_line(index, test.size, lang)
     if line:
         head, _, rest = text.partition("</code>")

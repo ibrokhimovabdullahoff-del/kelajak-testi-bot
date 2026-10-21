@@ -231,9 +231,9 @@ ITEMS = [
          }),
     # O'zini tuta olish
     Item("nazorat", L("Katta maqsad uchun hozirgi zavqdan voz kecha olasizmi? "
-                      "Masalan, o‘yin o‘rniga darsni tugatish.",
+                      "Masalan, serial o‘rniga ishni tugatish.",
                       "Можете ли вы отказаться от удовольствия сейчас ради большой цели? "
-                      "Например, доделать уроки вместо игры."),
+                      "Например, доделать работу вместо сериала."),
          U("voz kecha olaman"), U("voz kecha olmayman")),
     Item("nazorat", L("Telefon va ijtimoiy tarmoq sizni ishdan chalg‘itadimi?",
                       "Отвлекают ли вас телефон и соцсети от работы?"),
@@ -296,8 +296,8 @@ ITEMS = [
                     "3–4 раза в неделю", "Почти каждый день"],
          }),
     # Ichki boylik
-    Item("ichki", L("Qilayotgan ishlaringiz sizga ma’noli va kerakli tuyuladimi?",
-                    "Кажутся ли вам ваши дела осмысленными и нужными?"),
+    Item("ichki", L("Qilayotgan ishlaringiz sizga ma’noli tuyuladimi?",
+                    "Кажутся ли вам ваши дела осмысленными?"),
          U("ma’noli tuyuladi"), U("ma’noli tuyulmaydi")),
     Item("ichki", L("Boringizga shukr qila olasizmi?",
                     "Умеете ли вы быть благодарным за то, что имеете?"),

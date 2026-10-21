@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 #:     python content_cms.py snapshot
 #: Migratsiya bazadagi test aynan shu nusxadagidek qolganini (admin
 #: tahrirlamaganini) tekshiradi va faqat shunda yangi matnni qo'llaydi.
-CONTENT_VERSION = 2
+CONTENT_VERSION = 3
 SNAPSHOTS = Path(__file__).parent / "psytests"
 
 

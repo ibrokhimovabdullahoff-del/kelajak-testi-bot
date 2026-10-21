@@ -130,6 +130,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "❓ <b>Savol {index} / {total}</b>\n<code>{bar}</code>\n\n<b>{text}</b>",
         "❓ <b>Вопрос {index} / {total}</b>\n<code>{bar}</code>\n\n<b>{text}</b>",
     ),
+    "interest_prompt": L("Bu mashg‘ulot sizga qanchalik qiziq?", "Насколько вам интересно это занятие?"),
     "ms_25": L("🔥 Chorak yo‘l bosildi — davom eting", "🔥 Четверть пути позади — продолжайте"),
     "ms_50": L("🔥 Yarmidan o‘tdingiz — natijangiz shakllanyapti", "🔥 Вы прошли половину — результат складывается"),
     "ms_75": L("🏁 Oz qoldi — natija tayyor bo‘lyapti", "🏁 Осталось чуть-чуть — результат почти готов"),

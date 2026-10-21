@@ -95,7 +95,7 @@ async def main() -> int:
     print("1. Serverdagi eski baza (tegilmagan)")
     old_database()
     await cms.migrate()
-    check("versiya 2 ga ko‘tarildi", version() == "2", str(version()))
+    check(f"versiya {cms.CONTENT_VERSION} ga ko‘tarildi", version() == str(cms.CONTENT_VERSION), str(version()))
     check("eski matnli IQ savollari o‘chirildi", not rows("iq"), str(len(rows("iq"))))
     for key in REGISTRY:
         got = [r["text_uz"] for r in rows(key)]
@@ -131,7 +131,7 @@ async def main() -> int:
     os.remove(DB_FILE)
     cms._initialized = False
     await cms.init()
-    check("darhol yangi versiya", version() == "2", str(version()))
+    check("darhol yangi versiya", version() == str(cms.CONTENT_VERSION), str(version()))
     check("yangi savollar yozildi", [r["text_uz"] for r in rows("child")] == code_texts["child"])
     check("IQ bazaga yozilmadi", not rows("iq"))
     snapshot = json.loads(cms.snapshot_path(cms.CONTENT_VERSION).read_text(encoding="utf-8"))
@@ -139,6 +139,35 @@ async def main() -> int:
              if not cms._untouched(key, [dict(r) for r in rows(key)], snapshot)]
     check(f"cms_seed_v{cms.CONTENT_VERSION}.json kod bilan mos (keyingi migratsiya uchun)",
           not stale, f"{stale} — `python content_cms.py snapshot` ni ishga tushiring")
+
+    print("5. Serverdagi v2 baza → yangi matn (tahrirlangan test saqlanadi)")
+    REGISTRY.update(originals)
+    if os.path.exists(DB_FILE):
+        os.remove(DB_FILE)
+    seed = json.loads(cms.snapshot_path(2).read_text(encoding="utf-8"))
+    conn = sqlite3.connect(DB_FILE)
+    conn.executescript(cms.SCHEMA)
+    for key, saved in seed.items():
+        for pos, (category, reverse, kind, text_uz, text_ru, options_uz, options_ru) in enumerate(saved):
+            conn.execute(
+                "INSERT INTO cms_questions (test_key,position,category,difficulty,enabled,reverse,kind,"
+                "text_uz,text_ru,options_uz,options_ru,correct_index,image_url,created_at,updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (key, pos, category, 1, 1, reverse, kind, text_uz, text_ru, options_uz, options_ru,
+                 None, None, "2026-10-01", "2026-10-01"))
+    conn.execute("INSERT INTO settings (key, value) VALUES ('content_version', '2')")
+    conn.execute("UPDATE cms_questions SET text_ru='Админ' WHERE test_key='career' AND position=0")
+    conn.commit()
+    conn.close()
+    await cms.migrate()
+    check(f"v2 → v{cms.CONTENT_VERSION}", version() == str(cms.CONTENT_VERSION), str(version()))
+    for key in ("bigfive", "future", "child"):
+        check(f"{key}: yangi matn qo‘llandi", [r["text_uz"] for r in rows(key)] == code_texts[key])
+    child_ru = [r["text_ru"] for r in rows("child")]
+    check("Farzand (RU): «он» o‘rniga «ребёнок»",
+          not any(" он " in f" {t} " for t in child_ru), str([t for t in child_ru if " он " in f" {t} "][:2]))
+    check("tahrirlangan Kasb testi tegilmadi", rows("career")[0]["text_ru"] == "Админ"
+          and rows("career")[5]["text_uz"] == seed["career"][5][3], rows("career")[5]["text_uz"])
 
     print()
     if FAILURES:
