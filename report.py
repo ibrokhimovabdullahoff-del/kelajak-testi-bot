@@ -404,8 +404,13 @@ def render_free(test: TestDef, result: dict, lang: str) -> str:
 
 
 def render_iq_free(correct: int, details: dict, lang: str) -> str:
-    """IQ bepul natijasi: to'g'ri javoblar va eng kuchli fikrlash turi."""
-    lines = [t("res_done", lang), "", t("iq_res_correct", lang, correct=correct, total=IQ_TOTAL), ""]
+    """IQ bepul natijasi: eng kuchli fikrlash turi va qulflangan qatorlar.
+
+    To'g'ri javoblar soni ham ko'rsatilmaydi (egasining qarori): 3/20 kabi
+    raqam odamni xafa qiladi yoki natijani oldindan aytib qo'yadi. Raqamlar —
+    taxminiy IQ ham, to'g'ri javoblar ham — faqat to'liq tahlilda.
+    """
+    lines = [t("res_done", lang), ""]
     best = profiles.iq_best(details)
     arch = profiles.archetype(IQ_KEY, details)
     if best:
@@ -432,7 +437,8 @@ def _iq_history(row: dict) -> str:
     return f"IQ {row['total']:.0f}" if row["total"] > 20 else f"{row['total']:.0f}/20"
 
 
-def render_history(rows: list[dict], lang: str, registry: dict) -> str:
+def render_history(rows: list[dict], lang: str, registry: dict, opened: set[str] | None = None) -> str:
+    """Natijalar ro'yxati. opened — to'liq tahlili ochiq testlar: IQ raqami faqat shularda."""
     if not rows:
         return t("history_empty", lang)
 
@@ -448,7 +454,8 @@ def render_history(rows: list[dict], lang: str, registry: dict) -> str:
         age = AGE_LABELS.get(row["age_group"] or "")
         parts = [f"{emoji} <b>{title}</b>"]
         if row["test_key"] == IQ_KEY and row["total"] is not None:
-            parts.append(_iq_history(row))
+            parts.append(_iq_history(row) if opened is not None and IQ_KEY in opened
+                         else t("history_iq_locked", lang))
         if age:
             parts.append(tr(age, lang))
         if row["total"] is not None and test and test.kind == "index":

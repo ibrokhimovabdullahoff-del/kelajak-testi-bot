@@ -143,6 +143,9 @@ def build_card(test_key: str, total: float | None, details: dict, lang: str, *,
 
 def _iq_card(details: dict, lang: str, *, full: bool, show_score: bool) -> Card:
     title = t("iq_title", lang)
+    if not full:
+        # Bepul sertifikatda hech qanday raqam yo'q — na IQ, na to'g'ri javoblar.
+        show_score = False
     iq = int(details.get("iq") or 0)
     best = profiles.iq_best(details)
     correct = int(details.get("correct") or 0)

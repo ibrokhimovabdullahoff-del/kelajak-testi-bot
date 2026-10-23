@@ -22,8 +22,8 @@ note = "Generated draft — needs owner review"
 # =============================================================================
 
 [tests.iq]
-free = { uz = "to‘g‘ri javoblar soni, eng kuchli tomoningiz va sertifikat", ru = "число верных ответов, ваша сильная сторона и сертификат" }
-paid = { uz = "taxminiy IQ (yoshingizga qarab, ±7), 4 ta fikrlash turi bo‘yicha tahlil va mashqlar", ru = "примерный IQ (по вашему возрасту, ±7), разбор по 4 типам мышления и упражнения" }
+free = { uz = "eng kuchli fikrlash turingiz va sertifikat", ru = "ваш самый сильный тип мышления и сертификат" }
+paid = { uz = "taxminiy IQ (yoshingizga qarab, ±7), to‘g‘ri javoblar soni, 4 ta fikrlash turi bo‘yicha tahlil, mashqlar va IQ yozilgan sertifikat", ru = "примерный IQ (по вашему возрасту, ±7), число верных ответов, разбор по 4 типам мышления, упражнения и сертификат с IQ" }
 bullets = [
   { uz = "Taxminiy IQ — tengdoshlaringizga nisbatan, ±7 oraliq bilan", ru = "Примерный IQ — относительно сверстников, с диапазоном ±7" },
   { uz = "4 ta fikrlash turi bo‘yicha natijangiz", ru = "Ваш результат по 4 типам мышления" },

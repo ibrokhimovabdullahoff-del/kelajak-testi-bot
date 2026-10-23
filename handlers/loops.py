@@ -72,11 +72,14 @@ async def credit_use(callback: CallbackQuery, lang: str) -> None:
         return
     test_key, raw = parts[2], parts[3]
     user_id = callback.from_user.id
+    unlocked = False
     if await access.has(user_id, test_key):
         await callback.answer(t("report_already", lang))
     elif not await credits.use(user_id, test_key):
         await callback.answer(t("credit_none", lang), show_alert=True)
         return
+    else:
+        unlocked = True
     row = await reports._user_row(user_id, int(raw) if raw.isdigit() else 0)
     row = row or await db.latest_result(user_id, test_key)
     title = reports.test_title(test_key, lang)
@@ -86,6 +89,8 @@ async def credit_use(callback: CallbackQuery, lang: str) -> None:
         return
     await callback.message.answer(t("credit_used", lang, title=title))
     await reports.deliver(callback.bot, user_id, row, lang)
+    if unlocked:
+        await reports.send_full_certificate(callback.bot, user_id, row)
 
 
 # --- Do'st bilan solishtirish ---------------------------------------------------

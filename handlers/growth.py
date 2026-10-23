@@ -95,12 +95,13 @@ def share_url(user_id: int, text: str) -> str:
     return f"https://t.me/share/url?url={quote(link, safe='')}&text={quote(text)}"
 
 
-def _card_markup(row: dict, show_score: bool):
+def _card_markup(row: dict, show_score: bool, full: bool = False):
     markup = InlineKeyboardBuilder()
     flag = int(show_score)
     markup.button(text=t("btn_share", row["lang"]), url=share_url(row["user_id"], share_text(row)))
     markup.button(text=t("btn_card_download", row["lang"]), callback_data=f"card:{row['id']}:{flag}")
-    if row["test_key"] == IQ_KEY:
+    if row["test_key"] == IQ_KEY and full:
+        # Raqam faqat to'liq tahlil ochiq bo'lsa chiqadi — bepul sertifikatda yashiradigan narsa yo'q.
         # Ball kamtarroq bo'lsa ham kuchli tomonini ulasha olsin — raqamsiz.
         key = "btn_card_hide" if show_score else "btn_card_show"
         markup.button(text=t(key, row["lang"]), callback_data=f"cardsc:{row['id']}:{1 - flag}")
@@ -116,16 +117,27 @@ async def send_certificate(message: Message, user: User, row: dict | None, full:
     """
     if row is None or not bot_username():
         return
+    await send_certificate_to(message.bot, user.id, user.full_name, row, full=full)
+
+
+async def send_certificate_to(bot, chat_id: int, name: str | None, row: dict, *, full: bool,
+                              caption_key: str = "card_caption") -> bool:
+    """Sertifikatni shu chatga yuboradi (to'lovdan keyin ham — u yerda xabar obyekti yo'q)."""
+    if not bot_username():
+        return False
     try:
-        png = await _png(row, user.full_name, full=full)
-        await message.answer_photo(
+        png = await _png(row, name, full=full)
+        await bot.send_photo(
+            chat_id,
             BufferedInputFile(png, filename="kelajak-sertifikat.png"),
-            caption=t("card_caption", row["lang"]),
-            reply_markup=_card_markup(row, show_score=True),
+            caption=t(caption_key, row["lang"]),
+            reply_markup=_card_markup(row, show_score=True, full=full),
         )
-        events.track(user.id, "certificate_sent", row["test_key"])
+        events.track(chat_id, "certificate_sent", row["test_key"], full=full)
+        return True
     except Exception as exc:  # rasm chiqmasa ham matnli natija baribir kelishi shart
-        log.warning("Sertifikat yuborilmadi (%s, %s): %s", user.id, row.get("test_key"), exc)
+        log.warning("Sertifikat yuborilmadi (%s, %s): %s", chat_id, row.get("test_key"), exc)
+        return False
 
 
 async def _own_row(callback: CallbackQuery, raw: str) -> dict | None:
@@ -163,7 +175,7 @@ async def toggle_score(callback: CallbackQuery, lang: str) -> None:
     await callback.message.edit_media(
         InputMediaPhoto(media=BufferedInputFile(png, filename="kelajak-sertifikat.png"),
                         caption=t("card_caption", row["lang"])),
-        reply_markup=_card_markup(row, show_score),
+        reply_markup=_card_markup(row, show_score, full),
     )
 
 

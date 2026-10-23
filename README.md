@@ -256,6 +256,13 @@ Faqat tegishli `psytests/*.py` faylini tahrirlang. Ikkala tilni ham yozing —
   rasmini yuboradi → chek **adminlarga ID bo‘yicha** tasdiqlash/rad etish
   tugmalari bilan boradi), balans yetarli bo‘lsa — balansdan.
 - To‘lovdan keyin to‘liq tahlil **shu chatda darhol** ochiladi.
+- **IQ:** bepul natijada **hech qanday raqam yo‘q** — na taxminiy IQ, na to‘g‘ri
+  javoblar soni (egasining qarori: past ball odamni xafa qiladi, raqam esa
+  natijani oldindan aytib qo‘yadi). Bepul: eng kuchli fikrlash turi va
+  raqamsiz sertifikat. To‘lovdan keyin to‘liq tahlil va — taxminiy IQ 100 va
+  undan yuqori bo‘lsa — **«IQ 112» yozilgan sertifikat o‘zi keladi**
+  («Ballni yashirish» tugmasi bilan). «📈 Natijalarim» da ham IQ raqami faqat
+  to‘liq tahlil ochiq bo‘lsa ko‘rinadi.
 - «⚡️ Chekdan oldin ochish» (admin → To‘lovlar, **odatda o‘chiq**): 5 000
   so‘mgacha chek rasmi kelishi bilan ochiladi; bir odamda bir vaqtda bitta;
   rad etilsa — yopiladi va u odamga bu imkoniyat boshqa berilmaydi.

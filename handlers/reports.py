@@ -352,9 +352,9 @@ async def receipt(message: Message, lang: str, awaiting: dict, bot: Bot) -> None
     optimistic = (await db.get_setting("optimistic_unlock", "0") == "1"
                   and amount <= OPTIMISTIC_MAX and await access.can_open_optimistically(user.id))
     if optimistic:
-        await access.grant(user.id, access.products_for(product), "card_optimistic", payment_id)
+        new = await access.grant(user.id, access.products_for(product), "card_optimistic", payment_id)
         await message.answer(t("receipt_ok_open", lang))
-        await _deliver_ctx(bot, user.id, awaiting, lang)
+        await _deliver_ctx(bot, user.id, awaiting, lang, certificate=bool(new))
     else:
         await message.answer(t("receipt_ok", lang), reply_markup=kb.back_to_menu(lang, other_tests=True))
     await notify_admins_receipt(bot, payment_id, user, product, amount, file_id, optimistic)
@@ -475,8 +475,32 @@ def _ctx_of(payment: dict) -> int:
     return int(match.group(1)) if match else 0
 
 
-async def _deliver_ctx(bot: Bot, user_id: int, payment: dict, lang: str) -> None:
-    """To'lov qaysi natijadan boshlangan bo'lsa — o'shani to'liq ko'rsatadi."""
+async def send_full_certificate(bot: Bot, user_id: int, row: dict) -> bool:
+    """To'liq tahlil endi ochildi: IQ sertifikati raqam bilan qayta keladi.
+
+    Faqat IQ va faqat taxminiy IQ 100 va undan yuqori bo'lsa — pastroq natijada
+    sertifikat bepulnikidan farq qilmaydi, ikkinchi marta yuborish shart emas.
+    """
+    from result_image import IQ_NUMBER_MIN
+
+    if row["test_key"] != IQ_KEY or int((row["scales"] or {}).get("iq") or 0) < IQ_NUMBER_MIN:
+        return False
+    if not await access.has(user_id, IQ_KEY):
+        return False
+    from . import growth
+
+    conn = await db.connect()
+    cursor = await conn.execute("SELECT full_name FROM users WHERE user_id = ?", (user_id,))
+    found = await cursor.fetchone()
+    return await growth.send_certificate_to(bot, user_id, found[0] if found else None, row,
+                                            full=True, caption_key="card_caption_paid")
+
+
+async def _deliver_ctx(bot: Bot, user_id: int, payment: dict, lang: str, certificate: bool = False) -> None:
+    """To'lov qaysi natijadan boshlangan bo'lsa — o'shani to'liq ko'rsatadi.
+
+    certificate — tahlil hozirgina ochildi: IQ bo'lsa, raqamli sertifikat ham yuboriladi.
+    """
     product = payment["product"]
     row = await _user_row(user_id, _ctx_of(payment))
     if row is None and product in access.TESTS:
@@ -486,6 +510,8 @@ async def _deliver_ctx(bot: Bot, user_id: int, payment: dict, lang: str) -> None
             await bot.send_message(user_id, t("pay_no_result", lang), reply_markup=kb.start_test(product, lang))
         return
     await deliver(bot, user_id, row, lang)
+    if certificate:
+        await send_full_certificate(bot, user_id, row)
 
 
 async def after_payment(payment_id: int, source: str = "click", announce: str | None = None) -> None:
@@ -515,7 +541,7 @@ async def after_payment(payment_id: int, source: str = "click", announce: str | 
     if not tests:
         return
     grant_source = "bundle" if product in (BUNDLE_KEY, "all") else source
-    await access.grant(user_id, tests, grant_source, payment_id)
+    new = await access.grant(user_id, tests, grant_source, payment_id)
     used = _PROMO.search(payment.get("note") or "")
     if used:
         await promo.consume(user_id, used.group(1), payment_id)
@@ -526,7 +552,7 @@ async def after_payment(payment_id: int, source: str = "click", announce: str | 
             announce = (t("pay_bundle_ok", lang) if product in (BUNDLE_KEY, "all")
                         else t("pay_report_ok", lang, title=product_title(product, lang)))
         await bot.send_message(user_id, announce)
-        await _deliver_ctx(bot, user_id, payment, lang)
+        await _deliver_ctx(bot, user_id, payment, lang, certificate=bool(new))
     except Exception as exc:  # noqa: BLE001 — huquq baribir saqlangan, "Natijalarim" da ochiladi
         log.warning("To‘lovdan keyin natija yetmadi (%s): %s", user_id, exc)
 

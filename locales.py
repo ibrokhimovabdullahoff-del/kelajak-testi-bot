@@ -374,8 +374,15 @@ STRINGS: dict[str, dict[str, str]] = {
     ),
     # --- Natija sertifikati (rasm) ----------------------------------------
     "iq_title": L("Premium IQ testi", "Премиум IQ-тест"),
+    "card_caption_paid": L(
+        "🏅 <b>Sertifikatingiz yangilandi — endi IQ bilan!</b>\n\n"
+        "Stories’ga joylang va do‘stlaringizni ham sinab ko‘ring 👇",
+        "🏅 <b>Ваш сертификат обновлён — теперь с IQ!</b>\n\n"
+        "Выложите в сторис и бросьте вызов друзьям 👇",
+    ),
+    "history_iq_locked": L("IQ — to‘liq tahlilda 🔒", "IQ — в полном разборе 🔒"),
     "card_kicker": L("NATIJA SERTIFIKATI", "СЕРТИФИКАТ РЕЗУЛЬТАТА"),
-    "card_label_iq": L("Taxminiy IQ", "Примерный IQ"),
+    "card_label_iq": L("IQ", "IQ"),
     "card_label_strength": L("Eng kuchli tomoningiz", "Ваша сильная сторона"),
     "card_label_type": L("Shaxsiyat turingiz", "Ваш тип личности"),
     "card_label_child": L("Farzandingizning kuchli tomoni", "Сильная сторона ребёнка"),
@@ -542,7 +549,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "{emoji} Umumiy indeks: <b>{score} — {band}</b>",
         "{emoji} Общий индекс: <b>{score} — {band}</b>",
     ),
-    "res_iq_locked": L("🧠 Taxminiy IQ — ░░░░░ 🔒", "🧠 Примерный IQ — ░░░░░ 🔒"),
+    "res_iq_locked": L("🧠 Taxminiy IQ’ingiz hisoblandi — ░░░░░ 🔒", "🧠 Ваш примерный IQ рассчитан — ░░░░░ 🔒"),
     "res_iq_locked_kinds": L(
         "📊 4 ta fikrlash turi bo‘yicha natija — ░░░░░ 🔒",
         "📊 Результат по 4 типам мышления — ░░░░░ 🔒",

@@ -268,16 +268,24 @@ async def main() -> int:
     CALLS.clear()
     await solve(dp, bot, answers)
     result = last_text()
-    check("to‘g‘ri javoblar 18 / 20", "18 / 20" in result, result[:200])
+    check("bepul natijada to‘g‘ri javoblar soni yo‘q (18 / 20 faqat to‘liq tahlilda)",
+          "18 / 20" not in result and "18/20" not in result, result[:200])
     expected = estimate_iq(18, "i_18_29", [])
     print("5a. Bepul natija va to‘lov")
     check("bepul natija: to‘g‘ri javoblar va eng kuchli tur", "Test yakunlandi" in result
           and "Eng kuchli tomoningiz" in result, result[:300])
-    check("taxminiy IQ qulflangan (raqam yo‘q)", "Taxminiy IQ — ░░░░░ 🔒" in result
+    check("taxminiy IQ qulflangan: «hisoblandi», raqam yo‘q", "Taxminiy IQ’ingiz hisoblandi — ░░░░░ 🔒" in result
           and f"≈ {expected['iq']}" not in result, result)
     cert_photo = next(m for n, m in CALLS if n == "SendPhoto" and "sertifikat" in (m.caption or ""))
     cert_buttons = [b.callback_data or "" for row in cert_photo.reply_markup.inline_keyboard for b in row]
-    check("sertifikatda «Ballni yashirish» tugmasi", any(c.startswith("cardsc:") for c in cert_buttons), str(cert_buttons))
+    check("bepul sertifikatda «Ballni yashirish» yo‘q (yashiradigan raqam yo‘q)",
+          not any(c.startswith("cardsc:") for c in cert_buttons), str(cert_buttons))
+    free_part = list(CALLS)
+    CALLS.clear()
+    await press(dp, bot, "nav:history")
+    check("Natijalarim: to‘lamaguncha IQ raqami yo‘q", "IQ — to‘liq tahlilda 🔒" in last_text()
+          and f"≈{expected['iq']}" not in last_text() and "18/20" not in last_text(), last_text())
+    CALLS[:] = free_part  # quyidagi tekshiruvlar bepul natija xabari bo'yicha davom etadi
     share = [b.url for row in cert_photo.reply_markup.inline_keyboard for b in row if b.url]
     check("sertifikat ostida ulashish: shaxsiy taklif havolasi bilan",
           bool(share) and "start%3Dref_" in share[0], str(share))
@@ -296,6 +304,17 @@ async def main() -> int:
     result = last_text()
     check("to‘lovdan keyin to‘liq tahlil shu chatda", "To‘lov qabul qilindi" in "\n".join(
         m.text or "" for n, m in CALLS if n == "SendMessage"), str([n for n, _ in CALLS]))
+    paid_cert = [m for n, m in CALLS if n == "SendPhoto" and "IQ bilan" in (m.caption or "")]
+    check("to‘lovdan keyin IQ yozilgan sertifikat o‘zi keldi (IQ ≥ 100)",
+          expected["iq"] < 100 or (len(paid_cert) == 1 and any(
+              (b.callback_data or "").startswith("cardsc:") for r in paid_cert[0].reply_markup.inline_keyboard for b in r)),
+          f"iq={expected['iq']} {[n for n, _ in CALLS]}")
+    order_paid = [n for n, m in CALLS if n in ("SendMessage", "SendPhoto")]
+    check("tartib: tasdiq → to‘liq tahlil → sertifikat", expected["iq"] < 100 or order_paid[-1] == "SendPhoto",
+          str(order_paid))
+    await autostart_runtime.notify_paid(pay_row["id"])
+    check("Click ikkinchi marta xabar bersa — sertifikat takrorlanmaydi",
+          len([m for n, m in CALLS if n == "SendPhoto" and "IQ bilan" in (m.caption or "")]) == len(paid_cert))
     CALLS[:0] = free_calls  # tartib tekshiruvi uchun bepul qism ham ro'yxatda qolsin
     check(f"taxminiy IQ ≈ {expected['iq']} ko‘rsatildi", f"Taxminiy IQ: <b>≈ {expected['iq']}</b>" in result, result[:200])
     check("IQ oralig‘i ko‘rsatildi", f"{expected['low']}–{expected['high']}" in result, result[:260])

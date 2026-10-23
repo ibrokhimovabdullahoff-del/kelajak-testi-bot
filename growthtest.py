@@ -126,14 +126,19 @@ def card_rules() -> None:
     free = ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "ru")
     check("bepul sertifikatda taxminiy IQ yo‘q (u — to‘liq tahlilda)", not free.number and "124" not in str(free),
           str(free))
-    check("to‘g‘ri javoblar alohida ko‘rsatkich sifatida",
-          ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "uz").stat
+    check("to‘liq tahlilda to‘g‘ri javoblar alohida ko‘rsatkich sifatida",
+          ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "uz", full=True).stat
           == ("To‘g‘ri javoblar", "17 / 20"))
+    check("bepul sertifikatda to‘g‘ri javoblar ham yo‘q",
+          ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "uz").stat is None
+          and not re.search(r"\d", str(ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20,
+                                                                "kinds": kinds}, "uz").lines)))
+    check("to‘liq tahlilli sertifikat yorlig‘i — «IQ» («Taxminiy» so‘zisiz)", high.label == "IQ", high.label)
     hidden = ri.build_card("iq", 17, {"iq": 124, "correct": 17, "total": 20, "kinds": kinds}, "uz",
                            full=True, show_score=False)
     check("«Ballni yashirish»: hech qanday raqam yo‘q", not hidden.number and hidden.stat is None
           and not re.search(r"\d", hidden.headline + " ".join(hidden.lines)), str(hidden))
-    low_scored = ri.build_card("iq", 9, {"iq": 92, "correct": 9, "total": 20, "kinds": kinds}, "uz")
+    low_scored = ri.build_card("iq", 9, {"iq": 92, "correct": 9, "total": 20, "kinds": kinds}, "uz", full=True)
     check("yarmidan kam — ball katta raqam emas, oddiy qator",
           low_scored.stat is None and any("9\u00a0tasini" in line for line in low_scored.lines), str(low_scored))
     parent = ri.build_card("child", 80, {k: 90 for k in REGISTRY["child"].scales}, "uz")

@@ -237,7 +237,8 @@ async def _recent_results(user_id: int) -> list[dict]:
 
 async def history_screen(user_id: int, lang: str) -> tuple[str, object]:
     rows = await db.user_history(user_id)
-    text = report.render_history(rows, lang, REGISTRY)
+    opened = {key for key in access.TESTS if await access.has(user_id, key)}
+    text = report.render_history(rows, lang, REGISTRY, opened)
     b = InlineKeyboardBuilder()
     if rows:
         text += "\n\n" + t("history_hint", lang)
